@@ -2,3 +2,5 @@ root password is blank
 Thermostat user is "monitor" password is "password"
 
 CREATE TABLE tempdat (tdate DATE, ttime TIME, zone TEXT, temperature NUMERIC, extra TEXT);
+
+CREATE TABLE pressdat (tdate DATE, ttime TIME, zone TEXT, pressure NUMERIC);

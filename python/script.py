@@ -33,6 +33,9 @@ client2.setCredentials("webiopi", "raspberry")
 remoteTemp2 = Temperature(client2, "temp0")
 
 
+connection = pymysql.connect(host='localhost', user='monitor', passwd='password', db='temps', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
+
+
 class ThermostatParameters:
     #def __init__(self):
     tempORtime = datetime.datetime.now()    
@@ -68,6 +71,10 @@ def setup():
     GPIO.setFunction(HEATER, GPIO.OUT)
     GPIO.setFunction(FAN, GPIO.OUT)
     GPIO.setFunction(AC, GPIO.OUT)
+    
+    
+    # Connect to the database
+    
     
 #    file_name = 'test.csv'
 #    my_logger.setLevel(logging.INFO)
@@ -164,13 +171,20 @@ def loop():
     elif(fset == 0):
         GPIO.digitalWrite(FAN, GPIO.LOW)    
        
-    localPressure = tmp.getPascal()
+    localPressure = tmp.getPascalAtSea()
     
     logline("{0!s},{1!s},{2!s},{3!s},{4!s}, {5!s}".format(LocalTemp, RemTemp1, RemTemp2, CurrentState.fanon, heaterstate, localPressure))
-    
+    logTemplineDB(sensorlookup[0], LocalTemp)
+    logTemplineDB(sensorlookup[1], RemTemp1)
+    logTemplineDB(sensorlookup[2], RemTemp2)
+    logPresslineDB(sensorlookup[0], localPressure)
+      
     graphfilecount = 0
     webiopi.sleep(10)
   
+
+def destroy():
+    connection.close()
 
 def loadProgramFromFile():
     global program
@@ -214,6 +228,38 @@ def logline(linetolog):
     #print(locale.getlocale())
     f.write(send)
     f.close
+
+
+
+def logTemplineDB(location, temp):    
+    global connection
+
+    with connection.cursor() as cursor:
+            # Create a new record
+            #sql = "INSERT INTO `users` (`email`, `password`) VALUES (%s, %s)"
+        cursor.execute ("INSERT INTO tempdat values(CURRENT_DATE(), NOW(), %s, %s, 'empty')", (location, temp))
+            #cursor.execute ("INSERT INTO tempdat values(CURRENT_DATE(), NOW(), 'greenhouse', 25.7)")
+            #cursor.execute ("INSERT INTO tempdat values(CURRENT_DATE(), NOW(), 'garage', 18.2)")
+        # connection is not autocommit by default. So you must commit to save
+        # your changes.
+    connection.commit()
+#    finally:
+#        connection.close()
+
+def logPresslineDB(location, pressure):    
+    global connection
+
+    with connection.cursor() as cursor:
+            # Create a new record
+            #sql = "INSERT INTO `users` (`email`, `password`) VALUES (%s, %s)"
+        cursor.execute ("INSERT INTO pressdat values(CURRENT_DATE(), NOW(), %s, %s)", (location, pressure))
+            #cursor.execute ("INSERT INTO tempdat values(CURRENT_DATE(), NOW(), 'greenhouse', 25.7)")
+            #cursor.execute ("INSERT INTO tempdat values(CURRENT_DATE(), NOW(), 'garage', 18.2)")
+        # connection is not autocommit by default. So you must commit to save
+        # your changes.
+    connection.commit()
+
+
 
 def printProram(prg):
     print(prg.TimeActiveFrom, prg.MasterTempSensor, prg.TempSetPoint, prg.fanon)
