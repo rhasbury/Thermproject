@@ -152,7 +152,10 @@
 					
                 }
 
-
+		function fan_override(){
+			
+			webiopi().callMacro("fan_change", $("#overridetime").val());
+		}
 		function toggleMode(){			
 				webiopi().callMacro("setMode");				
 		}
@@ -381,7 +384,7 @@
 		</tr>
 		<tr>
 				<td><button id="bt_heater"/> </td>				
-				<td><button id="bt_fanstate"/></td>
+				<td><button id="bt_fanstate" onclick="fan_override()"/></td>
 				<td><button id="bt_ac"/></td>
 		</tr>
 		<tr>

@@ -1,7 +1,5 @@
 import webiopi
 import datetime
-import logging
-import logging.handlers
 import pymysql.cursors
 #import locale
 from webiopi.clients import *
@@ -43,7 +41,7 @@ class ThermostatParameters:
     tempORlength = 1
     tempORtemp = 20
     fanORtime = datetime.datetime.now()
-    fanORactive = False
+    fanORactive = 0
     fanORlength = 1
     fanORstate = 0
     mode = 1 # 1 = heat, 2 = cool, 0 = off 
@@ -90,7 +88,6 @@ def setup():
 
 # loop function is repeatedly called by WebIOPi 
 def loop():
-    global my_logger    
     global CurrentState
     global Tparams
     global graphfilecount
@@ -103,13 +100,15 @@ def loop():
     
     if (datetime.datetime.utcnow() - Tparams.tempORtime > datetime.timedelta(minutes=Tparams.tempORlength)):        
         Tparams.tempORactive = False
-       
-      
+        
+        
+    if (datetime.datetime.utcnow() - Tparams.fanORtime > datetime.timedelta(minutes=Tparams.fanORlength)):        
+        Tparams.fanORactive = 0
+            
     updateProgram()
 
     tmp = webiopi.deviceInstance("bmp")
 #    mcp = webiopi.deviceInstance("piface") # retrieve the device named "mcp" in the configuration 
-
 
 # Read local temperature    
     LocalTemp = tmp.getCelsius()
@@ -140,7 +139,7 @@ def loop():
         tset = CurrentState.TempSetPoint
   
     
-    if(Tparams.fanORactive):
+    if(Tparams.fanORactive == 1):
         fset = Tparams.fanORstate
     else:
         fset = CurrentState.fanon    
@@ -345,6 +344,17 @@ def temp_change(amount, length):
     Tparams.tempORlength = int(length)
     Tparams.tempORactive = True    
     
+
+@webiopi.macro
+def fan_change(length):
+    global CurrentState        
+    global Tparams
+    if(Tparams.fanORactive == 0):
+        Tparams.fanORstate = CurrentState.fanon 
+    Tparams.fanORstate = (Tparams.fanORstate + 1) % 2    
+    Tparams.fanORtime = datetime.datetime.utcnow() 
+    Tparams.fanORlength = int(length)
+    Tparams.fanORactive = 1    
 
 @webiopi.macro
 def getMode():
