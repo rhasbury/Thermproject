@@ -1,0 +1,521 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta name="viewport">
+    <title>WebIOPi | Heater Control</title>
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+	<script src="http://code.highcharts.com/highcharts.js"></script>
+	<script type="text/javascript" src="/webiopi.js"></script>
+	<script type="text/javascript">
+        // declare few global variables
+        var tmp;
+        var mcp;
+        var heater = 17;
+		var fan = 27;
+		var ac = 22;
+		var chart;
+		var currenttemp = 0;
+		var programlength = 0; 
+		var sensorlookup = ["Living Room", "Bedroom", "Basement" ];
+		
+        webiopi().ready(init);
+        
+        // defines function passed to webiopi().ready()
+ 
+
+		function init() {
+                // setup helpers to remotely control devices  
+				tmp = new Temperature("bmp");				
+
+				// initialize program display select boxes
+				var s = $('#pg_time_hr').empty()[0];
+				for (var i = 0; i < 24; i++) {					
+					s[i] = new Option(i, i);
+					}
+				s = $('#pg_time_min').empty()[0];
+				for (var i = 0; i < 60; i++) {				
+					s[i] = new Option(i, i);
+					}
+
+				s = $('#pg_temp').empty()[0];
+				for (var i = 0; i < 40; i++) {				
+					s[i] = new Option(i, i);
+					}
+					
+				prg_display_index(0);
+
+
+				
+                // automatically refresh UI each seconds
+                setInterval(updateUI, 1000);
+				//webiopi().setFunction(heater, "OUT")		
+				//webiopi().setFunction(ac, "OUT")		
+				webiopi().callMacro("getCurrentState", [], updateThermDisplay);	
+
+
+				// Pre load chart and set update interval
+				webiopi().callMacro("send_graph_data", [], chart_fill);	
+				setInterval(updateChart, 3000);			
+			
+        }
+
+        // function called through setInterval
+        function updateUI() {
+                // call Temperature.getCelsius REST API
+                // result is asynchronously displayed using the callback
+				tmp.getCelsius(temperatureCallback);    
+  
+				webiopi().digitalRead(heater, gpioPortDigitalCallback);
+				webiopi().digitalRead(ac, gpioPortDigitalCallback);
+				
+                // call getMode macro
+                webiopi().callMacro("getMode", [], modeCallback);
+				webiopi().callMacro("getCurrentState", [], updateThermDisplay);
+				
+							
+        }       
+
+        // callback function used to display the temperature
+        function temperatureCallback(sensorName, data) {                
+				// jQuery functions
+				currenttemp = parseFloat(data);
+                $("#bt_tempDisplay").text(data + " C");
+        }
+        
+        // callback function used to display MCP digital state
+		// Don't know why the fuck this needs to be called but IO won't update if it's left out... 
+        function gpioPortDigitalCallback(gpioName, channel, value) {
+        }
+
+        // callback function used to display current heater mode
+        function modeCallback(macroName, args, data) {
+                $("#bt_mode").text(data);
+        }
+		
+		function setCallback(macroName, args, data) {
+				//$("#bt_mode").text(data);
+        }
+		
+			
+		
+        var updateThermDisplay = function(macro, args, response) {
+                    var data = response.split(";");
+                    var heaterOut = webiopi().digitalRead(heater);
+					var acOut = webiopi().digitalRead(ac);
+					
+					if (heaterOut == "0") {
+                        // jQuery functions
+                        $("#bt_heater").attr("class", "OFF");
+						$("#bt_heater").text("Heater OFF");
+					}
+					else if (heaterOut == "1") {
+                        $("#bt_heater").attr("class", "ON");
+						$("#bt_heater").text("Heater ON");
+					}
+					
+					if (acOut == "0") {
+                        // jQuery functions
+                        $("#bt_ac").attr("class", "OFF");
+						$("#bt_ac").text("AC OFF");
+					}
+					else if (acOut == "1") {
+                        $("#bt_ac").attr("class", "ACON");
+						$("#bt_ac").text("AC ON");
+					}								
+					
+                    $("#dispTime").val(data[0]+":"+data[1]);
+					$("#dispSensor").val(data[2]);
+					$("#bt_sensorid").text(data[2]);
+					$("#dispTempSet").val(data[3]);
+					$("#dispFan").val(data[4]);		
+					$("#dispExp").val(data[5]);	
+					if(data[5] == "No override"){
+						$("#bt_override").attr("class", "OFF");
+						$("#bt_override").text(" ");						
+						$("#temp_setpoint").text(data[3]);	
+						}
+					else{
+						$("#bt_override").attr("class", "ON");
+						$("#bt_override").text(data[5]);
+						$("#temp_setpoint").text(data[6]);	
+						}					
+			
+					if(data[4] == "0"){
+						$("#bt_fanstate").attr("class", "OFF");
+						$("#bt_fanstate").text("Fan OFF ");						
+						}
+					else{
+						$("#bt_fanstate").attr("class", "FANON");
+						$("#bt_fanstate").text("Fan ON ");	
+						}										
+					
+                }
+
+
+		function toggleMode(){			
+				webiopi().callMacro("setMode");				
+		}
+		
+		function temp_up() {				
+				var tempchange = ["1", $("#overridetime").val()];
+				webiopi().callMacro("temp_change", tempchange);
+		}
+		
+		function temp_down() {		
+				var tempchange = ["-1", $("#overridetime").val()];		
+				webiopi().callMacro("temp_change", tempchange);
+		}
+
+			function pg_prev(){
+				prg_display_index(parseInt($("#pg_index").val())-1);			
+			}
+
+			
+			function pg_next(){
+				prg_display_index(parseInt($("#pg_index").val())+1);
+			}
+				
+			function pg_sensorlookup(){
+					$("#pg_sensor").val(sensorlookup[parseInt($("#pg_sensor").val())]);
+					//$("#pg_sensor").val(sensorlookup[1]);
+					
+			}
+				
+			function pg_new(){
+				$("#pg_index").val(programlength);					
+			}
+
+			function pg_save(){
+				var Tstring = $("#pg_time_hr").val() + ":" + $("#pg_time_min").val();
+				var prgtoadd = [$("#pg_index").val(), Tstring, $("#pg_sensor").val(), $("#pg_temp").val(), $("#pg_fanon").val() ]			
+				webiopi().callMacro("setProgram", prgtoadd);			
+			
+			}
+		
+			function prg_display_index(index){
+				webiopi().callMacro("getProgram", index, prg_display_callback);		
+		
+			}
+		
+			function prg_display_callback(macro, args, response){
+				var data = response.split(";");					
+				$("#pg_time_hr").val(parseInt(data[0]));			
+				$("#pg_time_min").val(parseInt(data[1]));
+				$("#pg_sensor").val(parseInt(data[2]));
+				$("#pg_temp").val(parseInt(data[3]));		
+				$("#pg_fanon").val(parseInt(data[4]));		
+				$("#pg_index").val(parseInt(data[6]));	
+				$("#pg_textSensor").val(sensorlookup[ parseInt(data[2])]);	
+				programlength = parseInt(data[5]);
+			}		
+
+
+					
+				
+				
+			
+			
+		
+		
+			// Charting code starts here
+
+		
+		
+		   // Configure the plot
+			$(document).ready(function() {
+			   chart = new Highcharts.Chart({
+				chart: {
+					renderTo: 'container',
+					defaultSeriesType: 'spline',
+						},
+						title: {
+							text: 'Temperature Plot'
+						},
+						xAxis: {
+							type: 'datetime',
+		//					tickPixelInterval: 150,
+							maxZoom: 20 * 1000,
+							title: {
+							   text: 'Time',
+							   margin: 15
+							}
+						},
+						yAxis: {
+							minPadding: 0.2,
+							maxPadding: 0.2,
+							title: {
+								text: 'Temperature \u00B0C',
+								margin: 15
+							}
+						},
+						series: [{
+							name: 'Living Room',
+							data: []
+						},
+						{
+							name: 'Bedroom',
+							data: []
+						},
+						{
+							name: 'Basement',
+							data: []
+						}
+						
+						]
+						});        
+					});		
+
+			function updateChart(){	
+					webiopi().callMacro("send_graph_points", [], updateChartpointsCallback);	
+	
+			}
+			
+			function updateChartpointsCallback(macro, args, response){
+												
+					parts = response.split(",");
+				
+					stime = parts[0].substring(2);
+					
+					ptime = new Date(stime);							
+														
+					point1 = [ Date.UTC(ptime.getFullYear(), ptime.getMonth(), ptime.getDate(), ptime.getHours(), ptime.getMinutes(), ptime.getSeconds()), parseFloat(parts[1]) ];				
+					point2 = [ Date.UTC(ptime.getFullYear(), ptime.getMonth(), ptime.getDate(), ptime.getHours(), ptime.getMinutes(), ptime.getSeconds()), parseFloat(parts[2]) ];				
+					point3 = [ Date.UTC(ptime.getFullYear(), ptime.getMonth(), ptime.getDate(), ptime.getHours(), ptime.getMinutes(), ptime.getSeconds()), parseFloat(parts[3]) ];				
+								
+					chart.series[0].addPoint(point1);	
+					chart.series[1].addPoint(point2);
+					chart.series[2].addPoint(point3); 
+			}
+			
+			
+			function chart_fill(macro, args, response) {								
+				
+				lines = response.split(";");
+				
+				for(i=1;i<(lines.length-1);i++){
+					parts = lines[i].split(",");
+					
+					stime = parts[1].substring(2);
+					
+					ptime = new Date(stime);							
+					
+					
+										
+					point1 = [ Date.UTC(ptime.getFullYear(), ptime.getMonth(), ptime.getDate(), ptime.getHours(), ptime.getMinutes(), ptime.getSeconds()), parseFloat(parts[2]) ];				
+					point2 = [ Date.UTC(ptime.getFullYear(), ptime.getMonth(), ptime.getDate(), ptime.getHours(), ptime.getMinutes(), ptime.getSeconds()), parseFloat(parts[3]) ];				
+					point3 = [ Date.UTC(ptime.getFullYear(), ptime.getMonth(), ptime.getDate(), ptime.getHours(), ptime.getMinutes(), ptime.getSeconds()), parseFloat(parts[4]) ];				
+									
+					
+					chart.series[0].addPoint(point1);	
+					chart.series[1].addPoint(point2);
+					chart.series[2].addPoint(point3); 
+				}
+			
+					
+			}
+
+		
+
+		
+
+		
+			
+				
+        
+   </script>   
+   	<script type="text/javascript">    
+        
+	
+	</script>
+   
+           <style type="text/css">
+                button {
+                        display: block;
+                        margin: 5px 5px 5px 5px;
+                        width: 170px;
+                        height: 45px;
+                        font-size: 24pt;
+                        font-weight: bold;
+                        color: gray;
+                }
+                
+                button.OFF {
+                        background-color: Black;
+						font-size: 16pt;
+                }
+                
+                button.ON {
+                        background-color: Red;
+						color: black;
+						font-size: 16pt;
+                }
+				
+				button.ACON {
+						font-size: 16pt;						
+						color: black;
+						background-color: Blue;
+				}
+				
+				button.FANON {
+						font-size: 16pt;						
+						color: black;
+						background-color: Green;
+				}
+				
+
+				button.SEN {
+						font-size: 12pt;						
+						color: black;
+						background-color: Grey;
+				}
+
+				
+        </style>
+</head>
+<body>
+    <div align="center">
+	<table style="width:30%">
+		<tr>
+				<th colspan="3">Status</th>
+		</tr>
+		<tr>
+				<td><button id="bt_heater"/> </td>				
+				<td><button id="bt_fanstate"/></td>
+				<td><button id="bt_ac"/></td>
+		</tr>
+		<tr>
+				<th>Active Sensor</th>
+				<th>Temperature</th>
+				<th>Mode</th>
+		</tr>		
+		<tr>
+				<td><button id="bt_sensorid" class="SEN"/></td>
+				<td><button id="bt_tempDisplay"/></td>
+				<td><button id="bt_mode" onclick="toggleMode()"/></td>
+		</tr>
+		
+		<tr>
+			<th> Override </th>
+			<th> Temp Set Point </th>
+			<th> Override </th>
+		</tr>
+		<tr>								
+				<td><button id="temp_up" onclick="temp_up()">UP</button></td>
+				<td><button id="temp_setpoint"/></td>
+				<td><button id="temp_down" onclick="temp_down()">DOWN</button></td>
+		</tr>
+		<tr>
+				<th>Select Override Length</th>
+				<th colspan="2">Overide expiry</th>				
+		</tr>	
+		<tr>	
+		<td align="center">
+				<select id="overridetime">
+				<option value="30">30 Mins</option>
+				<option value="1">1 Mins</option>
+				<option value="10">10 Mins</option>				
+				<option value="60">1 Hour</option>
+				<option value="120">2 Hours</option>
+				<option value="240">4 Hours</option>
+				</select>
+			</td>
+							
+				<td align="center" colspan="2"><button id="bt_override"/></td>
+				<td align="center"/>
+
+				
+														
+		</tr>
+		</table>
+		<table border="1" style="width:30%">
+		<tr>
+				<th colspan="2">Current Program Data</th>
+		</tr>
+		
+		<tr>
+				<td>Time :</td>	<td><input type="text" id="dispTime" /></td>
+		</tr>
+		<tr>
+				<td>Active Sensor : </td><td><input type="text" id="dispSensor" /></td>
+		</tr>
+		<tr>
+				<td>Temp Set Point : </td><td><input type="text" id="dispTempSet" /></td>
+		</tr>
+		<tr>
+				<td>Fan State : </td><td><input type="text" id="dispFan" /></td>
+		</tr>
+		<tr>	
+				<td>Override expiring in : </td><td><input type="text" id="dispExp" /></td>
+		</tr>
+		<tr>	
+				<td>Debug Data : </td><td><input type="text" id="debugDisp" /></td>
+		</tr>
+		
+	</table>
+	
+	<div id="container" style="width:60%; height:400px;"></div>
+		<table border="1" style="width:30%">
+		<tr>
+				<th colspan="2">Edit Program Data</th>
+		</tr>
+		<tr>
+				<td>Temp Set Point : </td><td>				
+				<select id="pg_temp">
+				<option value="10">10</option>
+				</select>
+				</td>
+		</tr>
+		<tr>
+				<td>Time :</td>	
+				<td>				
+				<select id="pg_time_hr">			
+				<option value="10">10</option>
+				</select>				
+				<select id="pg_time_min">		
+				<option value="10">10</option>				
+				</select>
+				</td>							
+		</tr>
+		<tr>
+				<td>Active Sensor : </td><td>
+				<select id="pg_sensor" onchange="pg_sensorlookup">
+				<option value="0">Living Room</option>
+				<option value="1">Bedroom</option>
+				<option value="2">Basement</option>
+				</select>
+				</td>
+		</tr>
+
+		<tr>
+				<td>Fan State : </td>
+				<td>				
+				<select id="pg_fanon">
+				<option value="0">Off</option>
+				<option value="1">On</option>				
+				</select></td>
+		</tr>
+		<tr>
+				
+				<td>Program Index :</td>	<td><input type="text" id="pg_index" /></td>
+		</tr>
+
+		<tr>	
+				<td>Debug Data : </td><td><input type="text" id="pg_debugDisp" /></td>
+		</tr>
+		<tr>								
+				<td align="center"><button id="pg_bt_prev" onclick="pg_prev()">PREV</button></td>
+				<td align="center"><button id="pg_bt_next" onclick="pg_next()">NEXT</button></td>
+		</tr>
+		<tr>
+				<td align="center"><button id="pg_bt_new" onclick="pg_new()">New</button></td>
+				<td align="center"><button id="pg_bt_save" onclick="pg_save()">Save</button></td>
+		</tr>
+	</table>
+
+	
+    </div>
+</body>
+</html>
+
+   
