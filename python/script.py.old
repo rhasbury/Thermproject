@@ -1,0 +1,72 @@
+import webiopi
+import datetime
+
+GPIO = webiopi.GPIO
+
+FANOUTPUT = 0 # GPIO pin using BCM numbering
+
+HOUR_ON  = 8  # Turn Light ON at 08:00
+HOUR_OFF = 18 # Turn Light OFF at 18:00
+
+# programs are (hour, how many minutes to run for)
+programs = (0, 10), (1, 10), (2, 10), (3, 10), (4, 10), (5, 10), (6, 10), (7, 10), (8, 10), (9, 10), (10, 10), (11, 10), (12, 10), (13, 10), (14, 10), (15, 10), (16, 10), (17, 10), (18, 10), (19, 10), (20, 10), (21, 10), (22, 10), (23, 10), (24, 10)
+
+# setup function is automatically called at WebIOPi startup
+def setup():
+    # set the GPIO used by the light to output
+    piface = webiopi.deviceInstance("piface") # retrieve the device named "mcp" in the configuration 
+    piface.setFunction(FANOUTPUT, GPIO.OUT)
+    # retrieve current datetime
+    now = datetime.datetime.now()
+
+    # test if we are between ON time and tun the light ON
+    if ((now.hour >= HOUR_ON) and (now.hour < HOUR_OFF)):
+        piface.digitalWrite(FANOUTPUT, GPIO.HIGH)
+
+# loop function is repeatedly called by WebIOPi 
+def loop():
+    # retrieve current datetime
+    now = datetime.datetime.now()
+
+    fanstate = 0
+	
+    for h in programs:
+        if ((now.hour == h[0]) and (now.minute < h[1])):
+            if (piface.digitalRead(LIGHT) == GPIO.LOW):
+                piface.digitalWrite(FANOUTPUT, GPIO.HIGH)
+            else:
+                if (piface.digitalRead(LIGHT) == GPIO.HIGH):
+                    piface.digitalWrite(FANOUTPUT, GPIO.LOW)
+	
+	# add disable interlock on call for heat. 
+	# eg if heater on fan always disabled. 
+	
+    # toggle light ON all days at the correct time
+    #if ((now.hour == HOUR_ON) and (now.minute == 0) and (now.second == 0)):
+    #    if (GPIO.digitalRead(LIGHT) == GPIO.LOW):
+    #        GPIO.digitalWrite(LIGHT, GPIO.HIGH)
+			
+    # toggle light OFF
+    #if ((now.hour == HOUR_OFF) and (now.minute == 0) and (now.second == 0)):
+    #    if (GPIO.digitalRead(LIGHT) == GPIO.HIGH):
+    #        GPIO.digitalWrite(LIGHT, GPIO.LOW)
+
+    # gives CPU some time before looping again
+    webiopi.sleep(1)
+
+# destroy function is called at WebIOPi shutdown
+def destroy():
+    piface.digitalWrite(LIGHT, GPIO.LOW)
+
+@webiopi.macro
+def getLightHours():
+    return "%d;%d" % (HOUR_ON, HOUR_OFF)
+
+@webiopi.macro
+def setLightHours(on, off):
+    global HOUR_ON, HOUR_OFF
+    HOUR_ON = int(on)
+    HOUR_OFF = int(off)
+    return getLightHours()
+	
+	
