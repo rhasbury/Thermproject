@@ -236,7 +236,7 @@ def logTemplineDB(location, temp):
     with connection.cursor() as cursor:
             # Create a new record
             #sql = "INSERT INTO `users` (`email`, `password`) VALUES (%s, %s)"
-        cursor.execute ("INSERT INTO tempdat values(CURRENT_DATE(), NOW(), %s, %s, 'empty')", (location, temp))
+        cursor.execute ("INSERT INTO tempdat values(NOW(), NOW(), %s, %s, 'empty')", (location, temp))
             #cursor.execute ("INSERT INTO tempdat values(CURRENT_DATE(), NOW(), 'greenhouse', 25.7)")
             #cursor.execute ("INSERT INTO tempdat values(CURRENT_DATE(), NOW(), 'garage', 18.2)")
         # connection is not autocommit by default. So you must commit to save
