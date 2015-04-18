@@ -22,11 +22,11 @@ sensorlookup = ["Living Room", "Bedroom", "Basement" ]
 
 #my_logger = logging.getLogger('MyLogger')
 
-client1 = PiHttpClient("192.168.0.103")
+client1 = PiHttpClient("192.168.1.117")
 client1.setCredentials("webiopi", "raspberry")
 remoteTemp1 = Temperature(client1, "temp0")
 
-client2 = PiHttpClient("192.168.0.103")
+client2 = PiHttpClient("192.168.1.146")
 client2.setCredentials("webiopi", "raspberry")
 remoteTemp2 = Temperature(client2, "temp0")
 
@@ -52,7 +52,8 @@ class ProgramDataClass:
         self.TimeActiveFrom = TimeActive         # The time this program segment is active from
         self.MasterTempSensor = MasterTempS                            # The index of the active temp sensor
         self.TempSetPoint    = TempSetP                            # temperature set point
-        self.fanon   = FanOnoff                                 # is the fan on or off    
+        self.fanon   = FanOnoff                                 # is the fan on or off
+        self.sensorTemp   = 0    
 
 
 Tparams = ThermostatParameters
@@ -144,35 +145,38 @@ def loop():
     else:
         fset = CurrentState.fanon    
     
+    
+    CurrentState.sensorTemp = celsius
+    
     if(Tparams.mode == 1):
-        GPIO.digitalWrite(AC, GPIO.LOW)
-        if(tset > (celsius + 0.3)):
-           GPIO.digitalWrite(HEATER, GPIO.HIGH)
-           heaterstate = 1
-        elif(tset < (celsius - 0.3)):
+        GPIO.digitalWrite(AC, GPIO.HIGH)
+        if((tset + 0.5)  > celsius):
            GPIO.digitalWrite(HEATER, GPIO.LOW)
+           heaterstate = 1
+        elif((tset - 0.5) < celsius):
+           GPIO.digitalWrite(HEATER, GPIO.HIGH)
            heaterstate = 0
     elif(Tparams.mode == 2):
-        GPIO.digitalWrite(HEATER, GPIO.LOW)
-        if(tset > (celsius + 0.3)):
-           GPIO.digitalWrite(AC, GPIO.LOW)
-           acstate = 1
-        elif(tset < (celsius - 0.3)):
+        GPIO.digitalWrite(HEATER, GPIO.HIGH)
+        if((tset + 0.5) > celsius):
            GPIO.digitalWrite(AC, GPIO.HIGH)
+           acstate = 1
+        elif((tset - 0.5) < celsius):
+           GPIO.digitalWrite(AC, GPIO.LOW)
            acstate = 0
     else:
-        GPIO.digitalWrite(AC, GPIO.LOW)
-        GPIO.digitalWrite(HEATER, GPIO.LOW)
+        GPIO.digitalWrite(AC, GPIO.HIGH)
+        GPIO.digitalWrite(HEATER, GPIO.HIGH)
 
     	   
     if(fset == 1):
-        GPIO.digitalWrite(FAN, GPIO.HIGH)
+        GPIO.digitalWrite(FAN, GPIO.LOW)
     elif(fset == 0):
-        GPIO.digitalWrite(FAN, GPIO.LOW)    
+        GPIO.digitalWrite(FAN, GPIO.HIGH)    
        
     localPressure = tmp.getPascalAtSea()
     
-    logline("{0!s},{1!s},{2!s},{3!s},{4!s}, {5!s}".format(LocalTemp, RemTemp1, RemTemp2, CurrentState.fanon, heaterstate, localPressure))
+    #logline("{0!s},{1!s},{2!s},{3!s},{4!s}, {5!s}".format(LocalTemp, RemTemp1, RemTemp2, CurrentState.fanon, heaterstate, localPressure))
     logTemplineDB(sensorlookup[0], LocalTemp)
     logTemplineDB(sensorlookup[1], RemTemp1)
     logTemplineDB(sensorlookup[2], RemTemp2)
@@ -288,12 +292,14 @@ def getTempHistory():
 
 @webiopi.macro
 def getCurrentState():    
-    if(Tparams.tempORactive):    
+    if(Tparams.tempORactive):            
         overrideexp = str(datetime.timedelta(minutes=Tparams.tempORlength) - (datetime.datetime.utcnow() - Tparams.tempORtime))[:7]
+    elif(Tparams.fanORactive):    
+        overrideexp = str(datetime.timedelta(minutes=Tparams.fanORlength) - (datetime.datetime.utcnow() - Tparams.fanORtime))[:7]
     else:
         overrideexp = "No override"
     
-    return "%d;%d;%s;%s;%d;%s;%s" % (CurrentState.TimeActiveFrom.hour, CurrentState.TimeActiveFrom.minute, sensorlookup[CurrentState.MasterTempSensor], str(CurrentState.TempSetPoint)[:6], CurrentState.fanon, overrideexp, str(Tparams.tempORtemp)[:6]) 
+    return "%d;%d;%s;%s;%d;%s;%s;%s" % (CurrentState.TimeActiveFrom.hour, CurrentState.TimeActiveFrom.minute, sensorlookup[CurrentState.MasterTempSensor], str(CurrentState.TempSetPoint)[:6], CurrentState.fanon, overrideexp, str(Tparams.tempORtemp)[:6], str(CurrentState.sensorTemp)[:6]) 
 
 
 

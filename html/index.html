@@ -64,7 +64,7 @@
         function updateUI() {
                 // call Temperature.getCelsius REST API
                 // result is asynchronously displayed using the callback
-				tmp.getCelsius(temperatureCallback);    
+				//tmp.getCelsius(temperatureCallback);    
   
 				webiopi().digitalRead(heater, gpioPortDigitalCallback);
 				webiopi().digitalRead(ac, gpioPortDigitalCallback);
@@ -77,11 +77,11 @@
         }       
 
         // callback function used to display the temperature
-        function temperatureCallback(sensorName, data) {                
+/*        function temperatureCallback(sensorName, data) {                
 				// jQuery functions
 				currenttemp = parseFloat(data);
                 $("#bt_tempDisplay").text(data + " C");
-        }
+        }*/
         
         // callback function used to display MCP digital state
 		// Don't know why the fuck this needs to be called but IO won't update if it's left out... 
@@ -104,22 +104,22 @@
                     var heaterOut = webiopi().digitalRead(heater);
 					var acOut = webiopi().digitalRead(ac);
 					
-					if (heaterOut == "0") {
+					if (heaterOut == "1") {
                         // jQuery functions
                         $("#bt_heater").attr("class", "OFF");
 						$("#bt_heater").text("Heater OFF");
 					}
-					else if (heaterOut == "1") {
+					else if (heaterOut == "0") {
                         $("#bt_heater").attr("class", "ON");
 						$("#bt_heater").text("Heater ON");
 					}
 					
-					if (acOut == "0") {
+					if (acOut == "1") {
                         // jQuery functions
                         $("#bt_ac").attr("class", "OFF");
 						$("#bt_ac").text("AC OFF");
 					}
-					else if (acOut == "1") {
+					else if (acOut == "0") {
                         $("#bt_ac").attr("class", "ACON");
 						$("#bt_ac").text("AC ON");
 					}								
@@ -130,6 +130,8 @@
 					$("#dispTempSet").val(data[3]);
 					$("#dispFan").val(data[4]);		
 					$("#dispExp").val(data[5]);	
+					$("#bt_tempDisplay").text(data[7] + " C");
+					
 					if(data[5] == "No override"){
 						$("#bt_override").attr("class", "OFF");
 						$("#bt_override").text(" ");						
