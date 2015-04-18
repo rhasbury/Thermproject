@@ -150,18 +150,18 @@ def loop():
     
     if(Tparams.mode == 1):
         GPIO.digitalWrite(AC, GPIO.HIGH)
-        if((tset + 0.5)  > celsius):
+        if((tset - 0.5)  > celsius):
            GPIO.digitalWrite(HEATER, GPIO.LOW)
            heaterstate = 1
-        elif((tset - 0.5) < celsius):
+        elif((tset + 0.5) < celsius):
            GPIO.digitalWrite(HEATER, GPIO.HIGH)
            heaterstate = 0
     elif(Tparams.mode == 2):
         GPIO.digitalWrite(HEATER, GPIO.HIGH)
-        if((tset + 0.5) > celsius):
+        if((tset - 0.5) > celsius):
            GPIO.digitalWrite(AC, GPIO.HIGH)
            acstate = 1
-        elif((tset - 0.5) < celsius):
+        elif((tset + 0.5) < celsius):
            GPIO.digitalWrite(AC, GPIO.LOW)
            acstate = 0
     else:
