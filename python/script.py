@@ -6,8 +6,8 @@ from webiopi.clients import *
 from _ctypes import addressof
 
 
-ThermostatProgramFile = '/home/pi/thermproj/python/ThermProgram.csv'
-ThermostatLogFile = '/home/pi/thermproj/python/thermlog.txt'
+ThermostatProgramFile = '/home/pi/thermostat/python/ThermProgram.csv'
+ThermostatLogFile = '/home/pi/thermostat/python/thermlog.txt'
 
 GPIO = webiopi.GPIO # Helper for LOW/HIGH values
 HEATER = 17 
@@ -65,8 +65,8 @@ def setup():
     CurrentState = program[0]
     Tparams.tempORtemp = CurrentState.TempSetPoint
     
-    for x in range(0, program.__len__()):
-        printProram(program[x])
+    #for x in range(0, program.__len__()):
+    #    printProram(program[x])
 
 
 # loop function is repeatedly called by WebIOPi 
@@ -96,12 +96,12 @@ def loop():
     LocalTemp = tmp.getCelsius()
 # Try to read remote temp and if fails use local temp instead.  
     try:
-        RempTemp1 = readFromSensor("192.168.1.117")
+        RemTemp1 = readFromSensor("192.168.0.103")
     except:            
         RemTemp1 = LocalTemp
 # Try to read remote temp and if fails use local temp instead. 
     try:
-        RempTemp2 = readFromSensor("192.168.1.146")            
+        RemTemp2 = readFromSensor("192.168.0.103")          
     except:            
         RemTemp2 = LocalTemp
     
@@ -158,7 +158,7 @@ def loop():
     localPressure = tmp.getPascalAtSea()
     
     #logline("{0!s},{1!s},{2!s},{3!s},{4!s}, {5!s}".format(LocalTemp, RemTemp1, RemTemp2, CurrentState.fanon, heaterstate, localPressure))
-    logTemplineDB(sensorlookup[0], LocalTemp)
+    logTemplineDB(sensorlookup[0], LocalTemp)    
     logTemplineDB(sensorlookup[1], RemTemp1)
     logTemplineDB(sensorlookup[2], RemTemp2)
     logPresslineDB(sensorlookup[0], localPressure)
@@ -224,8 +224,8 @@ def logTemplineDB(location, temp):
 
 def logPresslineDB(location, pressure):    
     connection = pymysql.connect(host='localhost', user='monitor', passwd='password', db='temps', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
-    with connection.cursor() as cursor:
-        cursor.execute ("INSERT INTO pressdat values(CURRENT_DATE(), NOW(), %s, %s)", (location, pressure))
+    with connection.cursor() as cursor:        
+        cursor.execute ("INSERT INTO pressdat values(CURRENT_DATE(), NOW(), %s, %s)", (location, pressure))        
     connection.commit()
     connection.close()
 
@@ -244,7 +244,7 @@ def updateProgram():
         for y in range(now.minute, -1, -1):
             if(program[x].TimeActiveFrom.hour == now.hour and program[x].TimeActiveFrom.minute == y):
                 CurrentState = program[x]
-                printProram(CurrentState)
+                #printProram(CurrentState)
                 progfound = True
                 break
         if(progfound):
@@ -252,10 +252,10 @@ def updateProgram():
    
 
 def readFromSensor(address):
-    with PiHttpClient(address) as client:            
-        client.setCredentials("webiopi", "raspberry")
-        remoteTemp = Temperature(client, "temp0")         
-        return remoteTemp.getCelsius()
+    client = PiHttpClient(address)            
+    client.setCredentials("webiopi", "raspberry")
+    remoteTemp = Temperature(client, "temp0")         
+    return remoteTemp.getCelsius()
    
 
 @webiopi.macro
@@ -290,8 +290,8 @@ def getProgram(index):
 def setProgram(index, time, sensor, temp, fanon ):
     global program
     ind = int(index) 
-    for x in range(0, (program.__len__())):
-        printProram(program[x])
+    #for x in range(0, (program.__len__())):
+        #printProram(program[x])
     
     if(ind == (program.__len__())):    # new entry
         program.append(ProgramDataClass(datetime.datetime.strptime(time, '%H:%M'), int(sensor), float(temp), int(fanon)))
