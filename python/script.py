@@ -3,6 +3,7 @@ import datetime
 import pymysql.cursors
 #import locale
 from webiopi.clients import *
+from _ctypes import addressof
 
 
 ThermostatProgramFile = '/home/pi/thermproj/python/ThermProgram.csv'
@@ -22,16 +23,7 @@ sensorlookup = ["Living Room", "Bedroom", "Basement" ]
 
 #my_logger = logging.getLogger('MyLogger')
 
-client1 = PiHttpClient("192.168.1.117")
-client1.setCredentials("webiopi", "raspberry")
-remoteTemp1 = Temperature(client1, "temp0")
 
-client2 = PiHttpClient("192.168.1.146")
-client2.setCredentials("webiopi", "raspberry")
-remoteTemp2 = Temperature(client2, "temp0")
-
-
-connection = pymysql.connect(host='localhost', user='monitor', passwd='password', db='temps', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
 
 
 class ThermostatParameters:
@@ -64,21 +56,11 @@ program = []
 def setup():
     global program
     global CurrentState
-#    mcp = webiopi.deviceInstance("piface") # retrieve the device named "mcp" in the configuration 
-#    mcp.setFunction(HEATER, GPIO.OUT)
-#    mcp.setFunction(FAN, GPIO.OUT)
+
     GPIO.setFunction(HEATER, GPIO.OUT)
     GPIO.setFunction(FAN, GPIO.OUT)
     GPIO.setFunction(AC, GPIO.OUT)
-    
-    
-    # Connect to the database
-    
-    
-#    file_name = 'test.csv'
-#    my_logger.setLevel(logging.INFO)
-#    handler = logging.handlers.RotatingFileHandler(file_name, maxBytes=2000, backupCount=5)
-#    my_logger.addHandler(handler)    
+       
     loadProgramFromFile()
     CurrentState = program[0]
     Tparams.tempORtemp = CurrentState.TempSetPoint
@@ -109,20 +91,19 @@ def loop():
     updateProgram()
 
     tmp = webiopi.deviceInstance("bmp")
-#    mcp = webiopi.deviceInstance("piface") # retrieve the device named "mcp" in the configuration 
 
 # Read local temperature    
     LocalTemp = tmp.getCelsius()
 # Try to read remote temp and if fails use local temp instead.  
     try:
-        RemTemp1 = remoteTemp1.getCelsius()  
+        RempTemp1 = readFromSensor("192.168.1.117")
     except:            
         RemTemp1 = LocalTemp
 # Try to read remote temp and if fails use local temp instead. 
     try:
-        RemTemp2 = remoteTemp2.getCelsius() + 0.5 
+        RempTemp2 = readFromSensor("192.168.1.146")            
     except:            
-        RemTemp2 = LocalTemp + 0.5
+        RemTemp2 = LocalTemp
     
 # decide which temp we're using for control
     if(CurrentState.MasterTempSensor == 1):
@@ -186,8 +167,8 @@ def loop():
     webiopi.sleep(10)
   
 
-def destroy():
-    connection.close()
+#def destroy():
+    
 
 def loadProgramFromFile():
     global program
@@ -235,33 +216,18 @@ def logline(linetolog):
 
 
 def logTemplineDB(location, temp):    
-    global connection
-
+    connection = pymysql.connect(host='localhost', user='monitor', passwd='password', db='temps', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
     with connection.cursor() as cursor:
-            # Create a new record
-            #sql = "INSERT INTO `users` (`email`, `password`) VALUES (%s, %s)"
         cursor.execute ("INSERT INTO tempdat values(NOW(), NOW(), %s, %s, 'empty')", (location, temp))
-            #cursor.execute ("INSERT INTO tempdat values(CURRENT_DATE(), NOW(), 'greenhouse', 25.7)")
-            #cursor.execute ("INSERT INTO tempdat values(CURRENT_DATE(), NOW(), 'garage', 18.2)")
-        # connection is not autocommit by default. So you must commit to save
-        # your changes.
     connection.commit()
-#    finally:
-#        connection.close()
+    connection.close()
 
 def logPresslineDB(location, pressure):    
-    global connection
-
+    connection = pymysql.connect(host='localhost', user='monitor', passwd='password', db='temps', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
     with connection.cursor() as cursor:
-            # Create a new record
-            #sql = "INSERT INTO `users` (`email`, `password`) VALUES (%s, %s)"
         cursor.execute ("INSERT INTO pressdat values(CURRENT_DATE(), NOW(), %s, %s)", (location, pressure))
-            #cursor.execute ("INSERT INTO tempdat values(CURRENT_DATE(), NOW(), 'greenhouse', 25.7)")
-            #cursor.execute ("INSERT INTO tempdat values(CURRENT_DATE(), NOW(), 'garage', 18.2)")
-        # connection is not autocommit by default. So you must commit to save
-        # your changes.
     connection.commit()
-
+    connection.close()
 
 
 def printProram(prg):
@@ -284,6 +250,12 @@ def updateProgram():
         if(progfound):
             break
    
+
+def readFromSensor(address):
+    with PiHttpClient(address) as client:            
+        client.setCredentials("webiopi", "raspberry")
+        remoteTemp = Temperature(client, "temp0")         
+        return remoteTemp.getCelsius()
    
 
 @webiopi.macro
