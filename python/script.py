@@ -243,7 +243,7 @@ def logTemplineDB(location, temp):
 def logPresslineDB(location, pressure):    
     connection = pymysql.connect(host='localhost', user='monitor', passwd='password', db='temps', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
     with connection.cursor() as cursor:        
-        cursor.execute ("INSERT INTO pressdat values(CURRENT_DATE(), NOW(), %s, %s)", (location, pressure))        
+        cursor.execute ("INSERT INTO pressdat values(NOW(), NOW(), %s, %s)", (location, pressure))        
     connection.commit()
     connection.close()
 
