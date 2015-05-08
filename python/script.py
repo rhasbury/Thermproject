@@ -7,6 +7,7 @@ from _ctypes import addressof
 
 
 ThermostatProgramFile = '/home/pi/thermostat/python/ThermProgram.csv'
+ThermostatStateFile = '/home/pi/thermostat/python/state.txt'
 ThermostatLogFile = '/home/pi/thermostat/python/thermlog.txt'
 
 GPIO = webiopi.GPIO # Helper for LOW/HIGH values
@@ -56,6 +57,7 @@ program = []
 def setup():
     global program
     global CurrentState
+    global Tparams
 
     GPIO.setFunction(HEATER, GPIO.OUT)
     GPIO.setFunction(FAN, GPIO.OUT)
@@ -64,6 +66,10 @@ def setup():
     loadProgramFromFile()
     CurrentState = program[0]
     Tparams.tempORtemp = CurrentState.TempSetPoint
+    
+    f = open(ThermostatStateFile, 'r') 
+    Tparams.mode = int(f.readline())
+    f.close()
     
     #for x in range(0, program.__len__()):
     #    printProram(program[x])
@@ -349,7 +355,10 @@ def getMode():
 @webiopi.macro
 def setMode():
     global Tparams 
-    Tparams.mode = (Tparams.mode + 1) % 3 
+    Tparams.mode = (Tparams.mode + 1) % 3
+    f = open(ThermostatStateFile, 'w') 
+    f.write(Tparams.mode)
+    f.close()
 
 @webiopi.macro
 def send_graph_data():
