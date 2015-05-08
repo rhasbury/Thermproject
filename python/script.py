@@ -285,10 +285,12 @@ def getCurrentState():
         overrideexp = str(datetime.timedelta(minutes=Tparams.tempORlength) - (datetime.datetime.utcnow() - Tparams.tempORtime))[:7]
     elif(Tparams.fanORactive):    
         overrideexp = str(datetime.timedelta(minutes=Tparams.fanORlength) - (datetime.datetime.utcnow() - Tparams.fanORtime))[:7]
+        fset = Tparams.fanORstate
     else:
         overrideexp = "No override"
+        fset = CurrentState.fanon
     
-    return "%d;%d;%s;%s;%d;%s;%s;%s" % (CurrentState.TimeActiveFrom.hour, CurrentState.TimeActiveFrom.minute, sensorlookup[CurrentState.MasterTempSensor], str(CurrentState.TempSetPoint)[:6], CurrentState.fanon, overrideexp, str(Tparams.tempORtemp)[:6], str(CurrentState.sensorTemp)[:6]) 
+    return "%d;%d;%s;%s;%d;%s;%s;%s" % (CurrentState.TimeActiveFrom.hour, CurrentState.TimeActiveFrom.minute, sensorlookup[CurrentState.MasterTempSensor], str(CurrentState.TempSetPoint)[:6], fset, overrideexp, str(Tparams.tempORtemp)[:6], str(CurrentState.sensorTemp)[:6]) 
 
 
 
