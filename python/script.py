@@ -68,7 +68,10 @@ def setup():
     Tparams.tempORtemp = CurrentState.TempSetPoint
     
     f = open(ThermostatStateFile, 'r') 
-    Tparams.mode = int(f.readline())
+    try:
+        Tparams.mode = int(f.readline())
+    except:
+        Tparams.mode = 0
     f.close()
     
     #for x in range(0, program.__len__()):
@@ -164,10 +167,11 @@ def loop():
     localPressure = tmp.getPascalAtSea()
     
     #logline("{0!s},{1!s},{2!s},{3!s},{4!s}, {5!s}".format(LocalTemp, RemTemp1, RemTemp2, CurrentState.fanon, heaterstate, localPressure))
-    logTemplineDB(sensorlookup[0], LocalTemp)    
+    logTemplineDBNew(LocalTemp, RemTemp1, RemTemp2, localPressure)    
+    logTemplineDB(sensorlookup[0], LocalTemp)
     logTemplineDB(sensorlookup[1], RemTemp1)
-    logTemplineDB(sensorlookup[2], RemTemp2)
-    logPresslineDB(sensorlookup[0], localPressure)
+    logTemplineDB(sensorlookup[2], RemTemp2)  
+    
       
     graphfilecount = 0
     webiopi.sleep(10)
@@ -221,6 +225,13 @@ def logline(linetolog):
 
 
 
+def logTemplineDBNew(temp1, temp2, temp3, temp4):    
+    connection = pymysql.connect(host='localhost', user='monitor', passwd='password', db='temps', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
+    with connection.cursor() as cursor:
+        cursor.execute ("INSERT INTO ltempdat values(NOW(), %s, %s, %s, %s, 'empty')", (temp1, temp2, temp3, temp4))
+    connection.commit()
+    connection.close()
+
 def logTemplineDB(location, temp):    
     connection = pymysql.connect(host='localhost', user='monitor', passwd='password', db='temps', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
     with connection.cursor() as cursor:
@@ -231,7 +242,7 @@ def logTemplineDB(location, temp):
 def logPresslineDB(location, pressure):    
     connection = pymysql.connect(host='localhost', user='monitor', passwd='password', db='temps', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
     with connection.cursor() as cursor:        
-        cursor.execute ("INSERT INTO pressdat values(CURRENT_DATE(), NOW(), %s, %s)", (location, pressure))        
+        cursor.execute ("INSERT INTO pressdat values(CURRENT_DATE(), NOW(), %s, %s)", (pressure, "blank"))        
     connection.commit()
     connection.close()
 
@@ -357,7 +368,7 @@ def setMode():
     global Tparams 
     Tparams.mode = (Tparams.mode + 1) % 3
     f = open(ThermostatStateFile, 'w') 
-    f.write(Tparams.mode)
+    f.write(str(Tparams.mode))
     f.close()
 
 @webiopi.macro
