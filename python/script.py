@@ -105,12 +105,12 @@ def loop():
     LocalTemp = tmp.getCelsius()
 # Try to read remote temp and if fails use local temp instead.  
     try:
-        RemTemp1 = readFromSensor("192.168.0.103")
+        RemTemp1 = readFromSensor("192.168.1.117")
     except:            
         RemTemp1 = LocalTemp
 # Try to read remote temp and if fails use local temp instead. 
     try:
-        RemTemp2 = readFromSensor("192.168.0.103")          
+        RemTemp2 = readFromSensor("192.168.1.146")          
     except:            
         RemTemp2 = LocalTemp
     
@@ -138,7 +138,7 @@ def loop():
     
     CurrentState.sensorTemp = celsius
     
-    if(Tparams.mode == 1):
+    if(Tparams.mode == 1 and celsius != 0):
         GPIO.digitalWrite(AC, GPIO.HIGH)
         if((tset - 0.5)  > celsius):
            GPIO.digitalWrite(HEATER, GPIO.LOW)
@@ -146,14 +146,14 @@ def loop():
         elif((tset + 0.5) < celsius):
            GPIO.digitalWrite(HEATER, GPIO.HIGH)
            heaterstate = 0
-    elif(Tparams.mode == 2):
+    elif(Tparams.mode == 2 and celsius != 0):
         GPIO.digitalWrite(HEATER, GPIO.HIGH)
         if((tset - 0.5) > celsius):
            GPIO.digitalWrite(AC, GPIO.HIGH)
-           acstate = 1
+           acstate = 0
         elif((tset + 0.5) < celsius):
            GPIO.digitalWrite(AC, GPIO.LOW)
-           acstate = 0
+           acstate = 1
     else:
         GPIO.digitalWrite(AC, GPIO.HIGH)
         GPIO.digitalWrite(HEATER, GPIO.HIGH)
@@ -167,10 +167,11 @@ def loop():
     localPressure = tmp.getPascalAtSea()
     
     #logline("{0!s},{1!s},{2!s},{3!s},{4!s}, {5!s}".format(LocalTemp, RemTemp1, RemTemp2, CurrentState.fanon, heaterstate, localPressure))
-    logTemplineDBNew(LocalTemp, RemTemp1, RemTemp2, localPressure)    
+    #logTemplineDBNew(LocalTemp, RemTemp1, RemTemp2, localPressure)    
     logTemplineDB(sensorlookup[0], LocalTemp)
     logTemplineDB(sensorlookup[1], RemTemp1)
-    logTemplineDB(sensorlookup[2], RemTemp2)  
+    logTemplineDB(sensorlookup[2], RemTemp2) 
+    logPresslineDB(sensorlookup[0], localPressure) 
     
       
     graphfilecount = 0
@@ -225,12 +226,12 @@ def logline(linetolog):
 
 
 
-def logTemplineDBNew(temp1, temp2, temp3, temp4):    
-    connection = pymysql.connect(host='localhost', user='monitor', passwd='password', db='temps', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
-    with connection.cursor() as cursor:
-        cursor.execute ("INSERT INTO ltempdat values(NOW(), %s, %s, %s, %s, 'empty')", (temp1, temp2, temp3, temp4))
-    connection.commit()
-    connection.close()
+#def logTemplineDBNew(temp1, temp2, temp3, temp4):    
+#    connection = pymysql.connect(host='localhost', user='monitor', passwd='password', db='temps', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
+#    with connection.cursor() as cursor:
+#        cursor.execute ("INSERT INTO ltempdat values(NOW(), %s, %s, %s, %s, 'empty')", (temp1, temp2, temp3, temp4))
+#    connection.commit()
+#    connection.close()
 
 def logTemplineDB(location, temp):    
     connection = pymysql.connect(host='localhost', user='monitor', passwd='password', db='temps', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
@@ -242,7 +243,7 @@ def logTemplineDB(location, temp):
 def logPresslineDB(location, pressure):    
     connection = pymysql.connect(host='localhost', user='monitor', passwd='password', db='temps', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
     with connection.cursor() as cursor:        
-        cursor.execute ("INSERT INTO pressdat values(CURRENT_DATE(), NOW(), %s, %s)", (pressure, "blank"))        
+        cursor.execute ("INSERT INTO pressdat values(CURRENT_DATE(), NOW(), %s, %s)", (location, pressure))        
     connection.commit()
     connection.close()
 
