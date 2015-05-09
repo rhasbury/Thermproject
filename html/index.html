@@ -4,8 +4,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 	<meta name="viewport">
     <title>Thermostat Control Red River Drive</title>
-	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
-	<script src="http://code.highcharts.com/highcharts.js"></script>
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>	
 	<script type="text/javascript" src="/webiopi.js"></script>
 	<script type="text/javascript">
         // declare few global variables
@@ -221,106 +220,6 @@
 
 		
 		
-		   // Configure the plot
-			$(document).ready(function() {
-			   chart = new Highcharts.Chart({
-				chart: {
-					renderTo: 'container',
-					defaultSeriesType: 'spline',
-						},
-						title: {
-							text: 'Temperature Plot'
-						},
-						xAxis: {
-							type: 'datetime',
-		//					tickPixelInterval: 150,
-							maxZoom: 20 * 1000,
-							title: {
-							   text: 'Time',
-							   margin: 15
-							}
-						},
-						yAxis: {
-							minPadding: 0.2,
-							maxPadding: 0.2,
-							title: {
-								text: 'Temperature \u00B0C',
-								margin: 15
-							}
-						},
-						series: [{
-							name: 'Living Room',
-							data: []
-						},
-						{
-							name: 'Bedroom',
-							data: []
-						},
-						{
-							name: 'Basement',
-							data: []
-						}
-						
-						]
-						});        
-					});		
-
-			function updateChart(){	
-					webiopi().callMacro("send_graph_points", [], updateChartpointsCallback);	
-	
-			}
-			
-			function updateChartpointsCallback(macro, args, response){
-												
-					parts = response.split(",");
-				
-					stime = parts[0].substring(2);
-					
-					ptime = new Date(stime);							
-														
-					point1 = [ Date.UTC(ptime.getFullYear(), ptime.getMonth(), ptime.getDate(), ptime.getHours(), ptime.getMinutes(), ptime.getSeconds()), parseFloat(parts[1]) ];				
-					point2 = [ Date.UTC(ptime.getFullYear(), ptime.getMonth(), ptime.getDate(), ptime.getHours(), ptime.getMinutes(), ptime.getSeconds()), parseFloat(parts[2]) ];				
-					point3 = [ Date.UTC(ptime.getFullYear(), ptime.getMonth(), ptime.getDate(), ptime.getHours(), ptime.getMinutes(), ptime.getSeconds()), parseFloat(parts[3]) ];				
-								
-					chart.series[0].addPoint(point1);	
-					chart.series[1].addPoint(point2);
-					chart.series[2].addPoint(point3); 
-			}
-			
-			
-			function chart_fill(macro, args, response) {								
-				
-				lines = response.split(";");
-				
-				for(i=1;i<(lines.length-1);i++){
-					parts = lines[i].split(",");
-					
-					stime = parts[1].substring(2);
-					
-					ptime = new Date(stime);							
-					
-					
-										
-					point1 = [ Date.UTC(ptime.getFullYear(), ptime.getMonth(), ptime.getDate(), ptime.getHours(), ptime.getMinutes(), ptime.getSeconds()), parseFloat(parts[2]) ];				
-					point2 = [ Date.UTC(ptime.getFullYear(), ptime.getMonth(), ptime.getDate(), ptime.getHours(), ptime.getMinutes(), ptime.getSeconds()), parseFloat(parts[3]) ];				
-					point3 = [ Date.UTC(ptime.getFullYear(), ptime.getMonth(), ptime.getDate(), ptime.getHours(), ptime.getMinutes(), ptime.getSeconds()), parseFloat(parts[4]) ];				
-									
-					
-					chart.series[0].addPoint(point1);	
-					chart.series[1].addPoint(point2);
-					chart.series[2].addPoint(point3); 
-				}
-			
-					
-			}
-
-		
-
-		
-
-		
-			
-				
         
    </script>   
    	<script type="text/javascript">    
@@ -453,7 +352,6 @@
 		
 	</table>
 	
-	<!-- <div id="container" style="width:60%; height:400px;"></div> -->
 		<table border="1" style="width:30%">
 		<tr>
 				<th colspan="2">Edit Program Data</th>
