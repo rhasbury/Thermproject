@@ -284,6 +284,7 @@ def getTempHistory():
 def getCurrentState():    
     if(Tparams.tempORactive):            
         overrideexp = str(datetime.timedelta(minutes=Tparams.tempORlength) - (datetime.datetime.utcnow() - Tparams.tempORtime))[:7]
+        fset = CurrentState.fanon
     elif(Tparams.fanORactive):    
         overrideexp = str(datetime.timedelta(minutes=Tparams.fanORlength) - (datetime.datetime.utcnow() - Tparams.fanORtime))[:7]
         fset = Tparams.fanORstate
