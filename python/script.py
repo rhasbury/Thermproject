@@ -1,6 +1,7 @@
 import webiopi
 import datetime
 import pymysql.cursors
+import json
 #import locale
 from webiopi.clients import *
 from _ctypes import addressof
@@ -15,11 +16,11 @@ HEATER = 17
 FAN = 27
 AC = 22
 
-LocalTemp = 0
-RemTemp1 = 0 
-RemTemp2 = 0  
+#LocalTemp = 0
+#RemTemp1 = 0 
+#RemTemp2 = 0  
  
-sensorlookup = ["Living Room", "Bedroom", "Basement" ]
+sensorlookup = ["Living Room", "Bedroom", "Basement", "Outside" ]
 
 #my_logger = logging.getLogger('MyLogger')
 
@@ -33,8 +34,12 @@ class ThermostatParameters:
     fanORactive = 0
     fanORlength = 1
     fanORstate = 0
-    mode = 1 # 1 = heat, 2 = cool, 0 = off 
-        
+    fanState = 0
+    mode = 1 # 1 = heat, 2 = cool, 0 = off
+    LocalTemp = 0
+    LocalTemp2 = 0 
+    RemTemp1 = 0
+    RemTemp2 = 0
 
 class ProgramDataClass:     
     def __init__(self, TimeActive, MasterTempS, TempSetP, FanOnoff, Day):
@@ -43,7 +48,7 @@ class ProgramDataClass:
         self.TempSetPoint    = TempSetP                            # temperature set point
         self.fanon   = FanOnoff                                 # is the fan on or off
         self.sensorTemp   = 0
-        self.Day   = Day       
+        self.Day   = Day               
 
 
 Tparams = ThermostatParameters
@@ -81,9 +86,9 @@ def loop():
     global Tparams
     global graphfilecount
         
-    global LocalTemp
-    global RemTemp1
-    global RemTemp2 
+    #global LocalTemp
+    #global RemTemp1
+    #global RemTemp2 
     heaterstate = 0
     acstate = 0
     
@@ -97,27 +102,31 @@ def loop():
     updateProgram()
 
     tmp = webiopi.deviceInstance("bmp")
+    #tmp2 = webiopi.deviceInstance("temp0")
 
 # Read local temperature    
-    LocalTemp = tmp.getCelsius()
+    Tparams.LocalTemp = tmp.getCelsius()
+    #Tparams.LocalTemp2 = tmp2.getCelsius()
 # Try to read remote temp and if fails use local temp instead.  
     try:
-        RemTemp1 = readFromSensor("192.168.1.117")
+        #Tparams.RemTemp1 = readFromSensor("192.168.1.117")
+        Tparams.RemTemp1 = readFromSensor("192.168.0.103")
     except:            
-        RemTemp1 = LocalTemp
+        Tparams.RemTemp1 = Tparams.LocalTemp
 # Try to read remote temp and if fails use local temp instead. 
     try:
-        RemTemp2 = readFromSensor("192.168.1.146")          
+        #Tparams.RemTemp2 = readFromSensor("192.168.1.146")
+        Tparams.RemTemp2 = readFromSensor("192.168.0.103")          
     except:            
-        RemTemp2 = LocalTemp
+        Tparams.RemTemp2 = Tparams.LocalTemp
     
 # decide which temp we're using for control
     if(CurrentState.MasterTempSensor == 1):
-        celsius = RemTemp1
+        celsius = Tparams.RemTemp1
     elif(CurrentState.MasterTempSensor == 2):
-        celsius = RemTemp2        
+        celsius = Tparams.RemTemp2        
     else:
-        celsius = LocalTemp
+        celsius = Tparams.LocalTemp
         
 #    Override section
     
@@ -128,9 +137,9 @@ def loop():
   
     
     if(Tparams.fanORactive == 1):
-        fset = Tparams.fanORstate
+        Tparams.fanState = Tparams.fanORstate
     else:
-        fset = CurrentState.fanon    
+        Tparams.fanState = CurrentState.fanon    
     
     
     CurrentState.sensorTemp = celsius
@@ -156,18 +165,19 @@ def loop():
         GPIO.digitalWrite(HEATER, GPIO.HIGH)
 
     	   
-    if(fset == 1):
+    if(Tparams.fanState == 1):
         GPIO.digitalWrite(FAN, GPIO.LOW)
-    elif(fset == 0):
+    elif(Tparams.fanState == 0):
         GPIO.digitalWrite(FAN, GPIO.HIGH)    
        
     localPressure = tmp.getPascalAtSea()
     
     #logline("{0!s},{1!s},{2!s},{3!s},{4!s}, {5!s}".format(LocalTemp, RemTemp1, RemTemp2, CurrentState.fanon, heaterstate, localPressure))
     #logTemplineDBNew(LocalTemp, RemTemp1, RemTemp2, localPressure)    
-    logTemplineDB(sensorlookup[0], LocalTemp)
-    logTemplineDB(sensorlookup[1], RemTemp1)
-    logTemplineDB(sensorlookup[2], RemTemp2) 
+    logTemplineDB(sensorlookup[0], Tparams.LocalTemp)
+    logTemplineDB(sensorlookup[1], Tparams.RemTemp1)
+    logTemplineDB(sensorlookup[2], Tparams.RemTemp2)
+    #logTemplineDB(sensorlookup[3], Tparams.LocalTemp2)  
     logPresslineDB(sensorlookup[0], localPressure) 
     
       
@@ -286,16 +296,23 @@ def getTempHistory():
 @webiopi.macro
 def getCurrentState():    
     if(Tparams.tempORactive):            
-        overrideexp = str(datetime.timedelta(minutes=Tparams.tempORlength) - (datetime.datetime.utcnow() - Tparams.tempORtime))[:7]
-        fset = CurrentState.fanon
+        overrideexp = str(datetime.timedelta(minutes=Tparams.tempORlength) - (datetime.datetime.utcnow() - Tparams.tempORtime))[:7]   
     elif(Tparams.fanORactive):    
-        overrideexp = str(datetime.timedelta(minutes=Tparams.fanORlength) - (datetime.datetime.utcnow() - Tparams.fanORtime))[:7]
-        fset = Tparams.fanORstate
+        overrideexp = str(datetime.timedelta(minutes=Tparams.fanORlength) - (datetime.datetime.utcnow() - Tparams.fanORtime))[:7]        
     else:
-        overrideexp = "No override"
-        fset = CurrentState.fanon
-    
-    return "%d;%d;%s;%s;%d;%s;%s;%s" % (CurrentState.TimeActiveFrom.hour, CurrentState.TimeActiveFrom.minute, sensorlookup[CurrentState.MasterTempSensor], str(CurrentState.TempSetPoint)[:6], fset, overrideexp, str(Tparams.tempORtemp)[:6], str(CurrentState.sensorTemp)[:6]) 
+        overrideexp = "No override"        
+    return "%d;%d;%s;%s;%d;%s;%s;%s;%s;%s;%s;%s" % (CurrentState.TimeActiveFrom.hour, 
+                                        CurrentState.TimeActiveFrom.minute, 
+                                        sensorlookup[CurrentState.MasterTempSensor], 
+                                        str(CurrentState.TempSetPoint)[:6], 
+                                        Tparams.fanState, 
+                                        overrideexp, 
+                                        str(Tparams.tempORtemp)[:6], 
+                                        str(CurrentState.sensorTemp)[:6],
+                                        str(Tparams.LocalTemp)[:6],
+                                        str(Tparams.RemTemp1)[:6],
+                                        str(Tparams.RemTemp2)[:6],
+                                        str(Tparams.LocalTemp2)[:6]) 
 
 
 
@@ -385,17 +402,17 @@ def send_graph_data():
     f.close
     return temps
 
-@webiopi.macro
-def send_graph_points():
-    global LocalTemp
-    global RemTemp1
-    global RemTemp2 
-    now = datetime.datetime.now()
-    linetolog = "{0!s},{1!s},{2!s}".format(LocalTemp, RemTemp1, RemTemp2)
-    send = "{0},{1};\n".format(now.strftime('%a %b %d %Y %X'), linetolog)
-                  
-    return send
-  
+# @webiopi.macro
+# def send_graph_points():
+#     global LocalTemp
+#     global RemTemp1
+#     global RemTemp2 
+#     now = datetime.datetime.now()
+#     linetolog = "{0!s},{1!s},{2!s}".format(LocalTemp, RemTemp1, RemTemp2)
+#     send = "{0},{1};\n".format(now.strftime('%a %b %d %Y %X'), linetolog)
+#                   
+#     return send
+#   
 
 
 def tail(f, n, offset=0):
