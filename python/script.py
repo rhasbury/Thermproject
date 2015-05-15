@@ -6,7 +6,7 @@ from webiopi.clients import *
 from _ctypes import addressof
 
 
-ThermostatProgramFile = '/home/pi/thermostat/python/ThermProgram.csv'
+#ThermostatProgramFile = '/home/pi/thermostat/python/ThermProgram.csv'
 ThermostatStateFile = '/home/pi/thermostat/python/state.txt'
 ThermostatLogFile = '/home/pi/thermostat/python/thermlog.txt'
 
@@ -21,11 +21,7 @@ RemTemp2 = 0
  
 sensorlookup = ["Living Room", "Bedroom", "Basement" ]
 
-
 #my_logger = logging.getLogger('MyLogger')
-
-
-
 
 class ThermostatParameters:
     #def __init__(self):
@@ -41,12 +37,13 @@ class ThermostatParameters:
         
 
 class ProgramDataClass:     
-    def __init__(self, TimeActive, MasterTempS, TempSetP, FanOnoff):
+    def __init__(self, TimeActive, MasterTempS, TempSetP, FanOnoff, Day):
         self.TimeActiveFrom = TimeActive         # The time this program segment is active from
         self.MasterTempSensor = MasterTempS                            # The index of the active temp sensor
         self.TempSetPoint    = TempSetP                            # temperature set point
         self.fanon   = FanOnoff                                 # is the fan on or off
-        self.sensorTemp   = 0    
+        self.sensorTemp   = 0
+        self.Day   = Day       
 
 
 Tparams = ThermostatParameters
@@ -183,13 +180,15 @@ def loop():
 
 def loadProgramFromFile():
     global program
+    now = datetime.datetime.now()
+    ThermostatProgramFile = "/home/pi/thermostat/python/Programs/{0}.csv".format(now.strftime('%A'))
     f = open(ThermostatProgramFile , 'r')
-    
+    del program[:]
     linein = f.readline()
     
     for line in f:        
         parts = line.split(",")      
-        program.append(ProgramDataClass(datetime.datetime.strptime(parts[0], '%H:%M'),int(parts[1]), float(parts[2]), int(parts[3]) ))   
+        program.append(ProgramDataClass(datetime.datetime.strptime(parts[0], '%H:%M'),int(parts[1]), float(parts[2]), int(parts[3]), now.strftime('%A')))   
     
     f.close()
     program.sort(key = lambda x: x.TimeActiveFrom)
@@ -197,8 +196,9 @@ def loadProgramFromFile():
     
 def WriteProgramToFile():
     global program
-    f = open(ThermostatProgramFile, 'w')
-    
+    now = datetime.datetime.now()
+    ThermostatProgramFile = "/home/pi/thermostat/python/Programs/{0}.csv".now.strftime('%A')
+    f = open(ThermostatProgramFile, 'w')    
     f.write("# TimeActiveFrom, MasterTempSensor (0=localsensor, 1=?, 2=? ), temperature set point, enable fan\n")
     
     for x in range(0, (program.__len__())):         
@@ -257,6 +257,9 @@ def updateProgram():
     global program    
     global Tparams
     now = datetime.datetime.now()
+    if(program[0].Day != now.strftime('%A')):
+        loadProgramFromFile()
+    
     progfound = False
     for x in range((program.__len__()-1), -1, -1):
         for y in range(now.minute, -1, -1):
