@@ -176,6 +176,8 @@
 					$("#bt_RemTemp1").text(data[9] + " C");
 					$("#bt_RemTemp2").text(data[10] + " C");
 					$("#bt_LocalTemp2").text(data[11] + " C");
+					$("#bt_LocalHum").text(data[12] + " %");
+					$("#bt_LocalPress").text(data[13] + " ");
 					
 					
                 }
@@ -223,6 +225,11 @@
 				webiopi().callMacro("setProgram", prgtoadd);			
 			
 			}
+			
+			function clear_or(){
+				webiopi().callMacro("clearOverride");
+			}
+		
 		
 			function prg_display_index(index){
 				webiopi().callMacro("getProgram", index, prg_display_callback);		
@@ -370,13 +377,14 @@
 
 		</tr>		
 		<tr>
-				<td></td>
+				<td><button id="bt_LocalHum"/></td>
 				<td><button id="bt_LocalTemp2"/></td>
-				<td></td>	
+				<td><button id="bt_LocalPress"/></td>
 		</tr>
 		<tr>
 				<th>Select Override Length</th>
-				<th colspan="2">Overide expiry</th>				
+				<th></th>				
+				<th>Overide expiry</th>				
 		</tr>	
 		<tr>	
 		<td align="center">
@@ -389,8 +397,9 @@
 				<option value="240">4 Hours</option>
 				</select>
 			</td>
-							
-				<td align="center" colspan="2"><button id="bt_override"/></td>
+				
+				<td align="center"><button id="bt_ORClear" onclick="clear_or()"">Clear Override</button></td>
+				<td align="center"><button id="bt_override"/></td>
 				<td align="center"/>
 
 				

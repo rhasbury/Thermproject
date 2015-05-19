@@ -51,9 +51,11 @@ class ThermostatParameters:
     fanState = 0
     mode = 1 # 1 = heat, 2 = cool, 0 = off
     LocalTemp = 0
-    LocalTemp2 = 0 
+    LocalTemp2 = 0
+    LocalHum = 0
+    localPressure = 0  
     RemTemp1 = 0
-    RemTemp2 = 0
+    RemTemp2 = 0    
     tset = 0
 
 class ProgramDataClass:     
@@ -121,11 +123,11 @@ def loop():
     updateProgram()
 
     tmp = webiopi.deviceInstance("bmp")
-    #tmp2 = webiopi.deviceInstance("temp0")
+    tmp2 = webiopi.deviceInstance("temp0")
 
 # Read local temperature    
     Tparams.LocalTemp = tmp.getCelsius()
-    #Tparams.LocalTemp2 = tmp2.getCelsius()
+    Tparams.LocalTemp2 = tmp2.getCelsius()
 # Try to read remote temp and if fails use local temp instead.  
     try:
         #Tparams.RemTemp1 = readFromSensor("192.168.1.117")
@@ -191,16 +193,17 @@ def loop():
     elif(Tparams.fanState == 0):
         GPIO.digitalWrite(Tparams.FAN, GPIO.HIGH)    
        
-    localPressure = tmp.getPascalAtSea()
+    Tparams.localPressure = tmp.getPascalAtSea()
+    Tparams.LocalHum = tmp2.getHumidity()
     
     #logline("{0!s},{1!s},{2!s},{3!s},{4!s}, {5!s}".format(LocalTemp, RemTemp1, RemTemp2, CurrentState.fanon, heaterstate, localPressure))
     #logTemplineDBNew(LocalTemp, RemTemp1, RemTemp2, localPressure)    
     logTemplineDB(Tparams.sensorlookup[0], Tparams.LocalTemp)
     logTemplineDB(Tparams.sensorlookup[1], Tparams.RemTemp1)
     logTemplineDB(Tparams.sensorlookup[2], Tparams.RemTemp2)
-    #logTemplineDB(Tparams.sensorlookup[3], Tparams.LocalTemp2)  
-    logPresslineDB(Tparams.sensorlookup[0], localPressure) 
-    
+    logTemplineDB(Tparams.sensorlookup[3], Tparams.LocalTemp2)  
+    logPresslineDB(Tparams.sensorlookup[0], Tparams.localPressure) 
+    logHumlineDB(Tparams.sensorlookup[3], Tparams.LocalHum)
       
     graphfilecount = 0
     webiopi.sleep(10)
@@ -280,6 +283,13 @@ def logPresslineDB(location, pressure):
     connection.commit()
     connection.close()
 
+def logHumlineDB(location, humidity):    
+    connection = pymysql.connect(host='localhost', user='monitor', passwd='password', db='temps', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
+    with connection.cursor() as cursor:        
+        cursor.execute ("INSERT INTO humdat values(NOW(), %s, %s)", (location, humidity))        
+    connection.commit()
+    connection.close()
+
 
 def printProram(prg):
     print(prg.TimeActiveFrom, prg.MasterTempSensor, prg.TempSetPointHeat, prg.fanon)
@@ -324,7 +334,7 @@ def getCurrentState():
         overrideexp = str(datetime.timedelta(minutes=Tparams.fanORlength) - (datetime.datetime.utcnow() - Tparams.fanORtime))[:7]        
     else:
         overrideexp = "No override"        
-    return "%d;%d;%s;%s;%d;%s;%s;%s;%s;%s;%s;%s" % (CurrentState.TimeActiveFrom.hour, 
+    return "%d;%d;%s;%s;%d;%s;%s;%s;%s;%s;%s;%s;%s;%s" % (CurrentState.TimeActiveFrom.hour, 
                                         CurrentState.TimeActiveFrom.minute, 
                                         Tparams.sensorlookup[CurrentState.MasterTempSensor], 
                                         str(Tparams.tset)[:6], 
@@ -335,7 +345,9 @@ def getCurrentState():
                                         str(Tparams.LocalTemp)[:6],
                                         str(Tparams.RemTemp1)[:6],
                                         str(Tparams.RemTemp2)[:6],
-                                        str(Tparams.LocalTemp2)[:6]) 
+                                        str(Tparams.LocalTemp2)[:6],
+                                        str(Tparams.LocalHum)[:6],
+                                        str(Tparams.localPressure)[:6]) 
 
 
 
@@ -419,23 +431,12 @@ def setMode():
     f.close()
 
 @webiopi.macro
-def send_graph_data():
-    f = open(Tparams.ThermostatLogFile , 'r')
-    temps = tail(f, 20, 0)
-    f.close
-    return temps
 
-# @webiopi.macro
-# def send_graph_points():
-#     global LocalTemp
-#     global RemTemp1
-#     global RemTemp2 
-#     now = datetime.datetime.now()
-#     linetolog = "{0!s},{1!s},{2!s}".format(LocalTemp, RemTemp1, RemTemp2)
-#     send = "{0},{1};\n".format(now.strftime('%a %b %d %Y %X'), linetolog)
-#                   
-#     return send
-#   
+def clearOverride():
+    Tparams.tempORactive = False
+    Tparams.fanORactive = 0
+  
+
 
 
 def tail(f, n, offset=0):
