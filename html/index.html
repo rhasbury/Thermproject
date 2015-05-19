@@ -176,8 +176,10 @@
 					$("#bt_RemTemp1").text(data[9] + " C");
 					$("#bt_RemTemp2").text(data[10] + " C");
 					$("#bt_LocalTemp2").text(data[11] + " C");
-					$("#bt_LocalHum").text(data[12] + " %");
-					$("#bt_LocalPress").text(data[13] + " ");
+					var hum = (parseFloat(data[12]) * 100);					
+					$("#bt_LocalHum").text(hum.toFixed(2) + "%");
+					var press = ((parseFloat(data[13]) + 4100) / 1000);
+					$("#bt_LocalPress").text(press.toFixed(2) + "kPa");
 					
 					
                 }
