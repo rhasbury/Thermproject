@@ -178,7 +178,7 @@
 					$("#bt_LocalTemp2").text(data[11] + " C");
 					var hum = (parseFloat(data[12]) * 100);					
 					$("#bt_LocalHum").text(hum.toFixed(2) + "%");
-					var press = ((parseFloat(data[13]) + 4100) / 1000);
+					var press = ((parseFloat(data[13]) + 4300) / 1000); // correction is 4100 for work at 340m , and 4300 at home at 360m
 					$("#bt_LocalPress").text(press.toFixed(2) + "kPa");
 					
 					
