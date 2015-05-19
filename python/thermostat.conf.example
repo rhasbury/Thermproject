@@ -1,0 +1,10 @@
+[main]
+RemoteSensorAddress1 = 192.168.0.103
+RemoteSensorAddress2 = 192.168.0.103
+ProgramsFolder = /home/pi/thermostat/python/Programs/
+ThermostatStateFile = /home/pi/thermostat/python/state.txt
+ThermostatLogFile = /home/pi/thermostat/python/thermlog.txt
+HEATER = 17 
+FAN = 27
+AC = 22
+sensorlookup = Living Room,Bedroom,Basement,Outside 

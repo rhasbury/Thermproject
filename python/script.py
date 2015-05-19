@@ -2,30 +2,44 @@ import webiopi
 import datetime
 import pymysql.cursors
 import json
+import configparser
 #import locale
 from webiopi.clients import *
 from _ctypes import addressof
 
 
 #ThermostatProgramFile = '/home/pi/thermostat/python/ThermProgram.csv'
-ThermostatStateFile = '/home/pi/thermostat/python/state.txt'
-ThermostatLogFile = '/home/pi/thermostat/python/thermlog.txt'
+#ThermostatStateFile = '/home/pi/thermostat/python/state.txt'
+#ThermostatLogFile = '/home/pi/thermostat/python/thermlog.txt'
 
 GPIO = webiopi.GPIO # Helper for LOW/HIGH values
-HEATER = 17 
-FAN = 27
-AC = 22
+#HEATER = 17 
+#FAN = 27
+#AC = 22
 
 #LocalTemp = 0
 #RemTemp1 = 0 
 #RemTemp2 = 0  
  
-sensorlookup = ["Living Room", "Bedroom", "Basement", "Outside" ]
+#sensorlookup = ["Living Room", "Bedroom", "Basement", "Outside" ]
 
 #my_logger = logging.getLogger('MyLogger')
 
 class ThermostatParameters:
-    #def __init__(self):
+    def __init__(self):
+            config = configparser.RawConfigParser()
+            config.read('/home/pi/.thermostat/thermostat.conf')
+            settings = config['main']
+            self.HEATER = int(settings['HEATER'])
+            self.FAN = int(settings['FAN'])
+            self.AC = int(settings['AC'])
+            self.ThermostatStateFile = settings['ThermostatStateFile']
+            self.ThermostatLogFile = settings['ThermostatLogFile']
+            self.ProgramsFolder = settings['ProgramsFolder']
+            self.RemoteSensorAddress1 = settings['RemoteSensorAddress1']
+            self.RemoteSensorAddress2 = settings['RemoteSensorAddress2']
+            self.sensorlookup = settings['sensorlookup'].split(",")
+                        
     tempORtime = datetime.datetime.now()    
     tempORactive = False
     tempORlength = 1
@@ -53,7 +67,7 @@ class ProgramDataClass:
         self.Day   = Day               
 
 
-Tparams = ThermostatParameters
+Tparams = ThermostatParameters()
 CurrentState = ProgramDataClass
 program = []
 
@@ -63,15 +77,18 @@ def setup():
     global CurrentState
     global Tparams
 
-    GPIO.setFunction(HEATER, GPIO.OUT)
-    GPIO.setFunction(FAN, GPIO.OUT)
-    GPIO.setFunction(AC, GPIO.OUT)
+    GPIO.setFunction(Tparams.HEATER, GPIO.OUT)
+    GPIO.setFunction(Tparams.FAN, GPIO.OUT)
+    GPIO.setFunction(Tparams.AC, GPIO.OUT)
+    
+
+      
        
     loadProgramFromFile()
     CurrentState = program[0]
     Tparams.tempORtemp = CurrentState.TempSetPointHeat
     
-    f = open(ThermostatStateFile, 'r') 
+    f = open(Tparams.ThermostatStateFile, 'r') 
     try:
         Tparams.mode = int(f.readline())
     except:
@@ -112,13 +129,13 @@ def loop():
 # Try to read remote temp and if fails use local temp instead.  
     try:
         #Tparams.RemTemp1 = readFromSensor("192.168.1.117")
-        Tparams.RemTemp1 = readFromSensor("192.168.0.103")
+        Tparams.RemTemp1 = readFromSensor(Tparams.RemoteSensorAddress1)
     except:            
         Tparams.RemTemp1 = Tparams.LocalTemp
 # Try to read remote temp and if fails use local temp instead. 
     try:
         #Tparams.RemTemp2 = readFromSensor("192.168.1.146")
-        Tparams.RemTemp2 = readFromSensor("192.168.0.103")          
+        Tparams.RemTemp2 = readFromSensor(Tparams.RemoteSensorAddress1)          
     except:            
         Tparams.RemTemp2 = Tparams.LocalTemp
     
@@ -149,40 +166,40 @@ def loop():
     CurrentState.sensorTemp = celsius
     
     if(Tparams.mode == 1 and celsius != 0):
-        GPIO.digitalWrite(AC, GPIO.HIGH)
+        GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
         if((Tparams.tset - 0.5)  > celsius):
-           GPIO.digitalWrite(HEATER, GPIO.LOW)
+           GPIO.digitalWrite(Tparams.HEATER, GPIO.LOW)
            heaterstate = 1
         elif((Tparams.tset + 0.5) < celsius):
-           GPIO.digitalWrite(HEATER, GPIO.HIGH)
+           GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
            heaterstate = 0
     elif(Tparams.mode == 2 and celsius != 0):
-        GPIO.digitalWrite(HEATER, GPIO.HIGH)
+        GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
         if((Tparams.tset - 0.5) > celsius):
-           GPIO.digitalWrite(AC, GPIO.HIGH)
+           GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
            acstate = 0
         elif((Tparams.tset + 0.5) < celsius):
-           GPIO.digitalWrite(AC, GPIO.LOW)
+           GPIO.digitalWrite(Tparams.AC, GPIO.LOW)
            acstate = 1
     else:
-        GPIO.digitalWrite(AC, GPIO.HIGH)
-        GPIO.digitalWrite(HEATER, GPIO.HIGH)
+        GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
+        GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
 
     	   
     if(Tparams.fanState == 1):
-        GPIO.digitalWrite(FAN, GPIO.LOW)
+        GPIO.digitalWrite(Tparams.FAN, GPIO.LOW)
     elif(Tparams.fanState == 0):
-        GPIO.digitalWrite(FAN, GPIO.HIGH)    
+        GPIO.digitalWrite(Tparams.FAN, GPIO.HIGH)    
        
     localPressure = tmp.getPascalAtSea()
     
     #logline("{0!s},{1!s},{2!s},{3!s},{4!s}, {5!s}".format(LocalTemp, RemTemp1, RemTemp2, CurrentState.fanon, heaterstate, localPressure))
     #logTemplineDBNew(LocalTemp, RemTemp1, RemTemp2, localPressure)    
-    logTemplineDB(sensorlookup[0], Tparams.LocalTemp)
-    logTemplineDB(sensorlookup[1], Tparams.RemTemp1)
-    logTemplineDB(sensorlookup[2], Tparams.RemTemp2)
-    #logTemplineDB(sensorlookup[3], Tparams.LocalTemp2)  
-    logPresslineDB(sensorlookup[0], localPressure) 
+    logTemplineDB(Tparams.sensorlookup[0], Tparams.LocalTemp)
+    logTemplineDB(Tparams.sensorlookup[1], Tparams.RemTemp1)
+    logTemplineDB(Tparams.sensorlookup[2], Tparams.RemTemp2)
+    #logTemplineDB(Tparams.sensorlookup[3], Tparams.LocalTemp2)  
+    logPresslineDB(Tparams.sensorlookup[0], localPressure) 
     
       
     graphfilecount = 0
@@ -195,7 +212,7 @@ def loop():
 def loadProgramFromFile():
     global program
     now = datetime.datetime.now()
-    ThermostatProgramFile = "/home/pi/thermostat/python/Programs/{0}.csv".format(now.strftime('%A'))
+    ThermostatProgramFile = Tparams.ProgramsFolder + "{0}.csv".format(now.strftime('%A'))
     f = open(ThermostatProgramFile , 'r')
     del program[:]
     linein = f.readline()
@@ -233,7 +250,7 @@ def WriteProgramToFile():
 
 
 def logline(linetolog):
-    f = open(ThermostatLogFile, 'a')
+    f = open(Tparams.ThermostatLogFile , 'a')
     now = datetime.datetime.now()
     send = "{0},{1};\n".format(now.strftime('%a %b %d %Y %X'), linetolog)
     #print(locale.getlocale())
@@ -309,7 +326,7 @@ def getCurrentState():
         overrideexp = "No override"        
     return "%d;%d;%s;%s;%d;%s;%s;%s;%s;%s;%s;%s" % (CurrentState.TimeActiveFrom.hour, 
                                         CurrentState.TimeActiveFrom.minute, 
-                                        sensorlookup[CurrentState.MasterTempSensor], 
+                                        Tparams.sensorlookup[CurrentState.MasterTempSensor], 
                                         str(Tparams.tset)[:6], 
                                         Tparams.fanState, 
                                         overrideexp, 
@@ -397,13 +414,13 @@ def getMode():
 def setMode():
     global Tparams 
     Tparams.mode = (Tparams.mode + 1) % 3
-    f = open(ThermostatStateFile, 'w') 
+    f = open(Tparams.ThermostatStateFile, 'w') 
     f.write(str(Tparams.mode))
     f.close()
 
 @webiopi.macro
 def send_graph_data():
-    f = open(ThermostatLogFile, 'r')
+    f = open(Tparams.ThermostatLogFile , 'r')
     temps = tail(f, 20, 0)
     f.close
     return temps
