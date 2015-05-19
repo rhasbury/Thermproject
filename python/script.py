@@ -40,12 +40,14 @@ class ThermostatParameters:
     LocalTemp2 = 0 
     RemTemp1 = 0
     RemTemp2 = 0
+    tset = 0
 
 class ProgramDataClass:     
-    def __init__(self, TimeActive, MasterTempS, TempSetP, FanOnoff, Day):
+    def __init__(self, TimeActive, MasterTempS, TempSetP, TempSetP, FanOnoff, Day):
         self.TimeActiveFrom = TimeActive         # The time this program segment is active from
         self.MasterTempSensor = MasterTempS                            # The index of the active temp sensor
-        self.TempSetPoint    = TempSetP                            # temperature set point
+        self.TempSetPoint    = TempSetP
+        self.TempSetPointCool    = TempSetPC                            # temperature set point
         self.fanon   = FanOnoff                                 # is the fan on or off
         self.sensorTemp   = 0
         self.Day   = Day               
@@ -131,9 +133,11 @@ def loop():
 #    Override section
     
     if(Tparams.tempORactive):
-        tset = Tparams.tempORtemp
+        Tparams.tset = Tparams.tempORtemp
+    elif(Tparams.mode = 2):
+        Tparams.tset = CurrentState.TempSetPointCool
     else:
-        tset = CurrentState.TempSetPoint
+        Tparams.tset = CurrentState.TempSetPoint
   
     
     if(Tparams.fanORactive == 1):
@@ -146,18 +150,18 @@ def loop():
     
     if(Tparams.mode == 1 and celsius != 0):
         GPIO.digitalWrite(AC, GPIO.HIGH)
-        if((tset - 0.5)  > celsius):
+        if((Tparams.tset - 0.5)  > celsius):
            GPIO.digitalWrite(HEATER, GPIO.LOW)
            heaterstate = 1
-        elif((tset + 0.5) < celsius):
+        elif((Tparams.tset + 0.5) < celsius):
            GPIO.digitalWrite(HEATER, GPIO.HIGH)
            heaterstate = 0
     elif(Tparams.mode == 2 and celsius != 0):
         GPIO.digitalWrite(HEATER, GPIO.HIGH)
-        if((tset - 0.5) > celsius):
+        if((Tparams.tset - 0.5) > celsius):
            GPIO.digitalWrite(AC, GPIO.HIGH)
            acstate = 0
-        elif((tset + 0.5) < celsius):
+        elif((Tparams.tset + 0.5) < celsius):
            GPIO.digitalWrite(AC, GPIO.LOW)
            acstate = 1
     else:
@@ -198,7 +202,7 @@ def loadProgramFromFile():
     
     for line in f:        
         parts = line.split(",")      
-        program.append(ProgramDataClass(datetime.datetime.strptime(parts[0], '%H:%M'),int(parts[1]), float(parts[2]), int(parts[3]), now.strftime('%A')))   
+        program.append(ProgramDataClass(datetime.datetime.strptime(parts[0], '%H:%M'),int(parts[1]), float(parts[2]), float(parts[3]), int(parts[4]), now.strftime('%A')))   
     
     f.close()
     program.sort(key = lambda x: x.TimeActiveFrom)
@@ -304,7 +308,7 @@ def getCurrentState():
     return "%d;%d;%s;%s;%d;%s;%s;%s;%s;%s;%s;%s" % (CurrentState.TimeActiveFrom.hour, 
                                         CurrentState.TimeActiveFrom.minute, 
                                         sensorlookup[CurrentState.MasterTempSensor], 
-                                        str(CurrentState.TempSetPoint)[:6], 
+                                        str(Tparams.tset)[:6], 
                                         Tparams.fanState, 
                                         overrideexp, 
                                         str(Tparams.tempORtemp)[:6], 
