@@ -135,14 +135,15 @@
 						$("#bt_fanstate").attr("class", "FANON");
 						$("#bt_fanstate").text("Fan ON ");	
 						}						
+												
 					
                     $("#dispTime").val(data[0]+":"+data[1]);
-					$("#dispSensor").val(data[2]);
+					//$("#dispSensor").val(data[2]);
 					$("#bt_sensorid").text(data[2]);
 					$("#dispTempSet").val(data[3]);
 					$("#dispFan").val(data[4]);		
 					$("#dispExp").val(data[5]);	
-					$("#bt_tempDisplay").text(data[7] + " C");
+					//$("#bt_tempDisplay").text(data[7] + " C");
 					
 					if(data[5] == "No override"){
 						$("#bt_override").attr("class", "OFF");
@@ -155,7 +156,21 @@
 						$("#temp_setpoint").text(data[6]);	
 						}					
 			
-									
+					if(data[2] == sensorlookup[1]){
+						$("#bt_LocalTemp").attr("class", "DEF");
+						$("#bt_RemTemp1").attr("class", "SENON");
+						$("#bt_RemTemp2").attr("class", "DEF");
+					}	
+					if(data[2] == sensorlookup[2]){
+						$("#bt_LocalTemp").attr("class", "DEF");
+						$("#bt_RemTemp1").attr("class", "DEF");
+						$("#bt_RemTemp2").attr("class", "SENON");
+					}
+					else{
+						$("#bt_LocalTemp").attr("class", "SENON");
+						$("#bt_RemTemp1").attr("class", "DEF");
+						$("#bt_RemTemp2").attr("class", "DEF");
+					}					
 						
 					$("#bt_LocalTemp").text(data[8] + " C");
 					$("#bt_RemTemp1").text(data[9] + " C");
@@ -250,6 +265,22 @@
                         color: gray;
                 }
                 
+				button.DEF {
+                        display: block;
+                        margin: 5px 5px 5px 5px;
+                        width: 170px;
+                        height: 45px;
+                        font-size: 24pt;
+                        font-weight: bold;
+                        color: gray;
+
+                }
+				
+				button.SENON {
+                        background-color: gray;
+						color: SlateBlue;
+                }
+				
                 button.OFF {
                         background-color: Black;
 						font-size: 16pt;
@@ -295,14 +326,18 @@
 				<td><button id="bt_ac"/></td>
 		</tr>
 		<tr>
-				<th>Active Sensor</th>
-				<th>Temperature</th>
+<!-- 				<th>Active Sensor</th>
+				<th>Temperature</th> -->
+				<th></th>
 				<th>Mode</th>
+				<th></th>
 		</tr>		
 		<tr>
-				<td><button id="bt_sensorid" class="SEN"/></td>
-				<td><button id="bt_tempDisplay"/></td>
+<!-- 				<td><button id="bt_sensorid" class="SEN"/></td>
+				<td><button id="bt_tempDisplay"/></td> -->
+				<td></td>
 				<td><button id="bt_mode" onclick="toggleMode()"/></td>
+				<td></td>
 		</tr>
 		<tr>
 				<th>Living Room</th>
@@ -316,17 +351,7 @@
 				<td><button id="bt_RemTemp2"/></td>	
 		</tr>
 		
-		<tr>
-				<th> </th>
-				<th>Outside</th>
-				<th> </th>		
 
-		</tr>		
-		<tr>
-				<td><button id="bt_extra2"/></td>
-				<td><button id="bt_LocalTemp2"/></td>
-				<td><button id="bt_extra1"/></td>	
-		</tr>
 		
 		<tr>
 			<th> Override </th>
@@ -337,6 +362,17 @@
 				<td><button id="temp_up" onclick="temp_up()">UP</button></td>
 				<td><button id="temp_setpoint"/></td>
 				<td><button id="temp_down" onclick="temp_down()">DOWN</button></td>
+		</tr>
+		<tr>
+				<th> </th>
+				<th>Outside</th>
+				<th> </th>		
+
+		</tr>		
+		<tr>
+				<td></td>
+				<td><button id="bt_LocalTemp2"/></td>
+				<td></td>	
 		</tr>
 		<tr>
 				<th>Select Override Length</th>
