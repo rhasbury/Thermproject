@@ -43,10 +43,10 @@ class ThermostatParameters:
     tset = 0
 
 class ProgramDataClass:     
-    def __init__(self, TimeActive, MasterTempS, TempSetP, TempSetP, FanOnoff, Day):
+    def __init__(self, TimeActive, MasterTempS, TempSetP, TempSetPC, FanOnoff, Day):
         self.TimeActiveFrom = TimeActive         # The time this program segment is active from
         self.MasterTempSensor = MasterTempS                            # The index of the active temp sensor
-        self.TempSetPoint    = TempSetP
+        self.TempSetPointHeat    = TempSetP
         self.TempSetPointCool    = TempSetPC                            # temperature set point
         self.fanon   = FanOnoff                                 # is the fan on or off
         self.sensorTemp   = 0
@@ -69,7 +69,7 @@ def setup():
        
     loadProgramFromFile()
     CurrentState = program[0]
-    Tparams.tempORtemp = CurrentState.TempSetPoint
+    Tparams.tempORtemp = CurrentState.TempSetPointHeat
     
     f = open(ThermostatStateFile, 'r') 
     try:
@@ -134,10 +134,10 @@ def loop():
     
     if(Tparams.tempORactive):
         Tparams.tset = Tparams.tempORtemp
-    elif(Tparams.mode = 2):
+    elif(Tparams.mode == 2):
         Tparams.tset = CurrentState.TempSetPointCool
     else:
-        Tparams.tset = CurrentState.TempSetPoint
+        Tparams.tset = CurrentState.TempSetPointHeat
   
     
     if(Tparams.fanORactive == 1):
@@ -222,7 +222,9 @@ def WriteProgramToFile():
         f.write(",")
         f.write(str(program[x].MasterTempSensor))
         f.write(",")
-        f.write(str(program[x].TempSetPoint))
+        f.write(str(program[x].TempSetPointHeat))
+        f.write(",")
+        f.write(str(program[x].TempSetPointCool))
         f.write(",")
         f.write(str(program[x].fanon))
         f.write("\n")
@@ -263,7 +265,7 @@ def logPresslineDB(location, pressure):
 
 
 def printProram(prg):
-    print(prg.TimeActiveFrom, prg.MasterTempSensor, prg.TempSetPoint, prg.fanon)
+    print(prg.TimeActiveFrom, prg.MasterTempSensor, prg.TempSetPointHeat, prg.fanon)
     
     
 def updateProgram():
@@ -329,7 +331,7 @@ def getProgram(index):
     if(ind > (program.__len__()-1)):
         ind = (program.__len__()-1) 
        
-    return "%s;%d;%f;%d;%d;%d" % (datetime.datetime.strftime(program[ind].TimeActiveFrom, '%H;%M'), program[ind].MasterTempSensor, program[ind].TempSetPoint, program[ind].fanon, program.__len__(), ind)
+    return "%s;%d;%f;%d;%d;%d" % (datetime.datetime.strftime(program[ind].TimeActiveFrom, '%H;%M'), program[ind].MasterTempSensor, program[ind].TempSetPointHeat, program[ind].fanon, program.__len__(), ind)
     
 @webiopi.macro
 def setProgram(index, time, sensor, temp, fanon ):
@@ -344,7 +346,7 @@ def setProgram(index, time, sensor, temp, fanon ):
     else:        
         program[ind].TimeActiveFrom = datetime.datetime.strptime(time, '%H:%M')
         program[ind].MasterTempSensor = int(sensor)
-        program[ind].TempSetPoint    = float(temp) 
+        program[ind].TempSetPointHeat    = float(temp) 
         program[ind].fanon = int(fanon)
    
     program.sort(key = lambda x: x.TimeActiveFrom)
@@ -360,7 +362,7 @@ def temp_change(amount, length):
     global CurrentState        
     global Tparams
     if(Tparams.tempORactive == False):
-        Tparams.tempORtemp = CurrentState.TempSetPoint
+        Tparams.tempORtemp = Tparams.tset
  
     Tparams.tempORtemp = Tparams.tempORtemp + (int(amount)* 0.5)
     Tparams.tempORtime = datetime.datetime.utcnow() 
