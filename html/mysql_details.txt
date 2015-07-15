@@ -5,4 +5,4 @@ CREATE TABLE tempdat (tdate DATETIME, ttime TIME, zone TEXT, temperature NUMERIC
 
 CREATE TABLE pressdat (tdate DATETIME, zone TEXT, pressure NUMERIC(10,5);
 
-CREATE TABLE humdat (tdate DATETIME, zone TEXT, humidity NUMERIC(10,5);
+CREATE TABLE humdat (tdate DATETIME, zone TEXT, humidity NUMERIC(10,5));

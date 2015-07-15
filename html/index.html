@@ -16,7 +16,7 @@
 		var chart;
 		var currenttemp = 0;
 		var programlength = 0; 
-		var sensorlookup = ["Living Room", "Bedroom", "Basement" ];
+		var sensorlookup = ["Living Room", "Bedroom", "Basement", "Outside"];
 		
         webiopi().ready(init);
         
@@ -161,7 +161,7 @@
 						$("#bt_RemTemp1").attr("class", "SENON");
 						$("#bt_RemTemp2").attr("class", "DEF");
 					}	
-					if(data[2] == sensorlookup[2]){
+					else if(data[2] == sensorlookup[2]){
 						$("#bt_LocalTemp").attr("class", "DEF");
 						$("#bt_RemTemp1").attr("class", "DEF");
 						$("#bt_RemTemp2").attr("class", "SENON");
@@ -175,7 +175,8 @@
 					$("#bt_LocalTemp").text(data[8] + " C");
 					$("#bt_RemTemp1").text(data[9] + " C");
 					$("#bt_RemTemp2").text(data[10] + " C");
-					$("#bt_LocalTemp2").text(data[11] + " C");
+					var ltemp2 = parseFloat(data[11]);
+					$("#bt_LocalTemp2").text(ltemp2.toFixed(2) + " C");
 					var hum = (parseFloat(data[12]) * 100);					
 					$("#bt_LocalHum").text(hum.toFixed(2) + "%");
 					var press = ((parseFloat(data[13]) + 4300) / 1000); // correction is 4100 for work at 340m , and 4300 at home at 360m

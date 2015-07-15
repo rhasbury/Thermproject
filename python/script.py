@@ -120,15 +120,27 @@ def loop():
     if (datetime.datetime.utcnow() - Tparams.fanORtime > datetime.timedelta(minutes=Tparams.fanORlength)):        
         Tparams.fanORactive = 0
             
-    updateProgram()
+    try:
+        updateProgram()
+    except:
+        print("updateProgram() threw exception")
 
-    tmp = webiopi.deviceInstance("bmp")
-    tmp2 = webiopi.deviceInstance("temp0")
-
-# Read local temperature    
-    Tparams.LocalTemp = tmp.getCelsius()
-    Tparams.LocalTemp2 = tmp2.getCelsius()
-# Try to read remote temp and if fails use local temp instead.  
+    
+    try:
+        tmp = webiopi.deviceInstance("bmp")
+        tmp2 = webiopi.deviceInstance("temp0")
+    # Read local temperature    
+        Tparams.LocalTemp = tmp.getCelsius()
+        Tparams.LocalTemp2 = tmp2.getCelsius()
+        Tparams.localPressure = tmp.getPascalAtSea()
+        Tparams.LocalHum = tmp2.getHumidity()
+    # Try to read remote temp and if fails use local temp instead.
+    except:
+        print("Reading local temperature failed")
+        Tparams.LocalTemp = 0
+        Tparams.LocalTemp2 = 0
+          
+    
     try:
         #Tparams.RemTemp1 = readFromSensor("192.168.1.117")
         Tparams.RemTemp1 = readFromSensor(Tparams.RemoteSensorAddress1)
@@ -137,7 +149,7 @@ def loop():
 # Try to read remote temp and if fails use local temp instead. 
     try:
         #Tparams.RemTemp2 = readFromSensor("192.168.1.146")
-        Tparams.RemTemp2 = readFromSensor(Tparams.RemoteSensorAddress1)          
+        Tparams.RemTemp2 = readFromSensor(Tparams.RemoteSensorAddress2)          
     except:            
         Tparams.RemTemp2 = Tparams.LocalTemp
     
@@ -193,17 +205,11 @@ def loop():
     elif(Tparams.fanState == 0):
         GPIO.digitalWrite(Tparams.FAN, GPIO.HIGH)    
        
-    Tparams.localPressure = tmp.getPascalAtSea()
-    Tparams.LocalHum = tmp2.getHumidity()
+
     
     #logline("{0!s},{1!s},{2!s},{3!s},{4!s}, {5!s}".format(LocalTemp, RemTemp1, RemTemp2, CurrentState.fanon, heaterstate, localPressure))
     #logTemplineDBNew(LocalTemp, RemTemp1, RemTemp2, localPressure)    
-    logTemplineDB(Tparams.sensorlookup[0], Tparams.LocalTemp)
-    logTemplineDB(Tparams.sensorlookup[1], Tparams.RemTemp1)
-    logTemplineDB(Tparams.sensorlookup[2], Tparams.RemTemp2)
-    logTemplineDB(Tparams.sensorlookup[3], Tparams.LocalTemp2)  
-    logPresslineDB(Tparams.sensorlookup[0], Tparams.localPressure) 
-    logHumlineDB(Tparams.sensorlookup[3], Tparams.LocalHum)
+
       
     graphfilecount = 0
     webiopi.sleep(10)
@@ -270,25 +276,34 @@ def logline(linetolog):
 #    connection.close()
 
 def logTemplineDB(location, temp):    
-    connection = pymysql.connect(host='localhost', user='monitor', passwd='password', db='temps', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
-    with connection.cursor() as cursor:
-        cursor.execute ("INSERT INTO tempdat values(NOW(), NOW(), %s, %s, 'empty')", (location, temp))
-    connection.commit()
-    connection.close()
+    try:
+        connection = pymysql.connect(host='localhost', user='monitor', passwd='password', db='temps', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
+        with connection.cursor() as cursor:
+            cursor.execute ("INSERT INTO tempdat values(NOW(), NOW(), %s, %s, 'empty')", (location, temp))
+        connection.commit()
+        connection.close()
+    except:
+        print("logTemplineDB() exception thrown")
 
 def logPresslineDB(location, pressure):    
-    connection = pymysql.connect(host='localhost', user='monitor', passwd='password', db='temps', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
-    with connection.cursor() as cursor:        
-        cursor.execute ("INSERT INTO pressdat values(NOW(), NOW(), %s, %s)", (location, pressure))        
-    connection.commit()
-    connection.close()
+    try:
+        connection = pymysql.connect(host='localhost', user='monitor', passwd='password', db='temps', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
+        with connection.cursor() as cursor:        
+            cursor.execute ("INSERT INTO pressdat values(NOW(), NOW(), %s, %s)", (location, pressure))        
+        connection.commit()
+        connection.close()
+    except:
+        print("logPresslineDB() exception thrown")
 
 def logHumlineDB(location, humidity):    
-    connection = pymysql.connect(host='localhost', user='monitor', passwd='password', db='temps', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
-    with connection.cursor() as cursor:        
-        cursor.execute ("INSERT INTO humdat values(NOW(), %s, %s)", (location, humidity))        
-    connection.commit()
-    connection.close()
+    try:
+        connection = pymysql.connect(host='localhost', user='monitor', passwd='password', db='temps', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
+        with connection.cursor() as cursor:        
+            cursor.execute ("INSERT INTO humdat values(NOW(), %s, %s)", (location, humidity))        
+        connection.commit()
+        connection.close()
+    except:
+        print("logHumlineDB() exception thrown")
 
 
 def printProram(prg):
