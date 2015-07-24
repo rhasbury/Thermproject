@@ -6,3 +6,6 @@ CREATE TABLE tempdat (tdate DATETIME, ttime TIME, zone TEXT, temperature NUMERIC
 CREATE TABLE pressdat (tdate DATETIME, zone TEXT, pressure NUMERIC(10,5);
 
 CREATE TABLE humdat (tdate DATETIME, zone TEXT, humidity NUMERIC(10,5));
+
+Query for pulling GPX visualizer data
+SELECT 'date', 'latitude', 'longitude' UNION SELECT date_time, n_lat, w_long FROM gps INTO OUTFILE '/home/pi/temperature/gpxvisualiser.txt' FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n';
