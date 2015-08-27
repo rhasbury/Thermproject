@@ -294,7 +294,8 @@ def logTemplineDB(location, temp):
         connection.commit()
         connection.close()
     except:
-        print("logTemplineDB() exception thrown")
+        #print("logTemplineDB() exception thrown")
+        logging.debug("logTemplineDB() exception thrown", exc_info=True)
 
 def logPresslineDB(location, pressure):    
     try:
@@ -304,7 +305,8 @@ def logPresslineDB(location, pressure):
         connection.commit()
         connection.close()
     except:
-        print("logPresslineDB() exception thrown")
+        #print("logPresslineDB() exception thrown")
+        logging.debug("logPresslineDB() exception thrown", exc_info=True)
 
 def logHumlineDB(location, humidity):    
     try:
@@ -314,7 +316,8 @@ def logHumlineDB(location, humidity):
         connection.commit()
         connection.close()
     except:
-        print("logHumlineDB() exception thrown")
+        #print("logHumlineDB() exception thrown")
+        logging.debug("logHumlineDB() exception thrown", exc_info=True)
 
 
 def printProram(prg):
