@@ -1,3 +1,5 @@
+import logging
+logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', filename='/home/pi/thermosat.log', level=logging.DEBUG)
 import webiopi
 import datetime
 import pymysql.cursors
@@ -82,7 +84,7 @@ def setup():
     GPIO.setFunction(Tparams.HEATER, GPIO.OUT)
     GPIO.setFunction(Tparams.FAN, GPIO.OUT)
     GPIO.setFunction(Tparams.AC, GPIO.OUT)
-    
+    logging.getLogger().setLevel(logging.DEBUG)
 
       
        
@@ -123,7 +125,8 @@ def loop():
     try:
         updateProgram()
     except:
-        print("updateProgram() threw exception")
+        logging.debug("updateProgram() excepted", exc_info=True)
+        #print("updateProgram() threw exception")
 
     
     try:
@@ -136,7 +139,8 @@ def loop():
         Tparams.LocalHum = tmp2.getHumidity()
     # Try to read remote temp and if fails use local temp instead.
     except:
-        print("Reading local temperature failed")
+        logging.debug("Reading local temperature failed", exc_info=True)
+        #print("Reading local temperature failed")
         Tparams.LocalTemp = 0
         Tparams.LocalTemp2 = 0
           
@@ -145,12 +149,15 @@ def loop():
         #Tparams.RemTemp1 = readFromSensor("192.168.1.117")
         Tparams.RemTemp1 = readFromSensor(Tparams.RemoteSensorAddress1)
     except:            
+        logging.debug("Reading remote1 temperature failed", exc_info=True)
         Tparams.RemTemp1 = Tparams.LocalTemp
+        
 # Try to read remote temp and if fails use local temp instead. 
     try:
         #Tparams.RemTemp2 = readFromSensor("192.168.1.146")
         Tparams.RemTemp2 = readFromSensor(Tparams.RemoteSensorAddress2)          
     except:            
+        logging.debug("Reading remote2 temperature", exc_info=True)
         Tparams.RemTemp2 = Tparams.LocalTemp
     
 # decide which temp we're using for control
@@ -178,32 +185,36 @@ def loop():
     
     
     CurrentState.sensorTemp = celsius
-    
-    if(Tparams.mode == 1 and celsius != 0):
-        GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
-        if((Tparams.tset - 0.5)  > celsius):
-           GPIO.digitalWrite(Tparams.HEATER, GPIO.LOW)
-           heaterstate = 1
-        elif((Tparams.tset + 0.5) < celsius):
-           GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
-           heaterstate = 0
-    elif(Tparams.mode == 2 and celsius != 0):
-        GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
-        if((Tparams.tset - 0.5) > celsius):
-           GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
-           acstate = 0
-        elif((Tparams.tset + 0.5) < celsius):
-           GPIO.digitalWrite(Tparams.AC, GPIO.LOW)
-           acstate = 1
-    else:
-        GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
-        GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
-
+    try:
+        if(Tparams.mode == 1 and celsius != 0):
+            GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
+            if((Tparams.tset - 0.5)  > celsius):
+               GPIO.digitalWrite(Tparams.HEATER, GPIO.LOW)
+               heaterstate = 1
+            elif((Tparams.tset + 0.5) < celsius):
+               GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
+               heaterstate = 0
+        elif(Tparams.mode == 2 and celsius != 0):
+            GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
+            if((Tparams.tset - 0.5) > celsius):
+               GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
+               acstate = 0
+            elif((Tparams.tset + 0.5) < celsius):
+               GPIO.digitalWrite(Tparams.AC, GPIO.LOW)
+               acstate = 1
+        else:
+            GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
+            GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
+    catch:
+        logging.debug("Error setting GPIOs AC/Heater", exc_info=True)
     	   
-    if(Tparams.fanState == 1):
-        GPIO.digitalWrite(Tparams.FAN, GPIO.LOW)
-    elif(Tparams.fanState == 0):
-        GPIO.digitalWrite(Tparams.FAN, GPIO.HIGH)    
+    try:
+        if(Tparams.fanState == 1):
+            GPIO.digitalWrite(Tparams.FAN, GPIO.LOW)
+        elif(Tparams.fanState == 0):
+            GPIO.digitalWrite(Tparams.FAN, GPIO.HIGH)
+    catch:
+        logging.debug("Error setting GPIOs Fan", exc_info=True)
        
 
     
