@@ -1,5 +1,4 @@
 import logging
-logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s', filename='/home/pi/thermosat.log', level=logging.DEBUG)
 import webiopi
 import datetime
 import pymysql.cursors
@@ -25,7 +24,13 @@ GPIO = webiopi.GPIO # Helper for LOW/HIGH values
  
 #sensorlookup = ["Living Room", "Bedroom", "Basement", "Outside" ]
 
-#my_logger = logging.getLogger('MyLogger')
+my_logger = logging.getLogger('MyLogger')
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+hdlr = logging.FileHandler('/home/pi/thermostat/thermostat.log')
+hdlr.setFormatter(formatter)
+my_logger.addHandler(hdlr)
+my_logger.setLevel(logging.DEBUG)
+
 
 class ThermostatParameters:
     def __init__(self):
@@ -84,9 +89,9 @@ def setup():
     GPIO.setFunction(Tparams.HEATER, GPIO.OUT)
     GPIO.setFunction(Tparams.FAN, GPIO.OUT)
     GPIO.setFunction(Tparams.AC, GPIO.OUT)
-    logging.getLogger().setLevel(logging.DEBUG)
-
-      
+    
+    
+          
        
     loadProgramFromFile()
     CurrentState = program[0]
@@ -98,7 +103,8 @@ def setup():
     except:
         Tparams.mode = 0
     f.close()
-    
+
+    my_logger.info("Setup Completed")
     #for x in range(0, program.__len__()):
     #    printProram(program[x])
 
@@ -125,7 +131,7 @@ def loop():
     try:
         updateProgram()
     except:
-        logging.debug("updateProgram() excepted", exc_info=True)
+        my_logger.debug("updateProgram() excepted", exc_info=True)
         #print("updateProgram() threw exception")
 
     
@@ -139,7 +145,7 @@ def loop():
         Tparams.LocalHum = tmp2.getHumidity()
     # Try to read remote temp and if fails use local temp instead.
     except:
-        logging.debug("Reading local temperature failed", exc_info=True)
+        my_logger.debug("Reading local temperature failed", exc_info=True)
         #print("Reading local temperature failed")
         Tparams.LocalTemp = 0
         Tparams.LocalTemp2 = 0
@@ -149,7 +155,7 @@ def loop():
         #Tparams.RemTemp1 = readFromSensor("192.168.1.117")
         Tparams.RemTemp1 = readFromSensor(Tparams.RemoteSensorAddress1)
     except:            
-        logging.debug("Reading remote1 temperature failed", exc_info=True)
+        my_logger.debug("Reading remote1 temperature failed", exc_info=True)
         Tparams.RemTemp1 = Tparams.LocalTemp
         
 # Try to read remote temp and if fails use local temp instead. 
@@ -157,7 +163,7 @@ def loop():
         #Tparams.RemTemp2 = readFromSensor("192.168.1.146")
         Tparams.RemTemp2 = readFromSensor(Tparams.RemoteSensorAddress2)          
     except:            
-        logging.debug("Reading remote2 temperature", exc_info=True)
+        my_logger.debug("Reading remote2 temperature", exc_info=True)
         Tparams.RemTemp2 = Tparams.LocalTemp
     
 # decide which temp we're using for control
@@ -205,16 +211,16 @@ def loop():
         else:
             GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
             GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
-    catch:
-        logging.debug("Error setting GPIOs AC/Heater", exc_info=True)
+    except:
+        my_logger.debug("Error setting GPIOs AC/Heater", exc_info=True)
     	   
     try:
         if(Tparams.fanState == 1):
             GPIO.digitalWrite(Tparams.FAN, GPIO.LOW)
         elif(Tparams.fanState == 0):
             GPIO.digitalWrite(Tparams.FAN, GPIO.HIGH)
-    catch:
-        logging.debug("Error setting GPIOs Fan", exc_info=True)
+    except:
+        my_logger.debug("Error setting GPIOs Fan", exc_info=True)
        
 
     
@@ -295,7 +301,7 @@ def logTemplineDB(location, temp):
         connection.close()
     except:
         #print("logTemplineDB() exception thrown")
-        logging.debug("logTemplineDB() exception thrown", exc_info=True)
+        my_logger.debug("logTemplineDB() exception thrown", exc_info=True)
 
 def logPresslineDB(location, pressure):    
     try:
@@ -306,7 +312,7 @@ def logPresslineDB(location, pressure):
         connection.close()
     except:
         #print("logPresslineDB() exception thrown")
-        logging.debug("logPresslineDB() exception thrown", exc_info=True)
+        my_logger.debug("logPresslineDB() exception thrown", exc_info=True)
 
 def logHumlineDB(location, humidity):    
     try:
@@ -317,7 +323,7 @@ def logHumlineDB(location, humidity):
         connection.close()
     except:
         #print("logHumlineDB() exception thrown")
-        logging.debug("logHumlineDB() exception thrown", exc_info=True)
+        my_logger.debug("logHumlineDB() exception thrown", exc_info=True)
 
 
 def printProram(prg):
@@ -464,6 +470,7 @@ def setMode():
 def clearOverride():
     Tparams.tempORactive = False
     Tparams.fanORactive = 0
+    my_logger.info("Override cleared")
   
 
 
