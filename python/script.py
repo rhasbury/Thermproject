@@ -223,7 +223,16 @@ def loop():
         my_logger.debug("Error setting GPIOs Fan", exc_info=True)
        
 
-    
+    try:
+        logTemplineDB("Living Room", Tparams.LocalTemp)
+        logTemplineDB("Outside", Tparams.LocalTemp2)
+        logTemplineDB("Basement", Tparams.RemTemp2)
+        logTemplineDB("Bedroom", Tparams.RemTemp1)
+        logPresslineDB("Living Room", Tparams.localPressure)
+        logHumlineDB("Outside", Tparams.LocalHum)       
+    except:
+        my_logger.debug("Error logging temperatures to MYsql", exc_info=True)
+        
     #logline("{0!s},{1!s},{2!s},{3!s},{4!s}, {5!s}".format(LocalTemp, RemTemp1, RemTemp2, CurrentState.fanon, heaterstate, localPressure))
     #logTemplineDBNew(LocalTemp, RemTemp1, RemTemp2, localPressure)    
 
