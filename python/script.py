@@ -25,7 +25,7 @@ GPIO = webiopi.GPIO # Helper for LOW/HIGH values
  
 #sensorlookup = ["Living Room", "Bedroom", "Basement", "Outside" ]
 loginterval = 10  # DB logging interval in minutes
-lastlogtime = 0
+lastlogtime = datetime.datetime.utcnow()
 ActiveProgramIndex = 0 
 my_logger = logging.getLogger('MyLogger')
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -118,6 +118,7 @@ def loop():
     global Tparams
     global graphfilecount
     global lastlogtime   
+    global loginterval
     #global LocalTemp
     #global RemTemp1
     #global RemTemp2 
@@ -143,13 +144,20 @@ def loop():
 
     
     try:
-        tmp = webiopi.deviceInstance("bmp")
-        tmp2 = webiopi.deviceInstance("temp0")
+        #tmp = webiopi.deviceInstance("bmp")
+        #tmp2 = webiopi.deviceInstance("temp0")
     # Read local temperature    
-        Tparams.LocalTemp = tmp.getCelsius()
-        Tparams.LocalTemp2 = tmp2.getCelsius()
-        Tparams.localPressure = tmp.getPascalAtSea()
-        Tparams.LocalHum = tmp2.getHumidity()
+       # Tparams.LocalTemp = tmp.getCelsius()
+       # Tparams.LocalTemp2 = tmp2.getCelsius()
+       # Tparams.localPressure = tmp.getPascalAtSea()
+       # Tparams.LocalHum = tmp2.getHumidity()
+        
+        
+        Tparams.LocalTemp = 23
+        Tparams.LocalTemp2 = 24
+        Tparams.localPressure = 1000
+        Tparams.LocalHum = 1
+
     # Try to read remote temp and if fails use local temp instead.
     except:
         my_logger.debug("Reading local temperature failed", exc_info=True)
@@ -160,7 +168,8 @@ def loop():
     
     try:
         #Tparams.RemTemp1 = readFromSensor("192.168.1.117")
-        Tparams.RemTemp1 = readFromSensor(Tparams.RemoteSensorAddress1)
+        #Tparams.RemTemp1 = readFromSensor(Tparams.RemoteSensorAddress1)
+        Tparams.RemTemp1 = 28
     except:            
         my_logger.debug("Reading remote1 temperature failed", exc_info=True)
         Tparams.RemTemp1 = Tparams.LocalTemp
@@ -168,7 +177,8 @@ def loop():
 # Try to read remote temp and if fails use local temp instead. 
     try:
         #Tparams.RemTemp2 = readFromSensor("192.168.1.146")
-        Tparams.RemTemp2 = readFromSensor(Tparams.RemoteSensorAddress2)          
+        #Tparams.RemTemp2 = readFromSensor(Tparams.RemoteSensorAddress2)
+        Tparams.RemTemp2 = 27          
     except:            
         my_logger.debug("Reading remote2 temperature", exc_info=True)
         Tparams.RemTemp2 = Tparams.LocalTemp
