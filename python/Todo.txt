@@ -1,0 +1,4 @@
+- Reduce logging frequency to 10 min
+- Free space indicator
+- Temperature adjustments should stick to the time slot, or average out. 
+- Create helper application that restarts when the loop fails, or a cron job that restarts the application. 

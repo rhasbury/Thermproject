@@ -23,7 +23,8 @@ GPIO = webiopi.GPIO # Helper for LOW/HIGH values
 #RemTemp2 = 0  
  
 #sensorlookup = ["Living Room", "Bedroom", "Basement", "Outside" ]
-
+loginterval = 10  # DB logging interval in minutes
+lastlogtime = 0 
 my_logger = logging.getLogger('MyLogger')
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 hdlr = logging.FileHandler('/home/pi/thermostat/thermostat.log')
@@ -114,7 +115,7 @@ def loop():
     global CurrentState
     global Tparams
     global graphfilecount
-        
+    global lastlogtime   
     #global LocalTemp
     #global RemTemp1
     #global RemTemp2 
@@ -223,15 +224,17 @@ def loop():
         my_logger.debug("Error setting GPIOs Fan", exc_info=True)
        
 
-    try:
-        logTemplineDB("Living Room", Tparams.LocalTemp)
-        logTemplineDB("Outside", Tparams.LocalTemp2)
-        logTemplineDB("Basement", Tparams.RemTemp2)
-        logTemplineDB("Bedroom", Tparams.RemTemp1)
-        logPresslineDB("Living Room", Tparams.localPressure)
-        logHumlineDB("Outside", Tparams.LocalHum)       
-    except:
-        my_logger.debug("Error logging temperatures to MYsql", exc_info=True)
+    if (datetime.datetime.utcnow() - lastlogtime > datetime.timedelta(minutes=loginterval)):        
+        lastlogtime = datetime.datetime.utcnow()        
+        try:
+            logTemplineDB("Living Room", Tparams.LocalTemp)
+            logTemplineDB("Outside", Tparams.LocalTemp2)
+            logTemplineDB("Basement", Tparams.RemTemp2)
+            logTemplineDB("Bedroom", Tparams.RemTemp1)
+            logPresslineDB("Living Room", Tparams.localPressure)
+            logHumlineDB("Outside", Tparams.LocalHum)       
+        except:
+            my_logger.debug("Error logging temperatures to MYsql", exc_info=True)
         
     #logline("{0!s},{1!s},{2!s},{3!s},{4!s}, {5!s}".format(LocalTemp, RemTemp1, RemTemp2, CurrentState.fanon, heaterstate, localPressure))
     #logTemplineDBNew(LocalTemp, RemTemp1, RemTemp2, localPressure)    
