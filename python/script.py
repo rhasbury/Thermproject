@@ -4,6 +4,7 @@ import datetime
 import pymysql.cursors
 import json
 import configparser
+import os
 #import locale
 from webiopi.clients import *
 from _ctypes import addressof
@@ -24,7 +25,8 @@ GPIO = webiopi.GPIO # Helper for LOW/HIGH values
  
 #sensorlookup = ["Living Room", "Bedroom", "Basement", "Outside" ]
 loginterval = 10  # DB logging interval in minutes
-lastlogtime = 0 
+lastlogtime = 0
+ActiveProgramIndex = 0 
 my_logger = logging.getLogger('MyLogger')
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 hdlr = logging.FileHandler('/home/pi/thermostat/thermostat.log')
@@ -121,6 +123,10 @@ def loop():
     #global RemTemp2 
     heaterstate = 0
     acstate = 0
+    
+    
+    diskstat = os.statvfs(Tparams.ThermostatStateFile)
+    spacefree = (diskstat.f_bavail * diskstat.f_frsize) / 1024000   # 
     
     if (datetime.datetime.utcnow() - Tparams.tempORtime > datetime.timedelta(minutes=Tparams.tempORlength)):        
         Tparams.tempORactive = False
@@ -346,6 +352,7 @@ def updateProgram():
     global CurrentState
     global program    
     global Tparams
+    global ActiveProgramIndex
     now = datetime.datetime.now()
     if(program[0].Day != now.strftime('%A')):
         loadProgramFromFile()
@@ -355,6 +362,7 @@ def updateProgram():
         for y in range(now.minute, -1, -1):
             if(program[x].TimeActiveFrom.hour == now.hour and program[x].TimeActiveFrom.minute == y):
                 CurrentState = program[x]
+                ActiveProgramIndex = x
                 #printProram(CurrentState)
                 progfound = True
                 break
@@ -437,14 +445,19 @@ def setProgram(index, time, sensor, temp, fanon ):
 def temp_change(amount, length):
     global CurrentState        
     global Tparams
+    global program
     if(Tparams.tempORactive == False):
         Tparams.tempORtemp = Tparams.tset
  
     Tparams.tempORtemp = Tparams.tempORtemp + (int(amount)* 0.5)
     Tparams.tempORtime = datetime.datetime.utcnow() 
     Tparams.tempORlength = int(length)
-    Tparams.tempORactive = True    
-    
+    Tparams.tempORactive = True
+    if(Tparams.mode == 1):
+        program[ind].TempSetPointHeat = Tparams.tempORtemp 
+    elif(Tparams.mode == 2):
+        program[ind].TempSetPointCool = Tparams.tempORtemp
+    WriteProgramToFile()
 
 @webiopi.macro
 def fan_change(length):
