@@ -172,6 +172,9 @@
 						$("#bt_RemTemp2").attr("class", "DEF");
 					}					
 						
+					
+					$("#freeSpace").val(data[14]);	
+					
 					$("#bt_LocalTemp").text(data[8] + " C");
 					$("#bt_RemTemp1").text(data[9] + " C");
 					$("#bt_RemTemp2").text(data[10] + " C");
@@ -320,6 +323,12 @@
 						color: black;
 						background-color: Grey;
 				}
+				
+				button.CLEAR {
+						font-size: 12pt;						
+						color: black;
+						background-color: Grey;
+				}
 
 				
         </style>
@@ -392,16 +401,15 @@
 		<tr>	
 		<td align="center">
 				<select id="overridetime">
-				<option value="30">30 Mins</option>
-				<option value="1">1 Mins</option>
-				<option value="10">10 Mins</option>				
-				<option value="60">1 Hour</option>
 				<option value="120">2 Hours</option>
 				<option value="240">4 Hours</option>
+				<option value="30">30 Mins</option>
+				<option value="10">10 Mins</option>				
+				<option value="60">1 Hour</option>				
 				</select>
 			</td>
 				
-				<td align="center"><button id="bt_ORClear" onclick="clear_or()"">Clear Override</button></td>
+				<td align="center"><button id="bt_ORClear" onclick="clear_or()" style="font-size:14px">Clear Override</button></td>
 				<td align="center"><button id="bt_override"/></td>
 				<td align="center"/>
 
@@ -430,7 +438,7 @@
 				<td>Override expiring in : </td><td><input type="text" id="dispExp" /></td>
 		</tr>
 		<tr>	
-				<td>Debug Data : </td><td><input type="text" id="debugDisp" /></td>
+				<td>Free Space : </td><td><input type="text" id="freeSpace" /></td>
 		</tr>
 		
 	</table>

@@ -126,8 +126,7 @@ def loop():
     acstate = 0
     
     
-    diskstat = os.statvfs(Tparams.ThermostatStateFile)
-    spacefree = (diskstat.f_bavail * diskstat.f_frsize) / 1024000   # 
+
     
     if (datetime.datetime.utcnow() - Tparams.tempORtime > datetime.timedelta(minutes=Tparams.tempORlength)):        
         Tparams.tempORactive = False
@@ -396,7 +395,12 @@ def getCurrentState():
         overrideexp = str(datetime.timedelta(minutes=Tparams.fanORlength) - (datetime.datetime.utcnow() - Tparams.fanORtime))[:7]        
     else:
         overrideexp = "No override"        
-    return "%d;%d;%s;%s;%d;%s;%s;%s;%s;%s;%s;%s;%s;%s" % (CurrentState.TimeActiveFrom.hour, 
+    diskstat = os.statvfs(Tparams.ThermostatStateFile)
+    spacefree = (diskstat.f_bavail * diskstat.f_frsize) / 1024000   # 
+    
+    #my_logger.error("freediskspace" % spacefree)
+    
+    return "%d;%d;%s;%s;%d;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s" % (CurrentState.TimeActiveFrom.hour, 
                                         CurrentState.TimeActiveFrom.minute, 
                                         Tparams.sensorlookup[CurrentState.MasterTempSensor], 
                                         str(Tparams.tset)[:6], 
@@ -409,7 +413,8 @@ def getCurrentState():
                                         str(Tparams.RemTemp2)[:6],
                                         str(Tparams.LocalTemp2)[:6],
                                         str(Tparams.LocalHum)[:6],
-                                        str(Tparams.localPressure)[:6]) 
+                                        str(Tparams.localPressure)[:6],
+                                        str(spacefree)) 
 
 
 
