@@ -144,19 +144,15 @@ def loop():
 
     
     try:
-        #tmp = webiopi.deviceInstance("bmp")
-        #tmp2 = webiopi.deviceInstance("temp0")
+        tmp = webiopi.deviceInstance("bmp")
+        tmp2 = webiopi.deviceInstance("temp0")
     # Read local temperature    
-       # Tparams.LocalTemp = tmp.getCelsius()
-       # Tparams.LocalTemp2 = tmp2.getCelsius()
-       # Tparams.localPressure = tmp.getPascalAtSea()
-       # Tparams.LocalHum = tmp2.getHumidity()
+        Tparams.LocalTemp = tmp.getCelsius()
+        Tparams.LocalTemp2 = tmp2.getCelsius()
+        Tparams.localPressure = tmp.getPascalAtSea()
+        Tparams.LocalHum = tmp2.getHumidity()
         
         
-        Tparams.LocalTemp = 23
-        Tparams.LocalTemp2 = 24
-        Tparams.localPressure = 1000
-        Tparams.LocalHum = 1
 
     # Try to read remote temp and if fails use local temp instead.
     except:
@@ -168,8 +164,7 @@ def loop():
     
     try:
         #Tparams.RemTemp1 = readFromSensor("192.168.1.117")
-        #Tparams.RemTemp1 = readFromSensor(Tparams.RemoteSensorAddress1)
-        Tparams.RemTemp1 = 28
+        Tparams.RemTemp1 = readFromSensor(Tparams.RemoteSensorAddress1)        
     except:            
         my_logger.debug("Reading remote1 temperature failed", exc_info=True)
         Tparams.RemTemp1 = Tparams.LocalTemp
@@ -177,8 +172,7 @@ def loop():
 # Try to read remote temp and if fails use local temp instead. 
     try:
         #Tparams.RemTemp2 = readFromSensor("192.168.1.146")
-        #Tparams.RemTemp2 = readFromSensor(Tparams.RemoteSensorAddress2)
-        Tparams.RemTemp2 = 27          
+        Tparams.RemTemp2 = readFromSensor(Tparams.RemoteSensorAddress2)                  
     except:            
         my_logger.debug("Reading remote2 temperature", exc_info=True)
         Tparams.RemTemp2 = Tparams.LocalTemp
@@ -281,8 +275,11 @@ def loadProgramFromFile():
     
 def WriteProgramToFile():
     global program
+    #now = datetime.datetime.now()
+    #ThermostatProgramFile = "/home/pi/thermostat/python/Programs/{0}.csv".now.strftime('%A')
     now = datetime.datetime.now()
-    ThermostatProgramFile = "/home/pi/thermostat/python/Programs/{0}.csv".now.strftime('%A')
+    ThermostatProgramFile = "/home/pi/thermostat/python/Programs/{0}.csv".format(now.strftime('%A'))
+
     f = open(ThermostatProgramFile, 'w')    
     f.write("# TimeActiveFrom, MasterTempSensor (0=localsensor, 1=?, 2=? ), temperature set point, enable fan\n")
     
@@ -335,7 +332,7 @@ def logPresslineDB(location, pressure):
     try:
         connection = pymysql.connect(host='localhost', user='monitor', passwd='password', db='temps', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
         with connection.cursor() as cursor:        
-            cursor.execute ("INSERT INTO pressdat values(NOW(), NOW(), %s, %s)", (location, pressure))        
+            cursor.execute ("INSERT INTO pressdat values(NOW(), %s, %s)", (location, pressure))        
         connection.commit()
         connection.close()
     except:
@@ -456,6 +453,7 @@ def temp_change(amount, length):
     global CurrentState        
     global Tparams
     global program
+    global ActiveProgramIndex
     if(Tparams.tempORactive == False):
         Tparams.tempORtemp = Tparams.tset
  
@@ -464,9 +462,9 @@ def temp_change(amount, length):
     Tparams.tempORlength = int(length)
     Tparams.tempORactive = True
     if(Tparams.mode == 1):
-        program[ind].TempSetPointHeat = Tparams.tempORtemp 
+        program[ActiveProgramIndex].TempSetPointHeat = Tparams.tempORtemp 
     elif(Tparams.mode == 2):
-        program[ind].TempSetPointCool = Tparams.tempORtemp
+        program[ActiveProgramIndex].TempSetPointCool = Tparams.tempORtemp
     WriteProgramToFile()
 
 @webiopi.macro
