@@ -465,7 +465,8 @@ def temp_change(amount, length):
     Tparams.tempORtemp = Tparams.tempORtemp + (int(amount)* 0.5)
     Tparams.tempORtime = datetime.datetime.utcnow() 
     Tparams.tempORlength = int(length)
-    Tparams.tempORactive = True
+    #Tparams.tempORactive = True
+    
     if(Tparams.mode == 1):
         program[ActiveProgramIndex].TempSetPointHeat = Tparams.tempORtemp 
     elif(Tparams.mode == 2):

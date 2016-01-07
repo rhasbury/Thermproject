@@ -138,7 +138,7 @@
 												
 					
                     $("#dispTime").val(data[0]+":"+data[1]);
-					//$("#dispSensor").val(data[2]);
+					$("#dispSensor").val(data[2]);
 					$("#bt_sensorid").text(data[2]);
 					$("#dispTempSet").val(data[3]);
 					$("#dispFan").val(data[4]);		
@@ -173,7 +173,7 @@
 					}					
 						
 					
-					$("#freeSpace").val(data[14]);	
+					$("#freeSpace").val(data[14] + " MB");	
 					
 					$("#bt_LocalTemp").text(data[8] + " C");
 					$("#bt_RemTemp1").text(data[9] + " C");
@@ -383,9 +383,15 @@
 				<td><button id="temp_down" onclick="temp_down()">DOWN</button></td>
 		</tr>
 		<tr>
-				<th> </th>
+				<th></th>
 				<th>Outside</th>
 				<th> </th>		
+
+		</tr>		
+		<tr>
+				<th>Humidity</th>
+				<th>Temp</th>
+				<th>Pressure</th>		
 
 		</tr>		
 		<tr>
@@ -419,6 +425,19 @@
 		</table>
 		<table border="1" style="width:30%">
 		<tr>
+				<th colspan="2">System Information</th>
+		</tr>
+		<tr>	
+				<td>Free Space : </td><td><input type="text" id="freeSpace" /></td>
+		</tr>
+		
+		</table>
+		<br>
+		<br>
+		
+		
+		<table border="1" style="width:30%">
+		<tr>
 				<th colspan="2">Current Program Data</th>
 		</tr>
 		
@@ -437,12 +456,10 @@
 		<tr>	
 				<td>Override expiring in : </td><td><input type="text" id="dispExp" /></td>
 		</tr>
-		<tr>	
-				<td>Free Space : </td><td><input type="text" id="freeSpace" /></td>
-		</tr>
 		
 	</table>
-	
+	<br>
+	<br>
 		<table border="1" style="width:30%">
 		<tr>
 				<th colspan="2">Edit Program Data</th>
