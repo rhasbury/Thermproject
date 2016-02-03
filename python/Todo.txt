@@ -1,4 +1,9 @@
-- Reduce logging frequency to 10 min
-- Free space indicator
-- Temperature adjustments should stick to the time slot, or average out. 
++ Reduce logging frequency to 10 min
++ Free space indicator
++ Temperature adjustments should stick to the time slot, or average out. 
+- Temperature adjustments should be used for adaptations
 - Create helper application that restarts when the loop fails, or a cron job that restarts the application. 
+- Create javascript <-> python daemon communication method to get away from webiopi http hosting
+- Create new http interface. 
+- Make adding temperature sensors configurable and display on http scaleable 
+- Openelec plugin?  
