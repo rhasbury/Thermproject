@@ -18,7 +18,7 @@
 import configparser
 import socketserver
 import datetime
-
+import json
 
 class ThermostatParameters:
     
@@ -41,20 +41,23 @@ class ThermostatParameters:
     tset = 0
 
     def __init__(self):
-            global RemoteSensors
             config = configparser.RawConfigParser()            
             config.read('/home/pi/temperature/thermostat.conf')
-            settings = config['main']
-            self.HEATER = int(settings['HEATER'])
-            self.FAN = int(settings['FAN'])
-            self.AC = int(settings['AC'])
-            self.ThermostatStateFile = settings['ThermostatStateFile']
-            self.ThermostatLogFile = settings['ThermostatLogFile']
-            self.ProgramsFolder = settings['ProgramsFolder']
-            self.RemoteSensors = []
-            for (name, ip_addr) in config.items('remotesensors'):
-                RemoteSensors[name] = ip_addr
-            self.sensorlookup = settings['sensorlookup'].split(",")
+            settings = config['main']            
+            config.optionxform=str
+            self.HEATER = int(settings['heater'])
+            self.FAN = int(settings['fan'])
+            self.AC = int(settings['ac'])
+            self.ThermostatStateFile = settings['thermostatstatefile']
+            self.ThermostatLogFile = settings['thermostatlogfile']
+            self.ProgramsFolder = settings['programsfolder']
+            self.sensorlookup = settings['sensorlookup'].split(",")            
+            self.RemoteSensors = dict(config.items('remotesensors'))
+            #for (name, ip_addr) in config.items('remotesensors'):
+            #    RemoteSensors[name] = ip_addr
+    
+    def to_JSON(self):
+        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
     
 
 
@@ -77,11 +80,16 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         print ("{} wrote:".format(self.client_address[0]))
         print (self.data)
         # just send back the same data, but upper-cased
-        self.request.sendall(self.data.upper())
+        #self.request.sendall(self.data.upper())
+        self.request.sendall(bytes(Tparams.to_JSON(), 'UTF-8'))
+        
+        
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 50007
-
+    #print (Tparams.RemoteSensors)
+    #print (Tparams.HEATER)
+    #print (Tparams.to_JSON())
     # Create the server, binding to localhost on port 9999
     server = socketserver.TCPServer((HOST, PORT), MyTCPHandler)
 

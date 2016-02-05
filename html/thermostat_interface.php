@@ -19,7 +19,7 @@
  
 	echo "Connection established \n";
 	
-	$message = "GET / HTTP/1.1\r\n\r\n";
+	$message = "GET_tparams";
  
 	//Send the message to the server
 	if( ! socket_send ( $sock , $message , strlen($message) , 0))
@@ -31,6 +31,18 @@
 	}
 	 
 	echo "Message send successfully \n";
+	
+	//Now receive reply from server
+	if(socket_recv ( $sock , $buf , 2045 , MSG_WAITALL ) === FALSE)
+	{
+		$errorcode = socket_last_error();
+		$errormsg = socket_strerror($errorcode);
+		 
+		die("Could not receive data: [$errorcode] $errormsg \n");
+	}
+	 
+	//print the received message
+	echo $buf;
 	
 	socket_close($sock);
 ?>
