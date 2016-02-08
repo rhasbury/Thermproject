@@ -103,31 +103,34 @@
 
 		
         var updateThermDisplay = function(macro, args, response) {
-                    var data = response.split(";");
-                    var heaterOut = webiopi().digitalRead(heater);
-					var acOut = webiopi().digitalRead(ac);
+                    //var data = response.split(";");
+					var jsonData = JSON.parse(response);
+                    
+					//these have to go
+					//var heaterOut = webiopi().digitalRead(heater);
+					//var acOut = webiopi().digitalRead(ac);
 					
-					if (heaterOut == "1") {
+					if (jsonData.heaterstate == 1) {
                         // jQuery functions
                         $("#bt_heater").attr("class", "OFF");
 						$("#bt_heater").text("Heater OFF");
 					}
-					else if (heaterOut == "0") {
+					else if (jsonData.heaterstate == 0) {
                         $("#bt_heater").attr("class", "ON");
 						$("#bt_heater").text("Heater ON");
 					}
 					
-					if (acOut == "1") {
+					if (jsonData.acstate == 1) {
                         // jQuery functions
                         $("#bt_ac").attr("class", "OFF");
 						$("#bt_ac").text("AC OFF");
 					}
-					else if (acOut == "0") {
+					else if (jsonData.acstate == 0) {
                         $("#bt_ac").attr("class", "ACON");
 						$("#bt_ac").text("AC ON");
 					}		
 					
-					if(data[4] == "0"){
+					if(jsonData.fanState == 0){
 						$("#bt_fanstate").attr("class", "OFF");
 						$("#bt_fanstate").text("Fan OFF ");						
 						}
@@ -137,15 +140,20 @@
 						}						
 												
 					
-                    $("#dispTime").val(data[0]+":"+data[1]);
-					$("#dispSensor").val(data[2]);
-					$("#bt_sensorid").text(data[2]);
-					$("#dispTempSet").val(data[3]);
-					$("#dispFan").val(data[4]);		
-					$("#dispExp").val(data[5]);	
+                    //$("#dispTime").val(data[0]+":"+data[1]);
+					$("#dispTime").val(jsonData.TimeActiveFrom);
+					//$("#dispSensor").val(data[2]);
+					$("#dispSensor").val(jsonData.MasterTempSensor);
+					//$("#bt_sensorid").text(data[2]);
+					//$("#dispTempSet").val(data[3]);
+					$("#dispTempSet").val(jsonData.TempSetPointHeat);
+					//$("#dispFan").val(data[4]);		
+					$("#dispFan").val(jsonData.fanState);		
+					//$("#dispExp").val(data[5]);	
+					$("#dispExp").val(jsonData.overrideexp);	
 					//$("#bt_tempDisplay").text(data[7] + " C");
 					
-					if(data[5] == "No override"){
+					if(jsonData.overrideexp == "No override"){
 						$("#bt_override").attr("class", "OFF");
 						$("#bt_override").text(" ");						
 						$("#temp_setpoint").text(data[3]);	
@@ -156,12 +164,12 @@
 						$("#temp_setpoint").text(data[6]);	
 						}					
 			
-					if(data[2] == sensorlookup[1]){
+					if(jsonData.MasterTempSensor == sensorlookup[1]){
 						$("#bt_LocalTemp").attr("class", "DEF");
 						$("#bt_RemTemp1").attr("class", "SENON");
 						$("#bt_RemTemp2").attr("class", "DEF");
 					}	
-					else if(data[2] == sensorlookup[2]){
+					else if(jsonData.MasterTempSensor == sensorlookup[2]){
 						$("#bt_LocalTemp").attr("class", "DEF");
 						$("#bt_RemTemp1").attr("class", "DEF");
 						$("#bt_RemTemp2").attr("class", "SENON");
@@ -173,17 +181,20 @@
 					}					
 						
 					
-					$("#freeSpace").val(data[14] + " MB");	
+					$("#freeSpace").val(jsonData.hddspace + " MB");	
 					
-					$("#bt_LocalTemp").text(data[8] + " C");
-					$("#bt_RemTemp1").text(data[9] + " C");
-					$("#bt_RemTemp2").text(data[10] + " C");
-					var ltemp2 = parseFloat(data[11]);
-					$("#bt_LocalTemp2").text(ltemp2.toFixed(2) + " C");
-					var hum = (parseFloat(data[12]) * 100);					
-					$("#bt_LocalHum").text(hum.toFixed(2) + "%");
-					var press = ((parseFloat(data[13]) + 4300) / 1000); // correction is 4100 for work at 340m , and 4300 at home at 360m
-					$("#bt_LocalPress").text(press.toFixed(2) + "kPa");
+					//Section needs to be totally rewritten to dynamically add sensor sections based on JSON input data. 
+					
+					
+					//$("#bt_LocalTemp").text(data[8] + " C");
+					//$("#bt_RemTemp1").text(data[9] + " C");
+					//$("#bt_RemTemp2").text(data[10] + " C");
+					//var ltemp2 = parseFloat(data[11]);
+					//$("#bt_LocalTemp2").text(ltemp2.toFixed(2) + " C");
+					//var hum = (parseFloat(data[12]) * 100);					
+					//$("#bt_LocalHum").text(hum.toFixed(2) + "%");
+					//var press = ((parseFloat(data[13]) + 4300) / 1000); // correction is 4100 for work at 340m , and 4300 at home at 360m
+					//$("#bt_LocalPress").text(press.toFixed(2) + "kPa");
 					
 					
                 }
