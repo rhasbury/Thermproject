@@ -371,7 +371,7 @@ def updateProgram():
 def readFromSensor(address):
     client = PiHttpClient(address)            
     client.setCredentials("webiopi", "raspberry")
-    remoteTemp = Temperature(client, "temp0")         
+    remoteTemp = Temperature(client, "bmp0")         
     return remoteTemp.getCelsius()
    
 
