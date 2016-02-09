@@ -1,7 +1,7 @@
 import logging
 import webiopi
 import datetime
-import pymysql.cursors
+
 import json
 import configparser
 import os
@@ -9,11 +9,10 @@ import os
 from webiopi.clients import *
 from _ctypes import addressof
 from ThermostatParameters import *
+from dblogging import *
 
 
 GPIO = webiopi.GPIO # Helper for LOW/HIGH values
-
-loginterval = 10  # DB logging interval in minutes
 lastlogtime = datetime.datetime.utcnow()
 ActiveProgramIndex = 0 
 my_logger = logging.getLogger('MyLogger')
@@ -24,11 +23,9 @@ my_logger.addHandler(hdlr)
 my_logger.setLevel(logging.DEBUG)
 
 
-
-
-
 Tparams = ThermostatParameters()
-CurrentState = ProgramDataClass
+Sparams = SensorParameters()
+CurrentState = ThermostatState
 program = []
 
 # setup function is automatically called at WebIOPi startup
@@ -36,6 +33,7 @@ def setup():
     global program
     global CurrentState
     global Tparams
+    
 
     GPIO.setFunction(Tparams.HEATER, GPIO.OUT)
     GPIO.setFunction(Tparams.FAN, GPIO.OUT)
@@ -43,16 +41,16 @@ def setup():
              
        
     loadProgramFromFile()
-    CurrentState = program[0]
-    Tparams.tempORtemp = CurrentState.TempSetPointHeat
+    CurrentState = ThermostatState(program[0])
+    CurrentState.tempORtemp = CurrentState.CurrentProgram.TempSetPointHeat
     
-    Tparams.heaterstate = 0
-    Tparams.acstate = 0
+    CurrentState.heaterstate = 0
+    CurrentState.acstate = 0
     f = open(Tparams.ThermostatStateFile, 'r') 
     try:
-        Tparams.mode = int(f.readline())
+        CurrentState.mode = int(f.readline())
     except:
-        Tparams.mode = 0
+        CurrentState.mode = 0
     f.close()
 
     my_logger.info("Setup Completed")
@@ -64,17 +62,15 @@ def setup():
 def loop():
     global CurrentState
     global Tparams
-    global graphfilecount
-    global lastlogtime   
-    global loginterval
-
+    global lastlogtime    
+    global Sparams
     
         
-    if (datetime.datetime.utcnow() - Tparams.tempORtime > datetime.timedelta(minutes=Tparams.tempORlength)):        
-        Tparams.tempORactive = False
+    if (datetime.datetime.utcnow() - CurrentState.tempORtime > datetime.timedelta(minutes=CurrentState.tempORlength)):        
+        CurrentState.tempORactive = False
         
-    if (datetime.datetime.utcnow() - Tparams.fanORtime > datetime.timedelta(minutes=Tparams.fanORlength)):        
-        Tparams.fanORactive = False
+    if (datetime.datetime.utcnow() - CurrentState.fanORtime > datetime.timedelta(minutes=CurrentState.fanORlength)):        
+        CurrentState.fanORactive = False
             
     
     try:
@@ -88,55 +84,55 @@ def loop():
 
     
     # decide which temp we're using for control
-    if(Tparams.RemoteSensors.get(CurrentState.MasterTempSensor) != None):        
-        celsius = Tparams.RemoteSensors[CurrentState.MasterTempSensor]['temperature']
+    if(Sparams.RemoteSensors.get(CurrentState.CurrentProgram.MasterTempSensor) != None):        
+        celsius = Sparams.RemoteSensors[CurrentState.CurrentProgram.MasterTempSensor]['temperature']
     
-    elif(Tparams.LocalSensors.get(CurrentState.MasterTempSensor) != None):        
-        celsius = Tparams.LocalSensors[CurrentState.MasterTempSensor]['temperature']
+    elif(Sparams.LocalSensors.get(CurrentState.CurrentProgram.MasterTempSensor) != None):        
+        celsius = Sparams.LocalSensors[CurrentState.CurrentProgram.MasterTempSensor]['temperature']
     
     else:
         celsius = 0
         my_logger.debug("Failed to determine master sensor. Falling back to any local sensor")
-        for (key, value) in Tparams.LocalSensors.items():
+        for (key, value) in Sparams.LocalSensors.items():
             if(value['read_successful'] == True):
                 celsius = value['temperature']
 
 
 #    Override section
     
-    if(Tparams.tempORactive):
-        Tparams.tset = Tparams.tempORtemp
-    elif(Tparams.mode == 2):
-        Tparams.tset = CurrentState.TempSetPointCool
+    if(CurrentState.tempORactive):
+        CurrentState.tset = CurrentState.tempORtemp
+    elif(CurrentState.mode == 2):
+        CurrentState.tset = CurrentState.CurrentProgram.TempSetPointCool
     else:
-        Tparams.tset = CurrentState.TempSetPointHeat
+        CurrentState.tset = CurrentState.CurrentProgram.TempSetPointHeat
   
     
-    if(Tparams.fanORactive == True):
-        Tparams.fanState = Tparams.fanORstate
+    if(CurrentState.fanORactive == True):
+        CurrentState.fanState = CurrentState.fanORstate
     else:
-        Tparams.fanState = CurrentState.fanon    
+        CurrentState.fanState = CurrentState.CurrentProgram.fanon    
     
     
     CurrentState.sensorTemp = celsius
     
     try:
-        if(Tparams.mode == 1 and celsius != 0):
+        if(CurrentState.mode == 1 and celsius != 0):
             GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
-            if((Tparams.tset - 0.5)  > celsius):
+            if((CurrentState.tset - 0.5)  > celsius):
                GPIO.digitalWrite(Tparams.HEATER, GPIO.LOW)
-               Tparams.heaterstate = 1
-            elif((Tparams.tset + 0.5) < celsius):
+               CurrentState.heaterstate = 1
+            elif((CurrentState.tset + 0.5) < celsius):
                GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
-               Tparams.heaterstate = 0
-        elif(Tparams.mode == 2 and celsius != 0):
+               CurrentState.heaterstate = 0
+        elif(CurrentState.mode == 2 and celsius != 0):
             GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
-            if((Tparams.tset - 0.5) > celsius):
+            if((CurrentState.tset - 0.5) > celsius):
                GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
-               Tparams.acstate = 0
-            elif((Tparams.tset + 0.5) < celsius):
+               CurrentState.acstate = 0
+            elif((CurrentState.tset + 0.5) < celsius):
                GPIO.digitalWrite(Tparams.AC, GPIO.LOW)
-               Tparams.acstate = 1
+               CurrentState.acstate = 1
         else:
             GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
             GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
@@ -144,25 +140,25 @@ def loop():
         my_logger.debug("Error setting GPIOs AC/Heater", exc_info=True)
     	   
     try:
-        if(Tparams.fanState == 1):
+        if(CurrentState.fanState == 1):
             GPIO.digitalWrite(Tparams.FAN, GPIO.LOW)
-        elif(Tparams.fanState == 0):
+        elif(CurrentState.fanState == 0):
             GPIO.digitalWrite(Tparams.FAN, GPIO.HIGH)
     except:
         my_logger.debug("Error setting GPIOs Fan", exc_info=True)
        
 
-    if (datetime.datetime.utcnow() - lastlogtime > datetime.timedelta(minutes=loginterval)):        
+    if (datetime.datetime.utcnow() - lastlogtime > datetime.timedelta(minutes=Tparams.loginterval)):        
         lastlogtime = datetime.datetime.utcnow()        
         try:
-            for (key, value) in Tparams.LocalSensors.items(): 
+            for (key, value) in Sparams.LocalSensors.items(): 
                 logTemplineDB(key, value['temperature'])
                 if(value['type'] == "bmp" ):                    
                     logPresslineDB(key, value['pressure'])
                 if(value['type'] == "htu" ):
                     logHumlineDB(key, value['humidity'])               
                 
-            for (key, value) in Tparams.RemoteSensors.items(): 
+            for (key, value) in Sparams.RemoteSensors.items(): 
                 logTemplineDB(key, value['temperature'])
                 
                 
@@ -176,14 +172,14 @@ def loop():
 #def destroy():
     
 
-def updateTemps():
-    global Tparams
+def updateTemps():    
+    global Sparams
     
     # reading local sensors
     try:
-        if(Tparams.webiopi == 1):
+        if(Sparams.webiopi == 1):
     
-            for (key, value) in Tparams.LocalSensors.items():                
+            for (key, value) in Sparams.LocalSensors.items():                
                 try:
                     tmp = webiopi.deviceInstance(value['webiopi_name'])
                     value['temperature'] = tmp.getCelsius()
@@ -215,8 +211,8 @@ def updateTemps():
         my_logger.debug("Reading local temperature failed for some reason on the outer", exc_info=True)
 
     # reading remote sensors
-    if(Tparams.webiopi == 1):
-        for (key, value) in Tparams.RemoteSensors.items():
+    if(Sparams.webiopi == 1):
+        for (key, value) in Sparams.RemoteSensors.items():
             try:                
                 value['temperature'] = readFromSensor(value['ip'])
                 value['read_successful'] = True
@@ -274,38 +270,7 @@ def WriteProgramToFile():
 
 
 
-def logTemplineDB(location, temp):    
-    try:
-        connection = pymysql.connect(host='localhost', user='monitor', passwd='password', db='temps', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
-        with connection.cursor() as cursor:
-            cursor.execute ("INSERT INTO tempdat values(NOW(), NOW(), %s, %s, 'empty')", (location, temp))
-        connection.commit()
-        connection.close()
-    except:
-        #print("logTemplineDB() exception thrown")
-        my_logger.debug("logTemplineDB() exception thrown", exc_info=True)
 
-def logPresslineDB(location, pressure):    
-    try:
-        connection = pymysql.connect(host='localhost', user='monitor', passwd='password', db='temps', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
-        with connection.cursor() as cursor:        
-            cursor.execute ("INSERT INTO pressdat values(NOW(), %s, %s)", (location, pressure))        
-        connection.commit()
-        connection.close()
-    except:
-        #print("logPresslineDB() exception thrown")
-        my_logger.debug("logPresslineDB() exception thrown", exc_info=True)
-
-def logHumlineDB(location, humidity):    
-    try:
-        connection = pymysql.connect(host='localhost', user='monitor', passwd='password', db='temps', charset='utf8mb4', cursorclass=pymysql.cursors.DictCursor)
-        with connection.cursor() as cursor:        
-            cursor.execute ("INSERT INTO humdat values(NOW(), %s, %s)", (location, humidity))        
-        connection.commit()
-        connection.close()
-    except:
-        #print("logHumlineDB() exception thrown")
-        my_logger.debug("logHumlineDB() exception thrown", exc_info=True)
 
 
 def printProram(prg):
@@ -325,9 +290,9 @@ def updateProgram():
     for x in range((program.__len__()-1), -1, -1):
         for y in range(now.minute, -1, -1):
             if(program[x].TimeActiveFrom.hour == now.hour and program[x].TimeActiveFrom.minute == y):
-                CurrentState = program[x]
+                CurrentState.CurrentProgram = program[x]
                 ActiveProgramIndex = x
-                #printProram(CurrentState)
+                #printProram(CurrentState.CurrentProgram)
                 progfound = True
                 break
         if(progfound):
@@ -344,20 +309,15 @@ def readFromSensor(address):
 
 @webiopi.macro
 def getCurrentState():    
-    global Tparams
-    if(Tparams.tempORactive):            
-        Tparams.overrideexp = str(datetime.timedelta(minutes=Tparams.tempORlength) - (datetime.datetime.utcnow() - Tparams.tempORtime))[:7]   
-    elif(Tparams.fanORactive):    
-        Tparams.overrideexp = str(datetime.timedelta(minutes=Tparams.fanORlength) - (datetime.datetime.utcnow() - Tparams.fanORtime))[:7]        
+    global CurrentState
+    if(CurrentState.tempORactive):            
+        CurrentState.overrideexp = str(datetime.timedelta(minutes=CurrentState.tempORlength) - (datetime.datetime.utcnow() - CurrentState.tempORtime))[:7]   
+    elif(CurrentState.fanORactive):    
+        CurrentState.overrideexp = str(datetime.timedelta(minutes=CurrentState.fanORlength) - (datetime.datetime.utcnow() - CurrentState.fanORtime))[:7]        
     else:
-        Tparams.overrideexp = "No override"        
+        CurrentState.overrideexp = "No override"        
     diskstat = os.statvfs(Tparams.ThermostatStateFile)    
-    Tparams.hddspace = (diskstat.f_bavail * diskstat.f_frsize) / 1024000   # 
-    Tparams.TimeActiveFrom = datetime.datetime.strftime(CurrentState.TimeActiveFrom, '%H:%M')                       # The time this program segment is active from
-    Tparams.MasterTempSensor = CurrentState.MasterTempSensor            # The index of the active temp sensor
-    Tparams.TempSetPointHeat    = CurrentState.TempSetPointHeat                     # temperature set point for AC
-    Tparams.TempSetPointCool    = CurrentState.TempSetPointCool                    # temperature set point for AC       
-    Tparams.Day   = CurrentState.Day
+    CurrentState.hddspace = (diskstat.f_bavail * diskstat.f_frsize) / 1024000   # 
         
     #print (Tparams.to_JSON())
     
@@ -421,38 +381,38 @@ def temp_change(amount, length):
     global Tparams
     global program
     global ActiveProgramIndex
-    if(Tparams.tempORactive == False):
-        Tparams.tempORtemp = Tparams.tset
+    if(CurrentState.tempORactive == False):
+        CurrentState.tempORtemp = CurrentState.tset
  
-    Tparams.tempORtemp = Tparams.tempORtemp + (int(amount)* 0.5)
-    Tparams.tempORtime = datetime.datetime.utcnow() 
-    Tparams.tempORlength = int(length)
-    #Tparams.tempORactive = True
+    CurrentState.tempORtemp = CurrentState.tempORtemp + (int(amount)* 0.5)
+    CurrentState.tempORtime = datetime.datetime.utcnow() 
+    CurrentState.tempORlength = int(length)
+    #CurrentState.tempORactive = True
     
-    if(Tparams.mode == 1):
-        program[ActiveProgramIndex].TempSetPointHeat = Tparams.tempORtemp 
-    elif(Tparams.mode == 2):
-        program[ActiveProgramIndex].TempSetPointCool = Tparams.tempORtemp
+    if(CurrentState.mode == 1):
+        program[ActiveProgramIndex].TempSetPointHeat = CurrentState.tempORtemp 
+    elif(CurrentState.mode == 2):
+        program[ActiveProgramIndex].TempSetPointCool = CurrentState.tempORtemp
     WriteProgramToFile()
 
 @webiopi.macro
 def fan_change(length):
     global CurrentState        
     global Tparams
-    if(Tparams.fanORactive == False):
-        Tparams.fanORstate = CurrentState.fanon 
-    Tparams.fanORstate = (Tparams.fanORstate + 1) % 2    
-    Tparams.fanORtime = datetime.datetime.utcnow() 
-    Tparams.fanORlength = int(length)
-    Tparams.fanORactive = True    
+    if(CurrentState.fanORactive == False):
+        CurrentState.fanORstate = CurrentState.CurrentProgram.fanon 
+    CurrentState.fanORstate = (CurrentState.fanORstate + 1) % 2    
+    CurrentState.fanORtime = datetime.datetime.utcnow() 
+    CurrentState.fanORlength = int(length)
+    CurrentState.fanORactive = True    
 
 @webiopi.macro
 def getMode():
-    if(Tparams.mode == 0):
+    if(CurrentState.mode == 0):
         return "OFF"
-    elif(Tparams.mode == 1):
+    elif(CurrentState.mode == 1):
         return "HEAT"
-    elif(Tparams.mode == 2):
+    elif(CurrentState.mode == 2):
         return "COOL"
     else:
         return "Error"
@@ -461,16 +421,16 @@ def getMode():
 @webiopi.macro
 def setMode():
     global Tparams 
-    Tparams.mode = (Tparams.mode + 1) % 3
+    CurrentState.mode = (CurrentState.mode + 1) % 3
     f = open(Tparams.ThermostatStateFile, 'w') 
-    f.write(str(Tparams.mode))
+    f.write(str(CurrentState.mode))
     f.close()
 
 @webiopi.macro
 
 def clearOverride():
-    Tparams.tempORactive = False
-    Tparams.fanORactive = False
+    CurrentState.tempORactive = False
+    CurrentState.fanORactive = False
     my_logger.info("Override cleared")
   
 
