@@ -19,12 +19,13 @@ class ProgramDataClass:
 
 class ThermostatState:
     def __init__(self, program): 
-        self.CurrentProgram = program       
-    tempORtime = datetime.datetime.now()    
+        self.CurrentProgram = program
+        
+    tempORtime = 0    
     tempORactive = False
     tempORlength = 1
     tempORtemp = 20
-    fanORtime = datetime.datetime.now()
+    fanORtime = 0
     fanORactive = False
     fanORlength = 1
     fanORstate = 0
@@ -36,6 +37,17 @@ class ThermostatState:
     overrideexp = 0 
     hddspace = 0         
     sensorTemp = 0
+    
+    def to_JSON(self):
+        date_handler = lambda obj: (
+            obj.isoformat()
+            if isinstance(obj, datetime.datetime)
+            or isinstance(obj, datetime.date)
+            else obj.__dict__            
+        )
+        return json.dumps(self, default=date_handler, sort_keys=True, indent=4)
+
+
 
 
 class SensorParameters:
@@ -52,12 +64,17 @@ class SensorParameters:
             cfg = value.split(',')
             self.LocalSensors[key]['type'] = cfg[0].strip()
             self.LocalSensors[key]['i2c_address'] = cfg[1].strip()
-            self.LocalSensors[key]['webiopi_name'] = cfg[2].strip()                
+            self.LocalSensors[key]['webiopi_name'] = cfg[2].strip()
+
             
         
         self.RemoteSensors = dict(config.items('remotesensors'))
         for (key, value) in self.RemoteSensors.items():
-            self.RemoteSensors[key] = { 'ip' : value, 'temperature' : 0, 'pressure' : 0 , 'humidity' : 0, 'read_successful' : False }
+            cfg = value.split(',')
+            self.RemoteSensors[key] = { 'temperature' : 0, 'pressure' : 0 , 'humidity' : 0, 'read_successful' : False }
+            self.RemoteSensors[key]['ip'] = cfg[0].strip()
+            self.RemoteSensors[key]['type'] = cfg[1].strip()
+            self.RemoteSensors[key]['webiopi_name'] = cfg[2].strip()
             
     def to_JSON(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
@@ -79,3 +96,5 @@ class ThermostatParameters:
     
     def to_JSON(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+    
+    

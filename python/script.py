@@ -33,17 +33,16 @@ def setup():
     global program
     global CurrentState
     global Tparams
+    global Sparams
     
-
     GPIO.setFunction(Tparams.HEATER, GPIO.OUT)
     GPIO.setFunction(Tparams.FAN, GPIO.OUT)
     GPIO.setFunction(Tparams.AC, GPIO.OUT)
-             
-       
+    
+    
     loadProgramFromFile()
     CurrentState = ThermostatState(program[0])
-    CurrentState.tempORtemp = CurrentState.CurrentProgram.TempSetPointHeat
-    
+    CurrentState.tempORtemp = CurrentState.CurrentProgram.TempSetPointHeat    
     CurrentState.heaterstate = 0
     CurrentState.acstate = 0
     f = open(Tparams.ThermostatStateFile, 'r') 
@@ -52,6 +51,8 @@ def setup():
     except:
         CurrentState.mode = 0
     f.close()
+
+    print (CurrentState.to_JSON()) 
 
     my_logger.info("Setup Completed")
     #for x in range(0, program.__len__()):
@@ -66,10 +67,10 @@ def loop():
     global Sparams
     
         
-    if (datetime.datetime.utcnow() - CurrentState.tempORtime > datetime.timedelta(minutes=CurrentState.tempORlength)):        
+    if (datetime.datetime.utcnow() - datetime.datetime.utcfromtimestamp(CurrentState.tempORtime) > datetime.timedelta(minutes=CurrentState.tempORlength)):        
         CurrentState.tempORactive = False
         
-    if (datetime.datetime.utcnow() - CurrentState.fanORtime > datetime.timedelta(minutes=CurrentState.fanORlength)):        
+    if (datetime.datetime.utcnow() - datetime.datetime.utcfromtimestamp(CurrentState.fanORtime) > datetime.timedelta(minutes=CurrentState.fanORlength)):        
         CurrentState.fanORactive = False
             
     
@@ -80,7 +81,7 @@ def loop():
         #print("updateProgram() threw exception")
     
     updateTemps()
-  
+    
 
     
     # decide which temp we're using for control
@@ -179,9 +180,13 @@ def updateTemps():
     try:
         if(Sparams.webiopi == 1):
     
-            for (key, value) in Sparams.LocalSensors.items():                
-                try:
+            for (key, value) in Sparams.LocalSensors.items():
+                try:                    
                     tmp = webiopi.deviceInstance(value['webiopi_name'])
+                except:
+                    my_logger.debug("Opening local temperature failed. Sensor: {}".format(key), exc_info=True)
+                                
+                try:                    
                     value['temperature'] = tmp.getCelsius()
                     value['read_successful'] = True           
                                       
@@ -189,10 +194,9 @@ def updateTemps():
                     value['read_successful'] = False                    
                     my_logger.debug("Reading local temperature failed. Sensor: {}".format(key), exc_info=True)
 
-
                 if(value['type'] == "bmp" ):
-                    try:                       
-                        value['pressure'] == tmp.getPascalAtSea()                          
+                    try:                                               
+                        value['pressure'] = tmp.getPascalAtSea()                          
                                           
                     except:
                         value['read_successful'] == False                    
@@ -200,7 +204,7 @@ def updateTemps():
                 
                 if(value['type'] == "htu" ):
                     try:                       
-                        value['humidity'] == tmp.getHumidity()                     
+                        value['humidity'] = tmp.getHumidity()                     
                                           
                     except:
                         value['read_successful'] == False                    
@@ -214,12 +218,28 @@ def updateTemps():
     if(Sparams.webiopi == 1):
         for (key, value) in Sparams.RemoteSensors.items():
             try:                
-                value['temperature'] = readFromSensor(value['ip'])
+                value['temperature'] = readFromSensor(value['ip'], value['webiopi_name'])
                 value['read_successful'] = True
             except:            
-                my_logger.debug("Reading remote temperature failed. Sensor: [0]".format(key), exc_info=True)
+                my_logger.debug("Reading remote temperature failed. Sensor: {}".format(key), exc_info=True)
                 value['read_successful'] = False
 
+                if(value['type'] == "bmp" ):
+                    try:                       
+                        value['pressure'] = readPressureFromSensor(value['ip'], value['webiopi_name'])
+                        value['read_successful'] = True        
+                    except:
+                        value['read_successful'] = False                    
+                        my_logger.debug("Reading remote pressure failed. Sensor: {}".format(key), exc_info=True)
+                
+                if(value['type'] == "htu" ):
+                    try:                       
+                        value['humidity'] =  readHumidityFromSensor(value['ip'], value['webiopi_name'])
+                        value['read_successful'] = True                    
+                                          
+                    except:
+                        value['read_successful'] = False                    
+                        my_logger.debug("Reading remote humidity failed. Sensor: {}".format(key), exc_info=True)
             
 
 
@@ -299,21 +319,32 @@ def updateProgram():
             break
    
 
-def readFromSensor(address):
+def readFromSensor(address, name):
     client = PiHttpClient(address)            
     client.setCredentials("webiopi", "raspberry")
-    remoteTemp = Temperature(client, "bmp0")         
+    remoteTemp = Temperature(client, name)        
     return remoteTemp.getCelsius()
    
+def readHumidityFromSensor(address, name):
+    client = PiHttpClient(address)            
+    client.setCredentials("webiopi", "raspberry")
+    remoteTemp = Temperature(client, name)        
+    return remoteTemp.getHumidity()
+
+def readPressureFromSensor(address, name):
+    client = PiHttpClient(address)            
+    client.setCredentials("webiopi", "raspberry")
+    remoteTemp = Temperature(client, name)        
+    return remoteTemp.getPascalAtSea()
 
 
 @webiopi.macro
 def getCurrentState():    
     global CurrentState
     if(CurrentState.tempORactive):            
-        CurrentState.overrideexp = str(datetime.timedelta(minutes=CurrentState.tempORlength) - (datetime.datetime.utcnow() - CurrentState.tempORtime))[:7]   
+        CurrentState.overrideexp = str(datetime.timedelta(minutes=CurrentState.tempORlength) - (datetime.datetime.utcnow() - datetime.datetime.utcfromtimestamp(CurrentState.tempORtime)))[:7]   
     elif(CurrentState.fanORactive):    
-        CurrentState.overrideexp = str(datetime.timedelta(minutes=CurrentState.fanORlength) - (datetime.datetime.utcnow() - CurrentState.fanORtime))[:7]        
+        CurrentState.overrideexp = str(datetime.timedelta(minutes=CurrentState.fanORlength) - (datetime.datetime.utcnow() - datetime.datetime.utcfromtimestamp(CurrentState.fanORtime)))[:7]        
     else:
         CurrentState.overrideexp = "No override"        
     diskstat = os.statvfs(Tparams.ThermostatStateFile)    
@@ -385,7 +416,7 @@ def temp_change(amount, length):
         CurrentState.tempORtemp = CurrentState.tset
  
     CurrentState.tempORtemp = CurrentState.tempORtemp + (int(amount)* 0.5)
-    CurrentState.tempORtime = datetime.datetime.utcnow() 
+    CurrentState.tempORtime = datetime.datetime.utcnow.strftime("%s") 
     CurrentState.tempORlength = int(length)
     #CurrentState.tempORactive = True
     
@@ -402,7 +433,7 @@ def fan_change(length):
     if(CurrentState.fanORactive == False):
         CurrentState.fanORstate = CurrentState.CurrentProgram.fanon 
     CurrentState.fanORstate = (CurrentState.fanORstate + 1) % 2    
-    CurrentState.fanORtime = datetime.datetime.utcnow() 
+    CurrentState.fanORtime = datetime.datetime.utcnow.strftime("%s")
     CurrentState.fanORlength = int(length)
     CurrentState.fanORactive = True    
 
