@@ -141,12 +141,12 @@
 												
 					
                     //$("#dispTime").val(data[0]+":"+data[1]);
-					$("#dispTime").val(jsonData.TimeActiveFrom);
+					$("#dispTime").val(jsonData.CurrentProgram.TimeActiveFrom);
 					//$("#dispSensor").val(data[2]);
-					$("#dispSensor").val(jsonData.MasterTempSensor);
+					$("#dispSensor").val(jsonData.CurrentProgram.MasterTempSensor);
 					//$("#bt_sensorid").text(data[2]);
 					//$("#dispTempSet").val(data[3]);
-					$("#dispTempSet").val(jsonData.TempSetPointHeat);
+					$("#dispTempSet").val(jsonData.CurrentProgram.TempSetPointHeat);
 					//$("#dispFan").val(data[4]);		
 					$("#dispFan").val(jsonData.fanState);		
 					//$("#dispExp").val(data[5]);	
@@ -156,12 +156,12 @@
 					if(jsonData.overrideexp == "No override"){
 						$("#bt_override").attr("class", "OFF");
 						$("#bt_override").text(" ");						
-						$("#temp_setpoint").text(data[3]);	
+						$("#temp_setpoint").text(jsonData.tset);	
 						}
 					else{
 						$("#bt_override").attr("class", "ON");
-						$("#bt_override").text(data[5]);
-						$("#temp_setpoint").text(data[6]);	
+						$("#bt_override").text(jsonData.tempORtime);
+						$("#temp_setpoint").text(jsonData.tempORtemp);	
 						}					
 			
 					if(jsonData.MasterTempSensor == sensorlookup[1]){

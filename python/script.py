@@ -67,10 +67,10 @@ def loop():
     global Sparams
     
         
-    if (datetime.datetime.utcnow() - datetime.datetime.utcfromtimestamp(CurrentState.tempORtime) > datetime.timedelta(minutes=CurrentState.tempORlength)):        
+    if (datetime.datetime.utcnow() - CurrentState.tempORtime > datetime.timedelta(minutes=CurrentState.tempORlength)):        
         CurrentState.tempORactive = False
         
-    if (datetime.datetime.utcnow() - datetime.datetime.utcfromtimestamp(CurrentState.fanORtime) > datetime.timedelta(minutes=CurrentState.fanORlength)):        
+    if (datetime.datetime.utcnow() - CurrentState.fanORtime > datetime.timedelta(minutes=CurrentState.fanORlength)):        
         CurrentState.fanORactive = False
             
     
@@ -342,9 +342,9 @@ def readPressureFromSensor(address, name):
 def getCurrentState():    
     global CurrentState
     if(CurrentState.tempORactive):            
-        CurrentState.overrideexp = str(datetime.timedelta(minutes=CurrentState.tempORlength) - (datetime.datetime.utcnow() - datetime.datetime.utcfromtimestamp(CurrentState.tempORtime)))[:7]   
+        CurrentState.overrideexp = str(datetime.timedelta(minutes=CurrentState.tempORlength) - (datetime.datetime.utcnow() - CurrentState.tempORtime))[:7]   
     elif(CurrentState.fanORactive):    
-        CurrentState.overrideexp = str(datetime.timedelta(minutes=CurrentState.fanORlength) - (datetime.datetime.utcnow() - datetime.datetime.utcfromtimestamp(CurrentState.fanORtime)))[:7]        
+        CurrentState.overrideexp = str(datetime.timedelta(minutes=CurrentState.fanORlength) - (datetime.datetime.utcnow() - CurrentState.fanORtime))[:7]        
     else:
         CurrentState.overrideexp = "No override"        
     diskstat = os.statvfs(Tparams.ThermostatStateFile)    
@@ -352,7 +352,7 @@ def getCurrentState():
         
     #print (Tparams.to_JSON())
     
-    return Tparams.to_JSON()
+    return CurrentState.to_JSON()
 #     return "%d;%d;%s;%s;%d;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s" % (CurrentState.TimeActiveFrom.hour, 
 #                                         CurrentState.TimeActiveFrom.minute, 
 #                                         CurrentState.MasterTempSensor, 
@@ -416,10 +416,10 @@ def temp_change(amount, length):
         CurrentState.tempORtemp = CurrentState.tset
  
     CurrentState.tempORtemp = CurrentState.tempORtemp + (int(amount)* 0.5)
-    CurrentState.tempORtime = datetime.datetime.utcnow.strftime("%s") 
+    CurrentState.tempORtime = datetime.datetime.utcnow()
     CurrentState.tempORlength = int(length)
     #CurrentState.tempORactive = True
-    
+     
     if(CurrentState.mode == 1):
         program[ActiveProgramIndex].TempSetPointHeat = CurrentState.tempORtemp 
     elif(CurrentState.mode == 2):
@@ -433,7 +433,7 @@ def fan_change(length):
     if(CurrentState.fanORactive == False):
         CurrentState.fanORstate = CurrentState.CurrentProgram.fanon 
     CurrentState.fanORstate = (CurrentState.fanORstate + 1) % 2    
-    CurrentState.fanORtime = datetime.datetime.utcnow.strftime("%s")
+    CurrentState.fanORtime = datetime.datetime.utcnow()
     CurrentState.fanORlength = int(length)
     CurrentState.fanORactive = True    
 
