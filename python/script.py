@@ -380,7 +380,7 @@ def getProgram(index):
     if(ind > (program.__len__()-1)):
         ind = (program.__len__()-1) 
        
-    return "%s;%d;%f;%d;%d;%d" % (datetime.datetime.strftime(program[ind].TimeActiveFrom, '%H;%M'), program[ind].MasterTempSensor, program[ind].TempSetPointHeat, program[ind].fanon, program.__len__(), ind)
+    return "%s;%s;%f;%d;%d;%d" % (datetime.datetime.strftime(program[ind].TimeActiveFrom, '%H;%M'), program[ind].MasterTempSensor, program[ind].TempSetPointHeat, program[ind].fanon, program.__len__(), ind)
     
 @webiopi.macro
 def setProgram(index, time, sensor, temp, fanon ):
