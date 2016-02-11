@@ -22,7 +22,6 @@ import json
 from ThermostatParameters import *
 
 
-Tparams = ThermostatParameters()
 
 class MyTCPHandler(socketserver.BaseRequestHandler):
     """

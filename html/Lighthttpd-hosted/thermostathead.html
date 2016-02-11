@@ -8,8 +8,7 @@
 
     <style>
      body {
-            background-color: #FFFFFF;
-			
+            background-color: #FFFFFF;			
         }
 
         #test .arc2 {
@@ -136,7 +135,25 @@
                 .maxValue(200)
                 .value(150)
                 .render();
+		
+		
+		$.getJson('thermostat_interface.php',data,function(jsonData){
+		neededData = jsonData; 
+			
+			
+			for (var key in jsonData.LocalSensors) {
+				// skip loop if the property is from prototype
+				if (!jsonData.LocalSensors.hasOwnProperty(key)) continue;
+				var obj = jsonData.LocalSensors[key];
+				rp1.value(obj.temperature)
+				}
+			});
 
+			
+			
+			
+			    
+		
     }
 
 

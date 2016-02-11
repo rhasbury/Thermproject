@@ -5,12 +5,17 @@ import datetime
 import json
 import configparser
 import os
+import socketserver
+import threading
+
 #import locale
 from webiopi.clients import *
 from _ctypes import addressof
 from ThermostatParameters import *
 from dblogging import *
 
+
+HOST, PORT = "localhost", 50007
 
 GPIO = webiopi.GPIO # Helper for LOW/HIGH values
 lastlogtime = datetime.datetime.utcnow()
@@ -28,12 +33,48 @@ Sparams = SensorParameters()
 CurrentState = ThermostatState
 program = []
 
+serverthread = None
+
+
 # setup function is automatically called at WebIOPi startup
+
+class MyTCPHandler(socketserver.BaseRequestHandler):
+    """
+    The RequestHandler class for our server.
+
+    It is instantiated once per connection to the server, and must
+    override the handle() method to implement communication to the
+    client.
+    """
+
+    def handle(self):
+        
+        # self.request is the TCP socket connected to the client
+        self.data = self.request.recv(1024).strip()
+        if("get_tparms" in self.data.decode("utf-8")):
+            print ("{} wrote:".format(self.client_address[0]))
+            print (self.data)
+            # just send back the same data, but upper-cased
+            #self.request.sendall(self.data.upper())
+            
+            self.request.sendall(bytes(Tparams.to_JSON(), 'UTF-8'))
+
+        if("get_sparms" in self.data.decode("utf-8")):
+            print ("{} wrote:".format(self.client_address[0]))
+            print (self.data)
+            # just send back the same data, but upper-cased
+            #self.request.sendall(self.data.upper())
+            
+            self.request.sendall(bytes(Sparams.to_JSON(), 'UTF-8'))
+
+
+
 def setup():
     global program
     global CurrentState
     global Tparams
     global Sparams
+    global server
     
     GPIO.setFunction(Tparams.HEATER, GPIO.OUT)
     GPIO.setFunction(Tparams.FAN, GPIO.OUT)
@@ -52,7 +93,17 @@ def setup():
         CurrentState.mode = 0
     f.close()
 
-    print (CurrentState.to_JSON()) 
+        # Create the server, binding to localhost on port 9999
+    
+
+    # Activate the server; this will keep running until you
+    # interrupt the program with Ctrl-C
+    server = socketserver.TCPServer((HOST, PORT), MyTCPHandler)
+    serverthread = threading.Thread(target=server.serve_forever)
+    serverthread.daemon = True
+    serverthread.start()
+    
+    
 
     my_logger.info("Setup Completed")
     #for x in range(0, program.__len__()):
@@ -65,110 +116,114 @@ def loop():
     global Tparams
     global lastlogtime    
     global Sparams
+    global serverthread
     
-        
-    if (datetime.datetime.utcnow() - CurrentState.tempORtime > datetime.timedelta(minutes=CurrentState.tempORlength)):        
-        CurrentState.tempORactive = False
-        
-    if (datetime.datetime.utcnow() - CurrentState.fanORtime > datetime.timedelta(minutes=CurrentState.fanORlength)):        
-        CurrentState.fanORactive = False
+    try:    
+        if (datetime.datetime.utcnow() - CurrentState.tempORtime > datetime.timedelta(minutes=CurrentState.tempORlength)):        
+            CurrentState.tempORactive = False
             
-    
-    try:
-        updateProgram()
-    except:
-        my_logger.debug("updateProgram() excepted", exc_info=True)
-        #print("updateProgram() threw exception")
-    
-    updateTemps()
-    
-
-    
-    # decide which temp we're using for control
-    if(Sparams.RemoteSensors.get(CurrentState.CurrentProgram.MasterTempSensor) != None):        
-        celsius = Sparams.RemoteSensors[CurrentState.CurrentProgram.MasterTempSensor]['temperature']
-    
-    elif(Sparams.LocalSensors.get(CurrentState.CurrentProgram.MasterTempSensor) != None):        
-        celsius = Sparams.LocalSensors[CurrentState.CurrentProgram.MasterTempSensor]['temperature']
-    
-    else:
-        celsius = 0
-        my_logger.debug("Failed to determine master sensor. Falling back to any local sensor")
-        for (key, value) in Sparams.LocalSensors.items():
-            if(value['read_successful'] == True):
-                celsius = value['temperature']
-
-
-#    Override section
-    
-    if(CurrentState.tempORactive):
-        CurrentState.tset = CurrentState.tempORtemp
-    elif(CurrentState.mode == 2):
-        CurrentState.tset = CurrentState.CurrentProgram.TempSetPointCool
-    else:
-        CurrentState.tset = CurrentState.CurrentProgram.TempSetPointHeat
-  
-    
-    if(CurrentState.fanORactive == True):
-        CurrentState.fanState = CurrentState.fanORstate
-    else:
-        CurrentState.fanState = CurrentState.CurrentProgram.fanon    
-    
-    
-    CurrentState.sensorTemp = celsius
-    
-    try:
-        if(CurrentState.mode == 1 and celsius != 0):
-            GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
-            if((CurrentState.tset - 0.5)  > celsius):
-               GPIO.digitalWrite(Tparams.HEATER, GPIO.LOW)
-               CurrentState.heaterstate = 1
-            elif((CurrentState.tset + 0.5) < celsius):
-               GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
-               CurrentState.heaterstate = 0
-        elif(CurrentState.mode == 2 and celsius != 0):
-            GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
-            if((CurrentState.tset - 0.5) > celsius):
-               GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
-               CurrentState.acstate = 0
-            elif((CurrentState.tset + 0.5) < celsius):
-               GPIO.digitalWrite(Tparams.AC, GPIO.LOW)
-               CurrentState.acstate = 1
-        else:
-            GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
-            GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
-    except:
-        my_logger.debug("Error setting GPIOs AC/Heater", exc_info=True)
-    	   
-    try:
-        if(CurrentState.fanState == 1):
-            GPIO.digitalWrite(Tparams.FAN, GPIO.LOW)
-        elif(CurrentState.fanState == 0):
-            GPIO.digitalWrite(Tparams.FAN, GPIO.HIGH)
-    except:
-        my_logger.debug("Error setting GPIOs Fan", exc_info=True)
-       
-
-    if (datetime.datetime.utcnow() - lastlogtime > datetime.timedelta(minutes=Tparams.loginterval)):        
-        lastlogtime = datetime.datetime.utcnow()        
+        if (datetime.datetime.utcnow() - CurrentState.fanORtime > datetime.timedelta(minutes=CurrentState.fanORlength)):        
+            CurrentState.fanORactive = False
+                
+        
         try:
-            for (key, value) in Sparams.LocalSensors.items(): 
-                logTemplineDB(key, value['temperature'])
-                if(value['type'] == "bmp" ):                    
-                    logPresslineDB(key, value['pressure'])
-                if(value['type'] == "htu" ):
-                    logHumlineDB(key, value['humidity'])               
-                
-            for (key, value) in Sparams.RemoteSensors.items(): 
-                logTemplineDB(key, value['temperature'])
-                
-                
+            updateProgram()
         except:
-            my_logger.debug("Error logging temperatures to MYsql", exc_info=True)
+            my_logger.debug("updateProgram() excepted", exc_info=True)
+            #print("updateProgram() threw exception")
+        
+        updateTemps()
+        
+    
+        
+        # decide which temp we're using for control
+        if(Sparams.RemoteSensors.get(CurrentState.CurrentProgram.MasterTempSensor) != None):        
+            celsius = Sparams.RemoteSensors[CurrentState.CurrentProgram.MasterTempSensor]['temperature']
+        
+        elif(Sparams.LocalSensors.get(CurrentState.CurrentProgram.MasterTempSensor) != None):        
+            celsius = Sparams.LocalSensors[CurrentState.CurrentProgram.MasterTempSensor]['temperature']
+        
+        else:
+            celsius = 0
+            my_logger.debug("Failed to determine master sensor. Falling back to any local sensor")
+            for (key, value) in Sparams.LocalSensors.items():
+                if(value['read_successful'] == True):
+                    celsius = value['temperature']
+    
+    
+    #    Override section
+        
+        if(CurrentState.tempORactive):
+            CurrentState.tset = CurrentState.tempORtemp
+        elif(CurrentState.mode == 2):
+            CurrentState.tset = CurrentState.CurrentProgram.TempSetPointCool
+        else:
+            CurrentState.tset = CurrentState.CurrentProgram.TempSetPointHeat
       
-
-    webiopi.sleep(10)
-  
+        
+        if(CurrentState.fanORactive == True):
+            CurrentState.fanState = CurrentState.fanORstate
+        else:
+            CurrentState.fanState = CurrentState.CurrentProgram.fanon    
+        
+        
+        CurrentState.sensorTemp = celsius
+        
+        try:
+            if(CurrentState.mode == 1 and celsius != 0):
+                GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
+                if((CurrentState.tset - 0.5)  > celsius):
+                   GPIO.digitalWrite(Tparams.HEATER, GPIO.LOW)
+                   CurrentState.heaterstate = 1
+                elif((CurrentState.tset + 0.5) < celsius):
+                   GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
+                   CurrentState.heaterstate = 0
+            elif(CurrentState.mode == 2 and celsius != 0):
+                GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
+                if((CurrentState.tset - 0.5) > celsius):
+                   GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
+                   CurrentState.acstate = 0
+                elif((CurrentState.tset + 0.5) < celsius):
+                   GPIO.digitalWrite(Tparams.AC, GPIO.LOW)
+                   CurrentState.acstate = 1
+            else:
+                GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
+                GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
+        except:
+            my_logger.debug("Error setting GPIOs AC/Heater", exc_info=True)
+        	   
+        try:
+            if(CurrentState.fanState == 1):
+                GPIO.digitalWrite(Tparams.FAN, GPIO.LOW)
+            elif(CurrentState.fanState == 0):
+                GPIO.digitalWrite(Tparams.FAN, GPIO.HIGH)
+        except:
+            my_logger.debug("Error setting GPIOs Fan", exc_info=True)
+           
+    
+        if (datetime.datetime.utcnow() - lastlogtime > datetime.timedelta(minutes=Tparams.loginterval)):        
+            lastlogtime = datetime.datetime.utcnow()        
+            try:
+                for (key, value) in Sparams.LocalSensors.items(): 
+                    logTemplineDB(key, value['temperature'])
+                    if(value['type'] == "bmp" ):                    
+                        logPresslineDB(key, value['pressure'])
+                    if(value['type'] == "htu" ):
+                        logHumlineDB(key, value['humidity'])               
+                    
+                for (key, value) in Sparams.RemoteSensors.items(): 
+                    logTemplineDB(key, value['temperature'])
+                    
+                    
+            except:
+                my_logger.debug("Error logging temperatures to MYsql", exc_info=True)
+          
+    
+        webiopi.sleep(10)
+    except KeyboardInterrupt:
+        print ("attempting to close threads.")
+        serverthread.join()
+        print ("threads successfully closed")
 
 #def destroy():
     
@@ -286,9 +341,6 @@ def WriteProgramToFile():
         f.write("\n")
        
     f.close()
-
-
-
 
 
 
