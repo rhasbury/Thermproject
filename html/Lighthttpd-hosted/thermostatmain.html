@@ -19,7 +19,7 @@
 			/*line-height:30px;*/
 			/*background-color:#eeeeee;*/
 			/*height:300px;*/
-			width:100px;
+			width:360px;
 			float:left;
 			padding:5px; 
 		}
@@ -53,7 +53,7 @@
 
         .gauge .major {
             fill: #fff;
-            font-size: 20px;
+            font-size: 10px;
             font-family: 'Play', verdana, sans-serif;
             font-weight: normal;
         }
@@ -75,11 +75,74 @@
             opacity: 0.15;
         }
     </style>
+	<link type="text/css" rel="stylesheet" href="buttons.css">
 </head>
 <body>
     <div id="speedometer_container">
   <!--      <span id="speedometer"></span> -->
     </div>
+	    <div align="center">
+	<table style="width:30%">
+		<tr>
+				<th colspan="3">Status</th>
+		</tr>
+		<tr>
+				<td><button id="bt_heater" class="button blue medium"/> </td>				
+				<td><button id="bt_fanstate" class="button blue bigrounded"/></td>
+				<td><button  id="bt_acstate" class="button blue bigrounded"/></td>
+		</tr>
+		<tr>
+<!-- 				<th>Active Sensor</th>
+				<th>Temperature</th> -->
+				<th></th>
+				<th>Mode</th>
+				<th></th>
+		</tr>		
+		<tr>
+<!-- 				<td><button id="bt_sensorid" class="SEN"/></td>
+				<td><button id="bt_tempDisplay"/></td> -->
+				<td></td>
+				<td><button id="bt_mode" /></td>
+				<td></td>
+		</tr>
+		<tr>
+				<td><button id="bt_LocalTemp"/></td>
+				<td><button id="bt_RemTemp1"/></td>
+				<td><button id="bt_RemTemp2"/></td>	
+		</tr>
+		
+
+		
+		<tr>
+			<th> Override </th>
+			<th> Temp Set Point </th>
+			<th> Override </th>
+		</tr>
+		<tr>								
+				<td><button id="temp_up" >UP</button></td>
+				<td><button id="temp_setpoint"/></td>
+				<td><button id="temp_down" >DOWN</button></td>
+		</tr>
+		<tr>
+				<th></th>
+				<th>Outside</th>
+				<th> </th>		
+
+		</tr>		
+		<tr>
+				<th>Humidity</th>
+				<th>Temp</th>
+				<th>Pressure</th>		
+
+		</tr>		
+		<tr>
+				<td><button id="bt_LocalHum"/></td>
+				<td><button id="bt_LocalTemp2"/></td>
+				<td><button id="bt_LocalPress"/></td>
+		</tr>
+		</div>
+		
+		
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
     <script>
 
@@ -158,11 +221,11 @@
 			
 					var svg = d3.select(divname)
 						.append("svg:svg")
-						.attr("width", 300)
-						.attr("height", 300);
+						.attr("width", 180)
+						.attr("height", 180);
 
 					gauge[i] = iopctrl.arcslider()
-							.radius(90)
+							.radius(60)
 							.events(false)
 							.indicator(iopctrl.defaultGaugeIndicator);
 							
@@ -178,19 +241,24 @@
 
 					segDisplay[i] = iopctrl.segdisplay()
 							.width(80)
-							.digitCount(6)
-							.negative(false)
+							.digitCount(5)
+							.negative(true)
 							.decimals(2);
 
 					svg.append("g")
 							.attr("class", "segdisplay")
-							.attr("transform", "translate(100, 200)")
+							.attr("transform", "translate(70, 155)")
 							.call(segDisplay[i]);
 
-					svg.append("g")
+					gg = svg.append("g")
 							.attr("class", "gauge")
 							.call(gauge[i]);
 					
+					gg.append("text")
+						.attr("x", 10 )
+						.attr("y", 30)
+						.attr("dy", ".35em")
+						.text(sensors);
 
 					
 					segDisplay[i].value(sensorobj['temperature']);						
