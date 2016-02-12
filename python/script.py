@@ -32,6 +32,8 @@ Tparams = ThermostatParameters()
 Sparams = SensorParameters()
 CurrentState = ThermostatState
 program = []
+DBparams = DatabaseParameters()
+
 
 serverthread = None
 
@@ -47,24 +49,14 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
     client.
     """
 
-    def handle(self):
-        
+    def handle(self):        
         # self.request is the TCP socket connected to the client
         self.data = self.request.recv(1024).strip()
         if("get_tparms" in self.data.decode("utf-8")):
-            print ("{} wrote:".format(self.client_address[0]))
-            print (self.data)
-            # just send back the same data, but upper-cased
-            #self.request.sendall(self.data.upper())
-            
             self.request.sendall(bytes(Tparams.to_JSON(), 'UTF-8'))
 
         if("get_sparms" in self.data.decode("utf-8")):
-            print ("{} wrote:".format(self.client_address[0]))
-            print (self.data)
-            # just send back the same data, but upper-cased
-            #self.request.sendall(self.data.upper())
-            
+
             self.request.sendall(bytes(Sparams.to_JSON(), 'UTF-8'))
 
 
@@ -75,6 +67,7 @@ def setup():
     global Tparams
     global Sparams
     global server
+   #global DBparams
     
     GPIO.setFunction(Tparams.HEATER, GPIO.OUT)
     GPIO.setFunction(Tparams.FAN, GPIO.OUT)
@@ -103,6 +96,9 @@ def setup():
     serverthread.daemon = True
     serverthread.start()
     
+    # Check and possibly setup database. 
+    #print(DBparams.to_JSON())
+    CheckDatabase(DBparams, my_logger)
     
 
     my_logger.info("Setup Completed")
@@ -205,14 +201,14 @@ def loop():
             lastlogtime = datetime.datetime.utcnow()        
             try:
                 for (key, value) in Sparams.LocalSensors.items(): 
-                    logTemplineDB(key, value['temperature'])
+                    logTemplineDB(DBparams, my_logger, key, value['temperature'])
                     if(value['type'] == "bmp" ):                    
-                        logPresslineDB(key, value['pressure'])
+                        logPresslineDB(DBparams, my_logger, key, value['pressure'])
                     if(value['type'] == "htu" ):
-                        logHumlineDB(key, value['humidity'])               
+                        logHumlineDB(key, my_logger, value['humidity'])               
                     
                 for (key, value) in Sparams.RemoteSensors.items(): 
-                    logTemplineDB(key, value['temperature'])
+                    logTemplineDB(DBparams, my_logger, key, value['temperature'])
                     
                     
             except:

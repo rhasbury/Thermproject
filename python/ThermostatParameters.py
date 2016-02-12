@@ -97,4 +97,16 @@ class ThermostatParameters:
     def to_JSON(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
     
-    
+
+class DatabaseParameters:
+    def __init__(self):
+            config = configparser.RawConfigParser()            
+            config.optionxform = str
+            config.read('/home/pi/thermostat/python/thermostat.conf')
+            settings = config['database']
+            self.__dict__.update(settings)
+            
+            
+                    
+    def to_JSON(self):
+        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)

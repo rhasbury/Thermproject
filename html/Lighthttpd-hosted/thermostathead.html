@@ -22,7 +22,7 @@
             color: #000;
         }
 
-        #div1, #div2, #div3, #div4 {
+/*        #div1, #div2, #div3, #div4 {
             width: 33%;
             height: 200px;
             box-sizing: border-box;
@@ -44,6 +44,32 @@
             fill: #1d871b;
         }
 
+
+*/
+
+        .radialDiv {
+            width: 33%;
+            height: 200px;
+            box-sizing: border-box;
+            float: left;
+        }
+
+        .arc {
+            stroke-weight: 0.1;
+            fill: #f0a417;
+        }
+
+		
+        .arc2 {
+            stroke-weight: 0.1;
+            fill: #b00d08;
+        }
+
+        .arc {
+            stroke-weight: 0.1;
+            fill: #1d871b;
+        }
+		
 
         .selectedRadial {
             border-radius: 3px;
@@ -76,7 +102,7 @@
 </div>
 
 
-
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
 <script language="JavaScript">
 
     var div1=d3.select(document.getElementById('div1'));
@@ -113,45 +139,64 @@
 
     function start() {
 
-        var rp1 = radialProgress(document.getElementById('div1'))
-                .label("RADIAL 1")
-                .onClick(onClick1)
-                .diameter(150)
-                .value(78)
-                .render();
+	
+	    var oReq = new XMLHttpRequest(); //New request object
+			oReq.onload = function() {
+				//This is where you handle what to do with the response.
+				//The actual data is found on this.responseText
+				//alert(this.responseText); //Will alert: 42
+				Sparams = JSON.parse(this.responseText)
+				var i  = 1;
+				alert(JSON.stringify(Sparams));
+				for (var key in Sparams){
+					var sensorbatch = Sparams[key]
+					for (var sensors in sensorbatch){
+						if (sensors == "webiopi") continue;
+							
+							sensorobj = sensorbatch[sensors]							
+							divname = sensors.replace(/\s+/g, '');
+							//alert(JSON.stringify(sensorobj));
+							//alert(JSON.stringify(sensors));
+							var radialDiv = document.createElement(divname); // + '_' + i.toString() );
+							//var radialDiv = document.getElementById('div1');
+							document.getElementById('main').appendChild(radialDiv);
+							//document.getElementById('main').appendChild(radialDiv);
+							
+							
+							var rp1 = radialProgress(document.getElementById(divname))
+							.label(sensors)					
+							.diameter(150)
+							.value(sensorobj['temperature'])
+							.render();
 
-        var rp2 = radialProgress(document.getElementById('div2'))
+							i++
+					}
+					
+ 				var rp2 = radialProgress(document.div2)
                 .label("RADIAL 2")
                 .onClick(onClick2)
                 .diameter(150)
                 .value(132)
                 .render();
 
-        var rp3 = radialProgress(document.getElementById('div3'))
+				var rp3 = radialProgress(document.getElementById('div3'))
                 .label("RADIAL 3")
                 .onClick(onClick3)
                 .diameter(150)
                 .minValue(100)
                 .maxValue(200)
                 .value(150)
-                .render();
-		
-		
-		$.getJson('thermostat_interface.php',data,function(jsonData){
-		neededData = jsonData; 
-			
-			
-			for (var key in jsonData.LocalSensors) {
-				// skip loop if the property is from prototype
-				if (!jsonData.LocalSensors.hasOwnProperty(key)) continue;
-				var obj = jsonData.LocalSensors[key];
-				rp1.value(obj.temperature)
+                .render();			
+				
 				}
-			});
-
 			
-			
-			
+			};
+			oReq.open("get", "thermostat_interface.php", true);
+			//                               ^ Don't block the rest of the execution.
+			//                                 Don't wait until the request finishes to 
+			//                                 continue.
+			oReq.send();
+	
 			    
 		
     }

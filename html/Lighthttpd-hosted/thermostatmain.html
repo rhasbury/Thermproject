@@ -1,0 +1,240 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Speedometer</title>
+    <link rel='stylesheet' href='http://fonts.googleapis.com/css?family=Play:700,400' type='text/css'>
+    
+    <script type="text/javascript" src="http://iop.io/js/vendor/d3.v3.min.js"></script>
+    <script type="text/javascript" src="http://iop.io/js/vendor/polymer/PointerEvents/pointerevents.js"></script>
+    <script type="text/javascript" src="http://iop.io/js/vendor/polymer/PointerGestures/pointergestures.js"></script>
+    <script type="text/javascript" src="http://iop.io/js/iopctrl.js"></script>
+    
+    <style>
+        body {
+            font: 16px arial;
+            background-color: #515151;
+        }
+		#speedometer_container {
+			/*line-height:30px;*/
+			/*background-color:#eeeeee;*/
+			/*height:300px;*/
+			width:100px;
+			float:left;
+			padding:5px; 
+		}
+		
+        .unselectable {
+            -moz-user-select: -moz-none;
+            -khtml-user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        /* css formats for the gauge */
+        .gauge .domain {
+            stroke-width: 2px;
+            stroke: #fff;
+        }
+
+        .gauge .tick line {
+            stroke: #fff;
+            stroke-width: 2px;
+        }
+        
+        .gauge line {
+            stroke: #fff;
+        }
+
+        .gauge .arc, .gauge .cursor {
+            opacity: 0;
+        }
+
+        .gauge .major {
+            fill: #fff;
+            font-size: 20px;
+            font-family: 'Play', verdana, sans-serif;
+            font-weight: normal;
+        }
+        
+        .gauge .indicator {
+            stroke: #EE3311;
+            fill: #000;
+            stroke-width: 4px;
+        }
+
+        /* css formats for the segment display */
+        .segdisplay .on {
+            fill: #00FFFF;
+
+        }
+
+        .segdisplay .off {
+            fill: #00FFFF;
+            opacity: 0.15;
+        }
+    </style>
+</head>
+<body>
+    <div id="speedometer_container">
+  <!--      <span id="speedometer"></span> -->
+    </div>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+    <script>
+
+/*        var svg = d3.select("#speedometer")
+                .append("svg:svg")
+                .attr("width", 400)
+                .attr("height", 400);
+
+
+        var gauge = iopctrl.arcslider()
+                .radius(120)
+                .events(false)
+                .indicator(iopctrl.defaultGaugeIndicator);
+        gauge.axis().orient("in")
+                .normalize(true)
+                .ticks(12)
+                .tickSubdivide(3)
+                .tickSize(10, 8, 10)
+                .tickPadding(5)
+                .scale(d3.scale.linear()
+                        .domain([0, 160])
+                        .range([-3*Math.PI/4, 3*Math.PI/4]));
+
+        var segDisplay = iopctrl.segdisplay()
+                .width(80)
+                .digitCount(6)
+                .negative(false)
+                .decimals(0);
+
+        svg.append("g")
+                .attr("class", "segdisplay")
+                .attr("transform", "translate(130, 200)")
+                .call(segDisplay);
+
+        svg.append("g")
+                .attr("class", "gauge")
+                .call(gauge);
+
+        segDisplay.value(56749);        
+		gauge.value(92);*/
+		
+		var gauge = [];
+		var segDisplay = [];
+		var Sparams = 0;
+		
+		get_sparams();
+		//CreateTempGauges();
+		setTimeout( CreateTempGauges, 500 );
+		setInterval(UpdateUI, 1000);
+		
+		function get_sparams(){
+			
+			var oReq = new XMLHttpRequest(); //New request object
+			oReq.onload = function() {				
+				Sparams = JSON.parse(this.responseText)
+				}
+		
+			oReq.open("get", "thermostat_interface.php", true);
+			oReq.send();
+	
+		}
+		
+		function CreateTempGauges(){
+			
+			var i  = 0;				
+			for (var key in Sparams){
+				var sensorbatch = Sparams[key]
+				for (var sensors in sensorbatch){							
+					sensorobj = sensorbatch[sensors]					
+					if (!sensorobj.hasOwnProperty('read_successful')) continue;		
+					divname = sensors.replace(/\s+/g, '');
+					//alert(JSON.stringify(sensorobj));
+					//alert(JSON.stringify(sensors));
+					var gaugediv = document.createElement(divname);
+					document.getElementById('speedometer_container').appendChild(gaugediv);
+			
+					var svg = d3.select(divname)
+						.append("svg:svg")
+						.attr("width", 300)
+						.attr("height", 300);
+
+					gauge[i] = iopctrl.arcslider()
+							.radius(90)
+							.events(false)
+							.indicator(iopctrl.defaultGaugeIndicator);
+							
+					gauge[i].axis().orient("in")
+							.normalize(true)
+							.ticks(12)
+							.tickSubdivide(3)
+							.tickSize(10, 8, 10)
+							.tickPadding(5)
+							.scale(d3.scale.linear()
+									.domain([-40, 40])
+									.range([-3*Math.PI/4, 3*Math.PI/4]));
+
+					segDisplay[i] = iopctrl.segdisplay()
+							.width(80)
+							.digitCount(6)
+							.negative(false)
+							.decimals(2);
+
+					svg.append("g")
+							.attr("class", "segdisplay")
+							.attr("transform", "translate(100, 200)")
+							.call(segDisplay[i]);
+
+					svg.append("g")
+							.attr("class", "gauge")
+							.call(gauge[i]);
+					
+
+					
+					segDisplay[i].value(sensorobj['temperature']);						
+					gauge[i].value(sensorobj['temperature']);										
+					i++;
+					}
+			}
+		}
+
+		
+		
+		
+		
+		
+		function UpdateUI(){
+			get_sparams();
+			var i  = 0;				
+			
+			// Block for updating temperature sensor gauges
+			for (var key in Sparams){
+				var sensorbatch = Sparams[key]
+				for (var sensors in sensorbatch){							
+					sensorobj = sensorbatch[sensors]					
+					if (!sensorobj.hasOwnProperty('read_successful')) continue;		
+					divname = sensors.replace(/\s+/g, '');
+					//alert(JSON.stringify(sensorobj));
+					//alert(JSON.stringify(sensors));
+					//var gaugediv = document.createElement(divname);
+					//document.getElementById('speedometer_container').appendChild(gaugediv);
+					//gaugeobj = d3.select("#" + divname);
+					//alert(JSON.stringify(gaugeobj));
+					segDisplay[i].value(sensorobj['temperature']);						
+					gauge[i].value(sensorobj['temperature']);										
+					i++;	
+				
+				
+				
+				}
+		
+		
+			}
+		}
+		
+    
+    </script>
+</body></head>
+</html>
