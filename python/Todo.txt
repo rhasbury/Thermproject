@@ -4,6 +4,8 @@
 - Temperature adjustments should be used for adaptations
 - Create helper application that restarts when the loop fails, or a cron job that restarts the application. 
 - Create javascript <-> python daemon communication method to get away from webiopi http hosting
+- Deal with disconnected sensors better. 
+- log furnace/fan/AC on off statest to mysql for plotting
 - Create new http interface. 
 - Make adding temperature sensors configurable and display on http scaleable 
 - Openelec plugin?  
