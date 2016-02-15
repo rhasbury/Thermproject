@@ -171,17 +171,21 @@ def loop():
                 if((CurrentState.tset - 0.5)  > celsius):
                    GPIO.digitalWrite(Tparams.HEATER, GPIO.LOW)
                    CurrentState.heaterstate = 1
+                   logControlLineDB(DBparams, my_logger, 'heater', CurrentState.heaterstate)                   
                 elif((CurrentState.tset + 0.5) < celsius):
                    GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
                    CurrentState.heaterstate = 0
+                   logControlLineDB(DBparams, my_logger, 'heater', CurrentState.heaterstate)
             elif(CurrentState.mode == 2 and celsius != 0):
                 GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
                 if((CurrentState.tset - 0.5) > celsius):
                    GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
                    CurrentState.acstate = 0
+                   logControlLineDB(DBparams, my_logger, 'ac', CurrentState.acstate)
                 elif((CurrentState.tset + 0.5) < celsius):
                    GPIO.digitalWrite(Tparams.AC, GPIO.LOW)
                    CurrentState.acstate = 1
+                   logControlLineDB(DBparams, my_logger, 'ac', CurrentState.acstate)
             else:
                 GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
                 GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
@@ -191,8 +195,10 @@ def loop():
         try:
             if(CurrentState.fanState == 1):
                 GPIO.digitalWrite(Tparams.FAN, GPIO.LOW)
+                logControlLineDB(DBparams, my_logger, 'fan', CurrentState.fanState)
             elif(CurrentState.fanState == 0):
                 GPIO.digitalWrite(Tparams.FAN, GPIO.HIGH)
+                logControlLineDB(DBparams, my_logger, 'fan', CurrentState.fanState)
         except:
             my_logger.debug("Error setting GPIOs Fan", exc_info=True)
            

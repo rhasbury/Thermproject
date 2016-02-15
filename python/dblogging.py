@@ -33,6 +33,18 @@ def logHumlineDB(DBparams, mylogger, location, humidity):
         #print("logHumlineDB() exception thrown")
         my_logger.debug("logHumlineDB() exception thrown", exc_info=True)
         
+        
+def logControlLineDB(DBparams, mylogger, equipment, state):    
+    try:
+        connection = pymysql.connect(host=DBparams.host, user=DBparams.dbuser, passwd=DBparams.dbpassword, db=DBparams.db, charset=DBparams.charset, cursorclass=pymysql.cursors.DictCursor)
+        with connection.cursor() as cursor:        
+            cursor.execute ("INSERT INTO " + DBparams.controltable + " values(NOW(), %s, %s)", (equipment, bool(state)))        
+        connection.commit()
+        connection.close()
+    except:
+        #print("logHumlineDB() exception thrown")
+        my_logger.debug("logControlLineDB() exception thrown", exc_info=True)
+        
 # Checks connection, and then the existence of the require table. If the table doesn't exist then it creates it. 
 
 def CheckDatabase(DBparams, my_logger):
@@ -50,6 +62,10 @@ def CheckDatabase(DBparams, my_logger):
             result = cursor.execute ("SHOW TABLES LIKE '" + DBparams.humiditytable + "'")       
             if(result == 0):
                 cursor.execute ("CREATE TABLE " + DBparams.humiditytable + " (tdate DATETIME, zone TEXT, pressure NUMERIC(10,5));")
+            
+            result = cursor.execute ("SHOW TABLES LIKE '" + DBparams.controltable + "'")       
+            if(result == 0):
+                cursor.execute ("CREATE TABLE " + DBparams.controltable + " (tdate DATETIME, equipment TEXT, state BOOLEAN);")
     
         
         connection.close()
