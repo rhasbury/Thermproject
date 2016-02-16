@@ -7,6 +7,7 @@
 - Deal with disconnected sensors better. 
 - Send email notifications on low temperatures. 
 - log furnace/fan/AC on off state to mysql for plotting, and create report for running time, etc.
+- LCD interface with buttons for management when network is down
 - Create new http interface. 
 - Make adding temperature sensors configurable and display on http scaleable 
 - Openelec plugin?  

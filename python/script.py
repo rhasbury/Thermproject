@@ -1,7 +1,7 @@
 import logging
 import webiopi
 import datetime
-
+import time
 import json
 import configparser
 import os
@@ -36,7 +36,7 @@ DBparams = DatabaseParameters()
 
 
 serverthread = None
-
+TempUpdateThread = None
 
 # setup function is automatically called at WebIOPi startup
 
@@ -52,20 +52,21 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
     def handle(self):        
         # self.request is the TCP socket connected to the client
         self.data = self.request.recv(1024).strip()
-        if("get_tparms" in self.data.decode("utf-8")):
+        if("get_tparams" in self.data.decode("utf-8")):
             self.request.sendall(bytes(Tparams.to_JSON(), 'UTF-8'))
 
-        if("get_sparms" in self.data.decode("utf-8")):
-
+        if("get_sparams" in self.data.decode("utf-8")):
             self.request.sendall(bytes(Sparams.to_JSON(), 'UTF-8'))
 
+        if("get_state" in self.data.decode("utf-8")):
+            self.request.sendall(bytes(CurrentState.to_JSON(), 'UTF-8'))
 
 
 def setup():
-    global program
+    #global program
     global CurrentState
-    global Tparams
-    global Sparams
+    #global Tparams
+    #global Sparams
     global server
    #global DBparams
     
@@ -95,11 +96,16 @@ def setup():
     serverthread = threading.Thread(target=server.serve_forever)
     serverthread.daemon = True
     serverthread.start()
+    my_logger.info("Data sockect listner started")
+    
+    TempUpdateThread = threading.Thread(target=updateTemps)    
+    TempUpdateThread.daemon = True
+    TempUpdateThread.start()
+    my_logger.info("Sensor update thread started")
     
     # Check and possibly setup database. 
     #print(DBparams.to_JSON())
     CheckDatabase(DBparams, my_logger)
-    
 
     my_logger.info("Setup Completed")
     #for x in range(0, program.__len__()):
@@ -109,10 +115,12 @@ def setup():
 # loop function is repeatedly called by WebIOPi 
 def loop():
     global CurrentState
-    global Tparams
-    global lastlogtime    
-    global Sparams
-    global serverthread
+    #global Tparams
+    
+    #global Sparams
+    #global serverthread
+    
+    webiopi.sleep(10)
     
     try:    
         if (datetime.datetime.utcnow() - CurrentState.tempORtime > datetime.timedelta(minutes=CurrentState.tempORlength)):        
@@ -128,7 +136,7 @@ def loop():
             my_logger.debug("updateProgram() excepted", exc_info=True)
             #print("updateProgram() threw exception")
         
-        updateTemps()
+        
         
     
         
@@ -203,28 +211,14 @@ def loop():
             my_logger.debug("Error setting GPIOs Fan", exc_info=True)
            
     
-        if (datetime.datetime.utcnow() - lastlogtime > datetime.timedelta(minutes=Tparams.loginterval)):        
-            lastlogtime = datetime.datetime.utcnow()        
-            try:
-                for (key, value) in Sparams.LocalSensors.items(): 
-                    logTemplineDB(DBparams, my_logger, key, value['temperature'])
-                    if(value['type'] == "bmp" ):                    
-                        logPresslineDB(DBparams, my_logger, key, value['pressure'])
-                    if(value['type'] == "htu" ):
-                        logHumlineDB(key, my_logger, value['humidity'])               
-                    
-                for (key, value) in Sparams.RemoteSensors.items(): 
-                    logTemplineDB(DBparams, my_logger, key, value['temperature'])
-                    
-                    
-            except:
-                my_logger.debug("Error logging temperatures to MYsql", exc_info=True)
+
           
     
-        webiopi.sleep(10)
+        
     except KeyboardInterrupt:
         print ("attempting to close threads.")
         serverthread.join()
+        TempUpdateThread.cancel()
         print ("threads successfully closed")
 
 #def destroy():
@@ -232,72 +226,94 @@ def loop():
 
 def updateTemps():    
     global Sparams
-    
+    global lastlogtime
     # reading local sensors
-    try:
-        if(Sparams.webiopi == 1):
+    while(True):
+        try:
+            if(Sparams.webiopi == 1):
+        
+                for (key, value) in Sparams.LocalSensors.items():
+                    try:                    
+                        tmp = webiopi.deviceInstance(value['webiopi_name'])
+                    except:
+                        my_logger.debug("Opening local temperature failed. Sensor: {}".format(key), exc_info=True)
+                                    
+                    try:                    
+                        value['temperature'] = tmp.getCelsius()
+                        value['read_successful'] = True           
+                                          
+                    except:
+                        value['read_successful'] = False                    
+                        my_logger.debug("Reading local temperature failed. Sensor: {}".format(key), exc_info=True)
     
-            for (key, value) in Sparams.LocalSensors.items():
-                try:                    
-                    tmp = webiopi.deviceInstance(value['webiopi_name'])
+                    if(value['type'] == "bmp" ):
+                        try:                                               
+                            value['pressure'] = tmp.getPascalAtSea()                          
+                                              
+                        except:
+                            value['read_successful'] == False                    
+                            my_logger.debug("Reading local pressure failed. Sensor: {}".format(key), exc_info=True)
+                    
+                    if(value['type'] == "htu" ):
+                        try:                       
+                            value['humidity'] = tmp.getHumidity()                     
+                                              
+                        except:
+                            value['read_successful'] == False                    
+                            my_logger.debug("Reading local pressure failed. Sensor: {}".format(key), exc_info=True)
+          
+    
+        except:
+            my_logger.debug("Reading local temperature failed for some reason on the outer", exc_info=True)
+    
+        # reading remote sensors
+        if(Sparams.webiopi == 1):
+            for (key, value) in Sparams.RemoteSensors.items():
+                try:                
+                    value['temperature'] = readFromSensor(value['ip'], value['webiopi_name'])
+                    value['read_successful'] = True
+                except:            
+                    my_logger.debug("Reading remote temperature failed. Sensor: {}".format(key), exc_info=True)
+                    value['read_successful'] = False
+    
+                    if(value['type'] == "bmp" ):
+                        try:                       
+                            value['pressure'] = readPressureFromSensor(value['ip'], value['webiopi_name'])
+                            value['read_successful'] = True        
+                        except:
+                            value['read_successful'] = False                    
+                            my_logger.debug("Reading remote pressure failed. Sensor: {}".format(key), exc_info=True)
+                    
+                    if(value['type'] == "htu" ):
+                        try:                       
+                            value['humidity'] =  readHumidityFromSensor(value['ip'], value['webiopi_name'])
+                            value['read_successful'] = True                    
+                                              
+                        except:
+                            value['read_successful'] = False                    
+                            my_logger.debug("Reading remote humidity failed. Sensor: {}".format(key), exc_info=True)
+        
+        # logging sensor data to mysql
+        if (datetime.datetime.utcnow() - lastlogtime > datetime.timedelta(minutes=Tparams.loginterval)):        
+                lastlogtime = datetime.datetime.utcnow()        
+                try:
+                    for (key, value) in Sparams.LocalSensors.items(): 
+                        logTemplineDB(DBparams, my_logger, key, value['temperature'])
+                        if(value['type'] == "bmp" ):                    
+                            logPresslineDB(DBparams, my_logger, key, value['pressure'])
+                        if(value['type'] == "htu" ):
+                            logHumlineDB(key, my_logger, value['humidity'])               
+                        
+                    for (key, value) in Sparams.RemoteSensors.items(): 
+                        logTemplineDB(DBparams, my_logger, key, value['temperature'])
+                        if(value['type'] == "bmp" ):                    
+                            logPresslineDB(DBparams, my_logger, key, value['pressure'])
+                        if(value['type'] == "htu" ):
+                            logHumlineDB(key, my_logger, value['humidity'])  
+                        
                 except:
-                    my_logger.debug("Opening local temperature failed. Sensor: {}".format(key), exc_info=True)
-                                
-                try:                    
-                    value['temperature'] = tmp.getCelsius()
-                    value['read_successful'] = True           
-                                      
-                except:
-                    value['read_successful'] = False                    
-                    my_logger.debug("Reading local temperature failed. Sensor: {}".format(key), exc_info=True)
-
-                if(value['type'] == "bmp" ):
-                    try:                                               
-                        value['pressure'] = tmp.getPascalAtSea()                          
-                                          
-                    except:
-                        value['read_successful'] == False                    
-                        my_logger.debug("Reading local pressure failed. Sensor: {}".format(key), exc_info=True)
-                
-                if(value['type'] == "htu" ):
-                    try:                       
-                        value['humidity'] = tmp.getHumidity()                     
-                                          
-                    except:
-                        value['read_successful'] == False                    
-                        my_logger.debug("Reading local pressure failed. Sensor: {}".format(key), exc_info=True)
-      
-
-    except:
-        my_logger.debug("Reading local temperature failed for some reason on the outer", exc_info=True)
-
-    # reading remote sensors
-    if(Sparams.webiopi == 1):
-        for (key, value) in Sparams.RemoteSensors.items():
-            try:                
-                value['temperature'] = readFromSensor(value['ip'], value['webiopi_name'])
-                value['read_successful'] = True
-            except:            
-                my_logger.debug("Reading remote temperature failed. Sensor: {}".format(key), exc_info=True)
-                value['read_successful'] = False
-
-                if(value['type'] == "bmp" ):
-                    try:                       
-                        value['pressure'] = readPressureFromSensor(value['ip'], value['webiopi_name'])
-                        value['read_successful'] = True        
-                    except:
-                        value['read_successful'] = False                    
-                        my_logger.debug("Reading remote pressure failed. Sensor: {}".format(key), exc_info=True)
-                
-                if(value['type'] == "htu" ):
-                    try:                       
-                        value['humidity'] =  readHumidityFromSensor(value['ip'], value['webiopi_name'])
-                        value['read_successful'] = True                    
-                                          
-                    except:
-                        value['read_successful'] = False                    
-                        my_logger.debug("Reading remote humidity failed. Sensor: {}".format(key), exc_info=True)
-            
+                    my_logger.debug("Error logging temperatures to MYsql", exc_info=True)   
+        time.sleep(4)    
 
 
 
@@ -319,7 +335,7 @@ def loadProgramFromFile():
     
     
 def WriteProgramToFile():
-    global program
+    #global program
     #now = datetime.datetime.now()
     #ThermostatProgramFile = "/home/pi/thermostat/python/Programs/{0}.csv".now.strftime('%A')
     now = datetime.datetime.now()
@@ -353,8 +369,7 @@ def printProram(prg):
     
 def updateProgram():
     global CurrentState
-    global program    
-    global Tparams
+    #global program
     global ActiveProgramIndex
     now = datetime.datetime.now()
     if(program[0].Day != now.strftime('%A')):
@@ -427,7 +442,7 @@ def getCurrentState():
 
 @webiopi.macro
 def getProgram(index):    
-    global program
+    #global program
     ind = int(index) 
     if(ind < 0):
         ind = 0

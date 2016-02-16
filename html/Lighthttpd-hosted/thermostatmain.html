@@ -15,13 +15,13 @@
             font: 16px arial;
             background-color: #515151;
         }
-		#speedometer_container {
+		#temp_gauge_container {
 			/*line-height:30px;*/
 			/*background-color:#eeeeee;*/
 			/*height:300px;*/
-			width:360px;
-			float:left;
-			padding:5px; 
+			/*width:800px;*/
+			/*float:left;*/
+			/*padding:5px; */
 		}
 		
         .unselectable {
@@ -39,7 +39,7 @@
         }
 
         .gauge .tick line {
-            stroke: #fff;
+            stroke: #0ff;
             stroke-width: 2px;
         }
         
@@ -64,6 +64,71 @@
             stroke-width: 4px;
         }
 
+		
+		 /* css formats for the pressure gauges */
+        .pgauge .domain {
+            stroke-width: 2px;
+            stroke: #ff0;
+        }
+
+        .pgauge .tick line {
+            stroke: #00f;
+            stroke-width: 2px;
+        }
+        
+        .pgauge line {
+            stroke: #fff;
+        }
+
+        .pgauge .arc, .gauge .cursor {
+            opacity: 0;
+        }
+
+        .pgauge .major {
+            fill: #fff;
+            font-size: 10px;
+            font-family: 'Play', verdana, sans-serif;
+            font-weight: normal;
+        }
+        
+        .pgauge .indicator {
+            stroke: #EE3311;
+            fill: #000;
+            stroke-width: 4px;
+        }
+		
+		/* css formats for the humidity gauges */
+        .hgauge .domain {
+            stroke-width: 2px;
+            stroke: #0f0;
+        }
+
+        .hgauge .tick line {
+            stroke: #00f;
+            stroke-width: 2px;
+        }
+        
+        .hgauge line {
+            stroke: #fff;
+        }
+
+        .hgauge .arc, .gauge .cursor {
+            opacity: 0;
+        }
+
+        .hgauge .major {
+            fill: #fff;
+            font-size: 10px;
+            font-family: 'Play', verdana, sans-serif;
+            font-weight: normal;
+        }
+        
+        .hgauge .indicator {
+            stroke: #EE3311;
+            fill: #000;
+            stroke-width: 4px;
+        }
+		
         /* css formats for the segment display */
         .segdisplay .on {
             fill: #00FFFF;
@@ -74,22 +139,29 @@
             fill: #00FFFF;
             opacity: 0.15;
         }
+		
+		#td {
+			align : center;
+		}
     </style>
 	<link type="text/css" rel="stylesheet" href="buttons.css">
 </head>
 <body>
-    <div id="speedometer_container">
-  <!--      <span id="speedometer"></span> -->
-    </div>
-	    <div align="center">
-	<table style="width:30%">
+	
+    <div id="temp_gauge_container" align="center"></div>
+	<div id="press_gauge_container" align="center"></div>
+	<div id="humidity_gauge_container" align="center"></div>
+    
+	
+	
+	<table style="width:30%" align="center">
 		<tr>
 				<th colspan="3">Status</th>
 		</tr>
 		<tr>
-				<td><button id="bt_heater" class="button blue medium"/> </td>				
-				<td><button id="bt_fanstate" class="button blue bigrounded"/></td>
-				<td><button  id="bt_acstate" class="button blue bigrounded"/></td>
+				<td><button id="bt_heater" class="button blue bigrounded">NULL</td>				
+				<td><button id="bt_fanstate" class="button blue bigrounded"/>NULL</td>
+				<td><button id="bt_acstate" class="button blue bigrounded"/>NULL</td>
 		</tr>
 		<tr>
 <!-- 				<th>Active Sensor</th>
@@ -102,16 +174,9 @@
 <!-- 				<td><button id="bt_sensorid" class="SEN"/></td>
 				<td><button id="bt_tempDisplay"/></td> -->
 				<td></td>
-				<td><button id="bt_mode" /></td>
+				<td><button id="bt_mode" class="button blue bigrounded" /> MODE </td>
 				<td></td>
 		</tr>
-		<tr>
-				<td><button id="bt_LocalTemp"/></td>
-				<td><button id="bt_RemTemp1"/></td>
-				<td><button id="bt_RemTemp2"/></td>	
-		</tr>
-		
-
 		
 		<tr>
 			<th> Override </th>
@@ -119,9 +184,9 @@
 			<th> Override </th>
 		</tr>
 		<tr>								
-				<td><button id="temp_up" >UP</button></td>
-				<td><button id="temp_setpoint"/></td>
-				<td><button id="temp_down" >DOWN</button></td>
+				<td><button id="temp_up" class="button blue bigrounded" >UP</button></td>
+				<td><button id="temp_setpoint" class="button blue bigrounded"/>00.00</td>
+				<td><button id="temp_down" class="button blue bigrounded" >DOWN</button></td>
 		</tr>
 		<tr>
 				<th></th>
@@ -129,67 +194,23 @@
 				<th> </th>		
 
 		</tr>		
-		<tr>
-				<th>Humidity</th>
-				<th>Temp</th>
-				<th>Pressure</th>		
+		
 
-		</tr>		
-		<tr>
-				<td><button id="bt_LocalHum"/></td>
-				<td><button id="bt_LocalTemp2"/></td>
-				<td><button id="bt_LocalPress"/></td>
-		</tr>
-		</div>
+		
 		
 		
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
     <script>
-
-/*        var svg = d3.select("#speedometer")
-                .append("svg:svg")
-                .attr("width", 400)
-                .attr("height", 400);
-
-
-        var gauge = iopctrl.arcslider()
-                .radius(120)
-                .events(false)
-                .indicator(iopctrl.defaultGaugeIndicator);
-        gauge.axis().orient("in")
-                .normalize(true)
-                .ticks(12)
-                .tickSubdivide(3)
-                .tickSize(10, 8, 10)
-                .tickPadding(5)
-                .scale(d3.scale.linear()
-                        .domain([0, 160])
-                        .range([-3*Math.PI/4, 3*Math.PI/4]));
-
-        var segDisplay = iopctrl.segdisplay()
-                .width(80)
-                .digitCount(6)
-                .negative(false)
-                .decimals(0);
-
-        svg.append("g")
-                .attr("class", "segdisplay")
-                .attr("transform", "translate(130, 200)")
-                .call(segDisplay);
-
-        svg.append("g")
-                .attr("class", "gauge")
-                .call(gauge);
-
-        segDisplay.value(56749);        
-		gauge.value(92);*/
 		
 		var gauge = [];
 		var segDisplay = [];
 		var Sparams = 0;
+		var Tparams = 0;
+		var Tstate = 0;
 		
 		get_sparams();
-		//CreateTempGauges();
+		//get_tparams();
+		get_tstate();
 		setTimeout( CreateTempGauges, 500 );
 		setInterval(UpdateUI, 1000);
 		
@@ -200,10 +221,35 @@
 				Sparams = JSON.parse(this.responseText)
 				}
 		
-			oReq.open("get", "thermostat_interface.php", true);
+			oReq.open("GET", "thermostat_interface.php?command=get_sparms", true);
 			oReq.send();
 	
 		}
+		
+		function get_tparams(){
+			
+			var oReq = new XMLHttpRequest(); //New request object
+			oReq.onload = function() {				
+				Tparams = JSON.parse(this.responseText)
+				}
+		
+			oReq.open("GET", "thermostat_interface.php?command=get_tparms", true);
+			oReq.send();
+	
+		}
+		
+		function get_tstate(){
+			
+			var oReq = new XMLHttpRequest(); //New request object
+			oReq.onload = function() {				
+				Tstate = JSON.parse(this.responseText)
+				}
+		
+			oReq.open("GET", "thermostat_interface.php?command=get_state", true);
+			oReq.send();
+	
+		}
+		
 		
 		function CreateTempGauges(){
 			
@@ -217,7 +263,7 @@
 					//alert(JSON.stringify(sensorobj));
 					//alert(JSON.stringify(sensors));
 					var gaugediv = document.createElement(divname);
-					document.getElementById('speedometer_container').appendChild(gaugediv);
+					document.getElementById('temp_gauge_container').appendChild(gaugediv);
 			
 					var svg = d3.select(divname)
 						.append("svg:svg")
@@ -255,15 +301,149 @@
 							.call(gauge[i]);
 					
 					gg.append("text")
-						.attr("x", 10 )
+						.attr("x", 50 )
 						.attr("y", 30)
 						.attr("dy", ".35em")
-						.text(sensors);
+						.text(sensors );
+					
+					gg.append("text")
+						.attr("x", 90 )
+						.attr("y", 130)
+						.attr("dy", ".35em")
+						.text("Temp");
 
 					
 					segDisplay[i].value(sensorobj['temperature']);						
 					gauge[i].value(sensorobj['temperature']);										
 					i++;
+					
+					if(sensorobj['type']== "bmp"){
+						divname = sensors.replace(/\s+/g, '') + "Pressure";
+						
+						var gaugediv = document.createElement(divname);
+						document.getElementById('press_gauge_container').appendChild(gaugediv);
+						
+						var svg = d3.select(divname)
+							.append("svg:svg")
+							.attr("width", 180)
+							.attr("height", 180);
+
+						gauge[i] = iopctrl.arcslider()
+								.radius(60)
+								.events(false)
+								.indicator(iopctrl.defaultGaugeIndicator);
+								
+						gauge[i].axis().orient("in")
+								.normalize(true)
+								.ticks(12)
+								.tickSubdivide(3)
+								.tickSize(10, 8, 10)
+								.tickPadding(5)
+								.scale(d3.scale.linear()
+										.domain([95, 105])
+										.range([-3*Math.PI/4, 3*Math.PI/4]));
+
+						segDisplay[i] = iopctrl.segdisplay()
+								.width(80)
+								.digitCount(5)
+								.negative(true)
+								.decimals(2);
+
+						svg.append("g")
+								.attr("class", "segdisplay")
+								.attr("transform", "translate(70, 155)")
+								.call(segDisplay[i]);
+
+						gg = svg.append("g")
+								.attr("class", "pgauge")
+								.call(gauge[i]);
+						
+						gg.append("text")
+							.attr("x", 50 )
+							.attr("y", 30)
+							.attr("dy", ".35em")
+							.text(sensors);
+						
+						gg.append("text")
+							.attr("x", 90 )
+							.attr("y", 130)
+							.attr("dy", ".35em")
+							.text("kPa");
+
+						var press = ((parseFloat(sensorobj['pressure']) + 4300) / 1000); // correction is 4100 for work at 340m , and 4300 at home at 360m
+						segDisplay[i].value(press);						
+						gauge[i].value(press);
+	
+						i++;					
+					}
+					
+					if(sensorobj['type']== "htu"){
+						divname = sensors.replace(/\s+/g, '') + "Humidity";
+						
+						var gaugediv = document.createElement(divname);
+						document.getElementById('humidity_gauge_container').appendChild(gaugediv);
+						
+						var svg = d3.select(divname)
+							.append("svg:svg")
+							.attr("width", 180)
+							.attr("height", 180);
+
+						gauge[i] = iopctrl.arcslider()
+								.radius(60)
+								.events(false)
+								.indicator(iopctrl.defaultGaugeIndicator);
+								
+						gauge[i].axis().orient("in")
+								.normalize(true)
+								.ticks(12)
+								.tickSubdivide(3)
+								.tickSize(10, 8, 10)
+								.tickPadding(5)
+								.scale(d3.scale.linear()
+										.domain([40, 105])
+										.range([-3*Math.PI/4, 3*Math.PI/4]));
+
+						segDisplay[i] = iopctrl.segdisplay()
+								.width(80)
+								.digitCount(5)
+								.negative(true)
+								.decimals(2);
+
+						svg.append("g")
+								.attr("class", "segdisplay")
+								.attr("transform", "translate(70, 155)")
+								.call(segDisplay[i]);
+
+						gg = svg.append("g")
+								.attr("class", "hgauge")
+								.call(gauge[i]);
+						
+						gg.append("text")
+							.attr("x", 10 )
+							.attr("y", 30)
+							.attr("dy", ".35em")
+							.text(sensors);
+						
+						gg.append("text")
+							.attr("x", 90 )
+							.attr("y", 130)
+							.attr("dy", ".35em")
+							.text("%RH");
+
+						
+						var hum = (parseFloat(sensorobj['humidity']) * 100);					
+						
+						
+						segDisplay[i].value(hum);						
+						gauge[i].value(hum);
+	
+						i++;
+					
+					
+					
+					
+					}
+					
 					}
 			}
 		}
@@ -275,6 +455,7 @@
 		
 		function UpdateUI(){
 			get_sparams();
+			get_tstate();
 			var i  = 0;				
 			
 			// Block for updating temperature sensor gauges
@@ -287,15 +468,27 @@
 					//alert(JSON.stringify(sensorobj));
 					//alert(JSON.stringify(sensors));
 					//var gaugediv = document.createElement(divname);
-					//document.getElementById('speedometer_container').appendChild(gaugediv);
+					//document.getElementById('temp_gauge_container').appendChild(gaugediv);
 					//gaugeobj = d3.select("#" + divname);
 					//alert(JSON.stringify(gaugeobj));
 					segDisplay[i].value(sensorobj['temperature']);						
 					gauge[i].value(sensorobj['temperature']);										
-					i++;	
-				
-				
-				
+					i++;
+					if(sensorobj['type']== "bmp"){					
+						var press = ((parseFloat(sensorobj['pressure']) + 4300) / 1000); // correction is 4100 for work at 340m , and 4300 at home at 360m
+						segDisplay[i].value(press);						
+						gauge[i].value(press);										
+						i++;
+					}
+					if(sensorobj['type']== "htu"){			
+						var hum = (parseFloat(sensorobj['humidity']) * 100);					
+						segDisplay[i].value(hum);						
+						gauge[i].value(hum);										
+						i++;
+					}
+
+
+					
 				}
 		
 		

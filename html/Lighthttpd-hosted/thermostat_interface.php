@@ -18,7 +18,8 @@
 	}
  
 		
-	$message = "get_sparms";
+	//$message = "get_sparms";
+	$message = $_GET['command'];
  
 	//Send the message to the server
 	if( ! socket_send ( $sock , $message , strlen($message) , 0))
