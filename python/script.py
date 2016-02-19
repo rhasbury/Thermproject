@@ -8,6 +8,9 @@ import os
 import socketserver
 import threading
 
+import Adafruit_BMP.BMP085 as BMP085
+
+
 #import locale
 from webiopi.clients import *
 from _ctypes import addressof
@@ -566,4 +569,6 @@ def tail(f, n, offset=0):
     
     
 
+if __name__ == "__main__":
+    setup()
     
