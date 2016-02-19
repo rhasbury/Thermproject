@@ -496,10 +496,11 @@
 			};
 			
 					
+			d3.selectAll("circle").attr("fill", "blue");
 			
 			// Block for updating temperature sensor gauges
 			for (var key in Sparams){
-				var sensorbatch = Sparams[key]
+				var sensorbatch = Sparams[key]				
 				for (var sensors in sensorbatch){							
 					sensorobj = sensorbatch[sensors]					
 					if (!sensorobj.hasOwnProperty('read_successful')) continue;		
@@ -510,6 +511,10 @@
 					//document.getElementById('temp_gauge_container').appendChild(gaugediv);
 					//gaugeobj = d3.select("#" + divname);
 					//alert(JSON.stringify(gaugeobj));
+					if(sensors == Tstate.CurrentProgram.MasterTempSensor){
+						var circle = d3.select(divname).selectAll("circle");
+						circle.attr("fill", "red");
+						}
 					segDisplay[i].value(sensorobj['temperature']);						
 					gauge[i].value(sensorobj['temperature']);										
 					i++;
@@ -525,7 +530,7 @@
 						gauge[i].value(hum);										
 						i++;
 					}
-					alert(
+					
 
 
 					

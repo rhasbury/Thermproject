@@ -51,8 +51,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 
     def handle(self):        
         # self.request is the TCP socket connected to the client
-        self.data = self.request.recv(1024).strip()
-        my_logger.info(self.data.decode("utf-8"))
+        self.data = self.request.recv(1024).strip()        
         if("get_tparams" in self.data.decode("utf-8")):
             self.request.sendall(bytes(Tparams.to_JSON(), 'UTF-8'))
         elif("get_sparams" in self.data.decode("utf-8")):
