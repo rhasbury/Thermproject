@@ -2,7 +2,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-    <title>Speedometer</title>
+    <title>Red River Thermostat</title>
     <link rel='stylesheet' href='http://fonts.googleapis.com/css?family=Play:700,400' type='text/css'>
     
     <script type="text/javascript" src="http://iop.io/js/vendor/d3.v3.min.js"></script>
@@ -153,47 +153,30 @@
 	<div id="humidity_gauge_container" align="center"></div>
     
 	
-	
-	<table style="width:30%" align="center">
+	<br>
+	<br>	
+	<table style="width:30%" align="center" cellspacing="10">
+
 		<tr>
-				<th colspan="3">Status</th>
+				<td align="center"><button id="bt_heater" class="button blue bigrounded">NULL</td>				
+				<td align="center"><button id="bt_fanstate" class="button blue bigrounded" onclick="Fan_change()" />NULL</td>
+				<td align="center"><button id="bt_acstate" class="button blue bigrounded"/>NULL</td>
 		</tr>
-		<tr>
-				<td><button id="bt_heater" class="button blue bigrounded">NULL</td>				
-				<td><button id="bt_fanstate" class="button blue bigrounded"/>NULL</td>
-				<td><button id="bt_acstate" class="button blue bigrounded"/>NULL</td>
-		</tr>
-		<tr>
-<!-- 				<th>Active Sensor</th>
-				<th>Temperature</th> -->
-				<th></th>
-				<th>Mode</th>
-				<th></th>
-		</tr>		
+		<tr/>
 		<tr>
 <!-- 				<td><button id="bt_sensorid" class="SEN"/></td>
 				<td><button id="bt_tempDisplay"/></td> -->
 				<td></td>
-				<td><button id="bt_mode" class="button blue bigrounded" /> MODE </td>
+				<td align="center"><button id="bt_mode" class="button black bigrounded" onclick="Change_mode()" /> MODE </td>
 				<td></td>
 		</tr>
-		
-		<tr>
-			<th> Override </th>
-			<th> Temp Set Point </th>
-			<th> Override </th>
-		</tr>
+		<tr/>		
 		<tr>								
-				<td><button id="temp_up" class="button blue bigrounded" >UP</button></td>
-				<td><button id="temp_setpoint" class="button blue bigrounded"/>00.00</td>
-				<td><button id="temp_down" class="button blue bigrounded" >DOWN</button></td>
+				<td align="center"><button id="temp_up" class="button red bigrounded" onclick="Temp_up()" >UP</button></td>
+				<td align="center"><button id="temp_setpoint" class="button blue bigrounded"/>00.00</td>
+				<td align="center"><button id="temp_down" class="button blue bigrounded"  onclick="Temp_down()">DOWN</button></td>
 		</tr>
-		<tr>
-				<th></th>
-				<th>Outside</th>
-				<th> </th>		
-
-		</tr>		
+		
 		
 
 		
@@ -221,7 +204,7 @@
 				Sparams = JSON.parse(this.responseText)
 				}
 		
-			oReq.open("GET", "thermostat_interface.php?command=get_sparms", true);
+			oReq.open("GET", "thermostat_interface.php?command=get_sparams", true);
 			oReq.send();
 	
 		}
@@ -233,7 +216,7 @@
 				Tparams = JSON.parse(this.responseText)
 				}
 		
-			oReq.open("GET", "thermostat_interface.php?command=get_tparms", true);
+			oReq.open("GET", "thermostat_interface.php?command=get_tparams", true);
 			oReq.send();
 	
 		}
@@ -311,7 +294,17 @@
 						.attr("y", 130)
 						.attr("dy", ".35em")
 						.text("Temp");
-
+					
+					
+					gg.append("circle")						
+						.attr("cx", 30)
+                        .attr("cy", 30)
+                        .attr("fill", "red")
+						.attr("r", 10);
+						
+						
+					
+					
 					
 					segDisplay[i].value(sensorobj['temperature']);						
 					gauge[i].value(sensorobj['temperature']);										
@@ -458,6 +451,52 @@
 			get_tstate();
 			var i  = 0;				
 			
+			
+			if (Tstate.heaterstate == 0) {
+				// jQuery functions
+				$("#bt_heater").attr("class", "button gray bigrounded");
+				$("#bt_heater").text("Heater OFF");
+			}
+			else {
+				$("#bt_heater").attr("class", "button red bigrounded");
+				$("#bt_heater").text("Heater ON");
+			}
+			
+			if (Tstate.acstate == 0) {
+				// jQuery functions
+				$("#bt_acstate").attr("class", "button gray bigrounded");
+				$("#bt_acstate").text("AC OFF  ");
+			}
+			else {
+				$("#bt_acstate").attr("class", "button blue bigrounded");
+				$("#bt_acstate").text("AC ON  ");
+			}		
+			
+			if(Tstate.fanState == 0){
+				$("#bt_fanstate").attr("class", "button gray bigrounded");
+				$("#bt_fanstate").text("Fan OFF ");						
+				}
+			else{
+				$("#bt_fanstate").attr("class", "button green bigrounded");
+				$("#bt_fanstate").text("Fan ON ");	
+				}
+	
+			
+			if(Tstate.mode == 1){
+			 $("#bt_mode").text("HEAT");
+			 $("#temp_setpoint").text(Tstate.tset);
+			}
+			else if(Tstate.mode == 2) {
+			$("#bt_mode").text("COOL");			
+			$("#temp_setpoint").text(Tstate.tset);
+			}			
+			else {
+			$("#bt_mode").text("OFF");
+			$("#temp_setpoint").text("----");			
+			};
+			
+					
+			
 			// Block for updating temperature sensor gauges
 			for (var key in Sparams){
 				var sensorbatch = Sparams[key]
@@ -486,6 +525,7 @@
 						gauge[i].value(hum);										
 						i++;
 					}
+					alert(
 
 
 					
@@ -494,6 +534,55 @@
 		
 			}
 		}
+		
+		
+		function Temp_up(){
+			var oReq = new XMLHttpRequest(); //New request object
+			oReq.onload = function() {				
+				result = this.responseText;
+				}
+		
+			oReq.open("GET", "thermostat_interface.php?command=temp_up", true);
+			oReq.send();
+	
+		}
+		
+		
+		function Temp_down(){
+			var oReq = new XMLHttpRequest(); //New request object
+			oReq.onload = function() {				
+				result = this.responseText;
+				}
+		
+			oReq.open("GET", "thermostat_interface.php?command=temp_down", true);
+			oReq.send();
+	
+		}
+
+		function Change_mode(){
+			var oReq = new XMLHttpRequest(); //New request object
+			oReq.onload = function() {				
+				result = this.responseText;
+				}
+		
+			oReq.open("GET", "thermostat_interface.php?command=change_mode", true);
+			
+			oReq.send();	
+		}
+
+		function Fan_change(){
+			var oReq = new XMLHttpRequest(); //New request object
+			oReq.onload = function() {				
+				result = this.responseText;
+				}
+		
+			oReq.open("GET", "thermostat_interface.php?command=fan_change", true);
+			
+			oReq.send();	
+		}
+
+
+			
 		
     
     </script>

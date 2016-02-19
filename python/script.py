@@ -52,14 +52,21 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
     def handle(self):        
         # self.request is the TCP socket connected to the client
         self.data = self.request.recv(1024).strip()
+        my_logger.info(self.data.decode("utf-8"))
         if("get_tparams" in self.data.decode("utf-8")):
             self.request.sendall(bytes(Tparams.to_JSON(), 'UTF-8'))
-
-        if("get_sparams" in self.data.decode("utf-8")):
+        elif("get_sparams" in self.data.decode("utf-8")):
             self.request.sendall(bytes(Sparams.to_JSON(), 'UTF-8'))
-
-        if("get_state" in self.data.decode("utf-8")):
-            self.request.sendall(bytes(CurrentState.to_JSON(), 'UTF-8'))
+        elif("get_state" in self.data.decode("utf-8")):
+            self.request.sendall(bytes(CurrentState.to_JSON(), 'UTF-8'))            
+        elif("temp_up" in self.data.decode("utf-8")):
+            temp_change(1, 30)
+        elif("temp_down" in self.data.decode("utf-8")):
+            temp_change(-1, 30)            
+        elif("change_mode" in self.data.decode("utf-8")):
+            setMode()
+        elif("fan_change" in self.data.decode("utf-8")):
+            fan_change()
 
 
 def setup():
@@ -326,8 +333,7 @@ def loadProgramFromFile():
     linein = f.readline()
     
     for line in f:        
-        parts = line.split(",")      
-        #def __init__(self, TimeActive, MasterTempS, TempSetP, TempSetPC, FanOnoff, Day):
+        parts = line.split(",")        
         program.append(ProgramDataClass(datetime.datetime.strptime(parts[0], '%H:%M'), parts[1], float(parts[2]), float(parts[3]), int(parts[4]), now.strftime('%A')))   
     
     f.close()
@@ -335,18 +341,13 @@ def loadProgramFromFile():
     
     
 def WriteProgramToFile():
-    #global program
-    #now = datetime.datetime.now()
-    #ThermostatProgramFile = "/home/pi/thermostat/python/Programs/{0}.csv".now.strftime('%A')
     now = datetime.datetime.now()
     ThermostatProgramFile = "/home/pi/thermostat/python/Programs/{0}.csv".format(now.strftime('%A'))
 
     f = open(ThermostatProgramFile, 'w')    
     f.write("# TimeActiveFrom, MasterTempSensor (0=localsensor, 1=?, 2=? ), temperature set point, enable fan\n")
     
-    for x in range(0, (program.__len__())):         
-#        line = "{0!s},{1!d},{2!f},{3!d}\n".format(datetime.datetime.strftime(program[x].TimeActiveFrom, '%H:%M'), program[x].MasterTempSensor, program[x].TempSetPoint, program[x].fanon )
-        #f.write("{0!s},{1!d},{2!f},{3!d}\n".format(datetime.datetime.strftime(program[x].TimeActiveFrom, '%H:%M'), program[x].MasterTempSensor, program[x].TempSetPoint, program[x].fanon ))
+    for x in range(0, (program.__len__())):
         f.write(datetime.datetime.strftime(program[x].TimeActiveFrom, '%H:%M'))
         f.write(",")
         f.write(str(program[x].MasterTempSensor))
@@ -368,9 +369,9 @@ def printProram(prg):
     
     
 def updateProgram():
-    global CurrentState
-    #global program
+    global CurrentState    
     global ActiveProgramIndex
+    
     now = datetime.datetime.now()
     if(program[0].Day != now.strftime('%A')):
         loadProgramFromFile()
@@ -407,21 +408,23 @@ def readPressureFromSensor(address, name):
     return remoteTemp.getPascalAtSea()
 
 
-@webiopi.macro
-def getCurrentState():    
-    global CurrentState
-    if(CurrentState.tempORactive):            
-        CurrentState.overrideexp = str(datetime.timedelta(minutes=CurrentState.tempORlength) - (datetime.datetime.utcnow() - CurrentState.tempORtime))[:7]   
-    elif(CurrentState.fanORactive):    
-        CurrentState.overrideexp = str(datetime.timedelta(minutes=CurrentState.fanORlength) - (datetime.datetime.utcnow() - CurrentState.fanORtime))[:7]        
-    else:
-        CurrentState.overrideexp = "No override"        
-    diskstat = os.statvfs(Tparams.ThermostatStateFile)    
-    CurrentState.hddspace = (diskstat.f_bavail * diskstat.f_frsize) / 1024000   # 
-        
-    #print (Tparams.to_JSON())
-    
-    return CurrentState.to_JSON()
+
+
+# @webiopi.macro
+# def getCurrentState():    
+#     global CurrentState
+#     if(CurrentState.tempORactive):            
+#         CurrentState.overrideexp = str(datetime.timedelta(minutes=CurrentState.tempORlength) - (datetime.datetime.utcnow() - CurrentState.tempORtime))[:7]   
+#     elif(CurrentState.fanORactive):    
+#         CurrentState.overrideexp = str(datetime.timedelta(minutes=CurrentState.fanORlength) - (datetime.datetime.utcnow() - CurrentState.fanORtime))[:7]        
+#     else:
+#         CurrentState.overrideexp = "No override"        
+#     diskstat = os.statvfs(Tparams.ThermostatStateFile)    
+#     CurrentState.hddspace = (diskstat.f_bavail * diskstat.f_frsize) / 1024000   # 
+#         
+#     #print (Tparams.to_JSON())
+#     
+#     return CurrentState.to_JSON()
 #     return "%d;%d;%s;%s;%d;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s" % (CurrentState.TimeActiveFrom.hour, 
 #                                         CurrentState.TimeActiveFrom.minute, 
 #                                         CurrentState.MasterTempSensor, 
@@ -440,62 +443,67 @@ def getCurrentState():
 
 
 
-@webiopi.macro
-def getProgram(index):    
-    #global program
-    ind = int(index) 
-    if(ind < 0):
-        ind = 0
-    if(ind > (program.__len__()-1)):
-        ind = (program.__len__()-1) 
-       
-    return "%s;%s;%f;%d;%d;%d" % (datetime.datetime.strftime(program[ind].TimeActiveFrom, '%H;%M'), program[ind].MasterTempSensor, program[ind].TempSetPointHeat, program[ind].fanon, program.__len__(), ind)
-    
-@webiopi.macro
-def setProgram(index, time, sensor, temp, fanon ):
-    global program
-    ind = int(index) 
-    #for x in range(0, (program.__len__())):
-        #printProram(program[x])
-    
-    if(ind == (program.__len__())):    # new entry
-        program.append(ProgramDataClass(datetime.datetime.strptime(time, '%H:%M'), int(sensor), float(temp), int(fanon)))
-#        print("added new") 
-    else:        
-        program[ind].TimeActiveFrom = datetime.datetime.strptime(time, '%H:%M')
-        program[ind].MasterTempSensor = int(sensor)
-        program[ind].TempSetPointHeat    = float(temp) 
-        program[ind].fanon = int(fanon)
-   
-    program.sort(key = lambda x: x.TimeActiveFrom)
-    
-    WriteProgramToFile()
-    
+# @webiopi.macro
+# def getProgram(index):    
+#     #global program
+#     ind = int(index) 
+#     if(ind < 0):
+#         ind = 0
+#     if(ind > (program.__len__()-1)):
+#         ind = (program.__len__()-1) 
+#        
+#     return "%s;%s;%f;%d;%d;%d" % (datetime.datetime.strftime(program[ind].TimeActiveFrom, '%H;%M'), program[ind].MasterTempSensor, program[ind].TempSetPointHeat, program[ind].fanon, program.__len__(), ind)
+#     
+# @webiopi.macro
+# def setProgram(index, time, sensor, temp, fanon ):
+#     global program
+#     ind = int(index) 
+#     #for x in range(0, (program.__len__())):
+#         #printProram(program[x])
+#     
+#     if(ind == (program.__len__())):    # new entry
+#         program.append(ProgramDataClass(datetime.datetime.strptime(time, '%H:%M'), int(sensor), float(temp), int(fanon)))
+# #        print("added new") 
+#     else:        
+#         program[ind].TimeActiveFrom = datetime.datetime.strptime(time, '%H:%M')
+#         program[ind].MasterTempSensor = int(sensor)
+#         program[ind].TempSetPointHeat    = float(temp) 
+#         program[ind].fanon = int(fanon)
+#    
+#     program.sort(key = lambda x: x.TimeActiveFrom)
+#     
+#     WriteProgramToFile()
+#     
     
 
 
 
-@webiopi.macro
+#@webiopi.macro
 def temp_change(amount, length):
     global CurrentState        
     global Tparams
     global program
-    global ActiveProgramIndex
-    if(CurrentState.tempORactive == False):
-        CurrentState.tempORtemp = CurrentState.tset
+    ActiveProgramIndex
+    #if(CurrentState.tempORactive == False):
+    #    CurrentState.tempORtemp = CurrentState.tset
  
-    CurrentState.tempORtemp = CurrentState.tempORtemp + (int(amount)* 0.5)
-    CurrentState.tempORtime = datetime.datetime.utcnow()
-    CurrentState.tempORlength = int(length)
+    #CurrentState.tempORtemp = CurrentState.tempORtemp + (int(amount)* 0.5)
+    #CurrentState.tempORtime = datetime.datetime.utcnow()
+    #CurrentState.tempORlength = int(length)
     #CurrentState.tempORactive = True
      
     if(CurrentState.mode == 1):
-        program[ActiveProgramIndex].TempSetPointHeat = CurrentState.tempORtemp 
+        program[ActiveProgramIndex].TempSetPointHeat = program[ActiveProgramIndex].TempSetPointHeat + (int(amount)* 0.5) 
+        CurrentState.tset = CurrentState.CurrentProgram.TempSetPointHeat
     elif(CurrentState.mode == 2):
-        program[ActiveProgramIndex].TempSetPointCool = CurrentState.tempORtemp
+        program[ActiveProgramIndex].TempSetPointCool = program[ActiveProgramIndex].TempSetPointCool + (int(amount)* 0.5)
+        CurrentState.tset = CurrentState.CurrentProgram.TempSetPointCool
+    
     WriteProgramToFile()
+    
 
-@webiopi.macro
+
+#@webiopi.macro
 def fan_change(length):
     global CurrentState        
     global Tparams
@@ -506,32 +514,35 @@ def fan_change(length):
     CurrentState.fanORlength = int(length)
     CurrentState.fanORactive = True    
 
-@webiopi.macro
-def getMode():
-    if(CurrentState.mode == 0):
-        return "OFF"
-    elif(CurrentState.mode == 1):
-        return "HEAT"
-    elif(CurrentState.mode == 2):
-        return "COOL"
-    else:
-        return "Error"
+#@webiopi.macro
+#def getMode():
+#    if(CurrentState.mode == 0):
+#        return "OFF"
+#    elif(CurrentState.mode == 1):
+#        return "HEAT"
+#    elif(CurrentState.mode == 2):
+#        return "COOL"
+ #   else:
+ #       return "Error"
 
 
-@webiopi.macro
-def setMode():
-    global Tparams 
+
+
+
+#@webiopi.macro
+def setMode():    
+    global CurrentState
     CurrentState.mode = (CurrentState.mode + 1) % 3
     f = open(Tparams.ThermostatStateFile, 'w') 
     f.write(str(CurrentState.mode))
     f.close()
 
-@webiopi.macro
+#@webiopi.macro
 
-def clearOverride():
-    CurrentState.tempORactive = False
-    CurrentState.fanORactive = False
-    my_logger.info("Override cleared")
+#def clearOverride():
+#    CurrentState.tempORactive = False
+#    CurrentState.fanORactive = False
+#    my_logger.info("Override cleared")
   
 
 
