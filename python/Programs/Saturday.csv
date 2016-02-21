@@ -1,35 +1,38 @@
-# TimeActiveFrom," MasterTempSensor (0=localsensor, 1=bedroom, 2=basement)",HeatTemp,CoolTemp,FanState
-0:00,Living Room,21,24,0
-1:00,Living Room,21,24,1
-1:20,Living Room,21,24,0
-2:00,Living Room,21,24,1
-2:20,Living Room,21,24,0
-3:20,Living Room,21,24,1
-3:40,Living Room,21,24,0
-4:00,Living Room,21,24,0
-5:00,Living Room,21,24,1
-5:20,Living Room,21,24,0
-6:00,Living Room,21,24,1
-6:10,Living Room,21,24,0
-7:00,Living Room,21,24,0
-8:00,Basement,20,24,0
-9:00,Basement,20,24,0
-10:00,Basement,20,24,0
-11:10,Basement,21,24,0
-11:50,Basement,21,24,1
-12:00,Basement,21,24,1
-13:00,Basement,21,24,1
-14:00,Basement,20,24,0
-15:00,Basement,20,24,1
-15:20,Basement,20,24,0
-16:00,Basement,20,24,0
-17:00,Bedroom,21,24,0
-18:00,Bedroom,21,24,0
-19:00,Bedroom,21,24,0
-20:00,Living Room,21,24,1
-20:10,Living Room,21,24,1
-20:30,Living Room,21,24,0
-21:00,Living Room,21,24,0
-22:00,Living Room,21,24,0
-23:00,Living Room,21,24,1
-23:30,Living Room,21,24,0
+# TimeActiveFrom, MasterTempSensor (0=localsensor, 1=?, 2=? ), temperature set point, enable fan
+00:00,Bedroom,21.5,24.0,0
+01:00,Bedroom,21.0,24.0,0
+01:20,Bedroom,22.5,24.0,0
+02:00,Bedroom,21.0,24.0,1
+02:20,Bedroom,21.0,24.0,0
+03:20,Bedroom,21.0,24.0,0
+03:40,Bedroom,21.0,24.0,0
+04:00,Bedroom,21.0,24.0,0
+05:00,Bedroom,21.0,24.0,0
+05:20,Bedroom,21.0,24.0,0
+06:00,Bedroom,21.0,24.0,0
+06:10,Bedroom,21.5,24.0,0
+07:00,Bedroom,21.0,24.0,0
+08:00,Living Room,20.0,24.0,0
+09:00,Living Room,21.0,24.0,0
+10:00,Living Room,20.0,24.0,0
+11:10,Living Room,21.0,24.0,0
+11:50,Living Room,21.0,24.0,0
+12:00,Living Room,21.5,24.0,0
+12:20,Living Room,21.0,24.0,0
+13:00,Living Room,21.0,24.0,0
+13:10,Living Room,22.0,24.0,0
+14:00,Living Room,20.0,24.0,0
+14:10,Living Room,20.0,24.0,0
+15:00,Living Room,20.0,24.0,0
+15:20,Living Room,20.0,24.0,0
+16:00,Living Room,21.5,24.0,0
+17:00,Living Room,21.0,24.0,0
+18:00,Living Room,21.0,24.0,0
+19:00,Living Room,21.5,24.0,0
+20:00,Bedroom,21.0,24.0,1
+20:10,Bedroom,21.0,24.0,0
+20:30,Bedroom,21.0,24.0,0
+21:00,Bedroom,22.0,24.0,0
+22:00,Bedroom,22.5,24.0,0
+23:00,Bedroom,21.0,24.0,1
+23:30,Bedroom,22.0,24.0,0
