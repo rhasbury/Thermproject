@@ -130,6 +130,9 @@ def loop():
     #global serverthread
     
     webiopi.sleep(10)
+    # Update harddrive space information. 
+    diskstat = os.statvfs(Tparams.ThermostatStateFile)    
+    CurrentState.hddspace = (diskstat.f_bavail * diskstat.f_frsize) / 1024000 
     
     try:    
         if (datetime.datetime.utcnow() - CurrentState.tempORtime > datetime.timedelta(minutes=CurrentState.tempORlength)):        
@@ -174,9 +177,13 @@ def loop():
             CurrentState.tset = CurrentState.CurrentProgram.TempSetPointHeat
       
         
-        if(CurrentState.fanORactive == True):
+        if(CurrentState.fanORactive == True):            
+            if(CurrentState.fanState != CurrentState.fanORstate):
+                logControlLineDB(DBparams, my_logger, 'fan', CurrentState.fanORstate)
             CurrentState.fanState = CurrentState.fanORstate
         else:
+            if(CurrentState.fanState != CurrentState.CurrentProgram.fanon):
+                logControlLineDB(DBparams, my_logger, 'fan', CurrentState.CurrentProgram.fanon)
             CurrentState.fanState = CurrentState.CurrentProgram.fanon    
         
         
@@ -187,22 +194,26 @@ def loop():
                 GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
                 if((CurrentState.tset - 0.5)  > celsius):
                    GPIO.digitalWrite(Tparams.HEATER, GPIO.LOW)
-                   CurrentState.heaterstate = 1
-                   logControlLineDB(DBparams, my_logger, 'heater', CurrentState.heaterstate)                   
+                   if(CurrentState.heaterstate == 0): 
+                       logControlLineDB(DBparams, my_logger, 'heater', 1)
+                   CurrentState.heaterstate = 1                       
                 elif((CurrentState.tset + 0.5) < celsius):
                    GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
+                   if(CurrentState.heaterstate == 1):
+                       logControlLineDB(DBparams, my_logger, 'heater', 0)
                    CurrentState.heaterstate = 0
-                   logControlLineDB(DBparams, my_logger, 'heater', CurrentState.heaterstate)
             elif(CurrentState.mode == 2 and celsius != 0):
                 GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
                 if((CurrentState.tset - 0.5) > celsius):
                    GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
-                   CurrentState.acstate = 0
-                   logControlLineDB(DBparams, my_logger, 'ac', CurrentState.acstate)
+                   if(CurrentState.acstate == 1): 
+                       logControlLineDB(DBparams, my_logger, 'ac', 0)
+                   CurrentState.acstate = 0                   
                 elif((CurrentState.tset + 0.5) < celsius):
                    GPIO.digitalWrite(Tparams.AC, GPIO.LOW)
+                   if(CurrentState.acstate == 0): 
+                       logControlLineDB(DBparams, my_logger, 'ac', 1)
                    CurrentState.acstate = 1
-                   logControlLineDB(DBparams, my_logger, 'ac', CurrentState.acstate)
             else:
                 GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
                 GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
@@ -212,10 +223,10 @@ def loop():
         try:
             if(CurrentState.fanState == 1):
                 GPIO.digitalWrite(Tparams.FAN, GPIO.LOW)
-                logControlLineDB(DBparams, my_logger, 'fan', CurrentState.fanState)
+                
             elif(CurrentState.fanState == 0):
                 GPIO.digitalWrite(Tparams.FAN, GPIO.HIGH)
-                logControlLineDB(DBparams, my_logger, 'fan', CurrentState.fanState)
+                
         except:
             my_logger.debug("Error setting GPIOs Fan", exc_info=True)
            
@@ -311,14 +322,14 @@ def updateTemps():
                         if(value['type'] == "bmp" ):                    
                             logPresslineDB(DBparams, my_logger, key, value['pressure'])
                         if(value['type'] == "htu" ):
-                            logHumlineDB(key, my_logger, value['humidity'])               
+                            logHumlineDB(DBparams, my_logger, key, value['humidity'])               
                         
                     for (key, value) in Sparams.RemoteSensors.items(): 
                         logTemplineDB(DBparams, my_logger, key, value['temperature'])
                         if(value['type'] == "bmp" ):                    
                             logPresslineDB(DBparams, my_logger, key, value['pressure'])
                         if(value['type'] == "htu" ):
-                            logHumlineDB(key, my_logger, value['humidity'])  
+                            logHumlineDB(DBparams, my_logger, key, value['humidity'])  
                         
                 except:
                     my_logger.debug("Error logging temperatures to MYsql", exc_info=True)   

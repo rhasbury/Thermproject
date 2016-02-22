@@ -54,7 +54,7 @@ def CheckDatabase(DBparams, my_logger):
             result = cursor.execute ("SHOW TABLES LIKE '" + DBparams.temptable + "'")       
             if(result == 0):
                 my_logger.info("Temperature table '%s' not found in database, creating it.".format(DBparams.temptable))
-                cursor.execute ("CREATE TABLE " + DBparams.temptable + " (tdate DATETIME, zone TEXT, pressure NUMERIC(10,5));")
+                cursor.execute ("CREATE TABLE " + DBparams.temptable + " (tdate DATETIME, zone TEXT, temperature NUMERIC(10,5));")
             
             result = cursor.execute ("SHOW TABLES LIKE '" + DBparams.presstable + "'")       
             if(result == 0):
@@ -64,7 +64,7 @@ def CheckDatabase(DBparams, my_logger):
             result = cursor.execute ("SHOW TABLES LIKE '" + DBparams.humiditytable + "'")       
             if(result == 0):
                 my_logger.info("Humidity table '%s' not found in database, creating it.".format(DBparams.humiditytable))
-                cursor.execute ("CREATE TABLE " + DBparams.humiditytable + " (tdate DATETIME, zone TEXT, pressure NUMERIC(10,5));")
+                cursor.execute ("CREATE TABLE " + DBparams.humiditytable + " (tdate DATETIME, zone TEXT, humidity NUMERIC(10,5));")
             
             result = cursor.execute ("SHOW TABLES LIKE '" + DBparams.controltable + "'")       
             if(result == 0):

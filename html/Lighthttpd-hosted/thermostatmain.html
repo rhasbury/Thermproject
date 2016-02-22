@@ -149,8 +149,8 @@
 <body>
 	
     <div id="temp_gauge_container" align="center"></div>
-	<div id="press_gauge_container" align="center"></div>
-	<div id="humidity_gauge_container" align="center"></div>
+	<div id="2nd_gauge_container" align="center"></div>
+	
     
 	
 	<br>
@@ -177,9 +177,47 @@
 				<td align="center"><button id="temp_down" class="button blue bigrounded"  onclick="Temp_down()">DOWN</button></td>
 		</tr>
 		
+		</table>
+		<table border="1" style="width:30%" align="center" >
+		<tr>
+				<th colspan="2">System Information</th>
+		</tr>
+		<tr>	
+				<td>Free Space : </td><td><input type="text" id="freeSpace" /></td>
+		</tr>
 		
+		</table>
+		<table border="1" style="width:30%" align="center">
+		<tr>
+				<th colspan="2">Current Program Data</th>
+		</tr>
+		<tr>
+				<td>Day :</td>	<td><input type="text" id="dispDay" /></td>
+		</tr>		
+		<tr>
+				<td>Time :</td>	<td><input type="text" id="dispTime" /></td>
+		</tr>
+		<tr>
+				<td>Active Sensor : </td><td><input type="text" id="dispSensor" /></td>
+		</tr>
+		<tr>
+				<td>Temp Set Point Heat : </td><td><input type="text" id="dispTempSetH" /></td>
+		</tr>
+		<tr>
+				<td>Temp Set Point Cool : </td><td><input type="text" id="dispTempSetC" /></td>
+		</tr>
+		<tr>
+				<td>Fan State : </td><td><input type="text" id="dispFan" /></td>
+		</tr>
+		
+	</table>
 
-		
+		<br>	
+			<div align="center">
+		<iframe src="index.html" width="700" height="2400" frameBorder="0" align="center"> 
+			<p>Your browser does not support iframes.</p>
+		</iframe>
+		</div>
 		
 		
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
@@ -196,6 +234,9 @@
 		get_tstate();
 		setTimeout( CreateTempGauges, 500 );
 		setInterval(UpdateUI, 1000);
+		
+		
+
 		
 		function get_sparams(){
 			
@@ -314,7 +355,7 @@
 						divname = sensors.replace(/\s+/g, '') + "Pressure";
 						
 						var gaugediv = document.createElement(divname);
-						document.getElementById('press_gauge_container').appendChild(gaugediv);
+						document.getElementById('2nd_gauge_container').appendChild(gaugediv);
 						
 						var svg = d3.select(divname)
 							.append("svg:svg")
@@ -374,7 +415,7 @@
 						divname = sensors.replace(/\s+/g, '') + "Humidity";
 						
 						var gaugediv = document.createElement(divname);
-						document.getElementById('humidity_gauge_container').appendChild(gaugediv);
+						document.getElementById('2nd_gauge_container').appendChild(gaugediv);
 						
 						var svg = d3.select(divname)
 							.append("svg:svg")
@@ -393,7 +434,7 @@
 								.tickSize(10, 8, 10)
 								.tickPadding(5)
 								.scale(d3.scale.linear()
-										.domain([40, 105])
+										.domain([0, 100])
 										.range([-3*Math.PI/4, 3*Math.PI/4]));
 
 						segDisplay[i] = iopctrl.segdisplay()
@@ -412,7 +453,7 @@
 								.call(gauge[i]);
 						
 						gg.append("text")
-							.attr("x", 10 )
+							.attr("x", 50 )
 							.attr("y", 30)
 							.attr("dy", ".35em")
 							.text(sensors);
@@ -495,7 +536,24 @@
 			$("#temp_setpoint").text("----");			
 			};
 			
-					
+			$("#freeSpace").val(Tstate.hddspace + " MB");
+			
+
+			
+			$("#dispDay").val(Tstate.CurrentProgram.Day);			
+			$("#dispSensor").val(Tstate.CurrentProgram.MasterTempSensor);
+			$("#dispTempSetH").val(Tstate.CurrentProgram.TempSetPointHeat);
+			$("#dispTempSetC").val(Tstate.CurrentProgram.TempSetPointCool);
+			$("#dispFan").val(Tstate.CurrentProgram.fanon);		
+			
+			prgTime = new Date(Date.parse(Tstate.CurrentProgram.TimeActiveFrom));
+			//alert(prgTime);
+			$("#dispTime").val(prgTime.toTimeString());
+			
+			
+			//$("#bt_tempDisplay").text(data[7] + " C");			
+
+			
 			d3.selectAll("circle").attr("fill", "blue");
 			
 			// Block for updating temperature sensor gauges
