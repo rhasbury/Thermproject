@@ -7,9 +7,10 @@ import configparser
 import os
 import socketserver
 import threading
-
+import sys
 import Adafruit_BMP.BMP085 as BMP085
 
+sys.path.append('/home/pi/thermostat/python')
 
 #import locale
 from webiopi.clients import *

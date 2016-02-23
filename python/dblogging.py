@@ -4,7 +4,7 @@ def logTemplineDB(DBparams, mylogger, location, temp):
     try:
         connection = pymysql.connect(host=DBparams.host, user=DBparams.dbuser, passwd=DBparams.dbpassword, db=DBparams.db, charset=DBparams.charset, cursorclass=pymysql.cursors.DictCursor)
         with connection.cursor() as cursor:
-            cursor.execute ("INSERT INTO " + DBparams.temptable + " values(NOW(), %s, %s)", (location, temp))
+            cursor.execute ("INSERT INTO " + DBparams.temptable + " values(NOW(), NOW(), %s, %s, 'empty')", (location, temp))
         connection.commit()
         connection.close()
     except:
