@@ -40,10 +40,13 @@ def logControlLineDB(DBparams, my_logger, equipment, state):
         connection = pymysql.connect(host=DBparams.host, user=DBparams.dbuser, passwd=DBparams.dbpassword, db=DBparams.db, charset=DBparams.charset, cursorclass=pymysql.cursors.DictCursor)
         with connection.cursor() as cursor:
             result = cursor.execute ("Select tdate FROM controldat WHERE equipment='{}' ORDER by tdate DESC LIMIT 1".format(equipment))
-            for row in cursor:
-                #print(row)
-                cursor.execute ("INSERT INTO " + DBparams.controltable + " values(NOW(), %s, %s, TIMESTAMPDIFF(MINUTE, %s, NOW()))", (equipment, bool(state), row['tdate'].strftime('%Y-%m-%d %H:%M:%S') )) 
-                break       
+            if(result > 1):
+                for row in cursor:
+                    #print(row)
+                    cursor.execute ("INSERT INTO " + DBparams.controltable + " values(NOW(), %s, %s, TIMESTAMPDIFF(MINUTE, %s, NOW()))", (equipment, bool(state), row['tdate'].strftime('%Y-%m-%d %H:%M:%S') )) 
+                    break      
+            else:
+                 cursor.execute ("INSERT INTO " + DBparams.controltable + " values(NOW(), %s, %s, null)", (equipment, bool(state)))
         connection.commit()
         connection.close()
     except:
