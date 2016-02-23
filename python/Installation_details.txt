@@ -1,0 +1,17 @@
+
+#Ez_setup
+wget https://bitbucket.org/pypa/setuptools/raw/bootstrap/ez_setup.py
+sudo python3.2 ez_setup --user
+
+
+
+#install webiopi
+
+
+# install lighthttpd
+
+
+# install mysql
+
+
+# install mysql cursors

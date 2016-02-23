@@ -1,17 +1,18 @@
 import pymysql.cursors
 
-def logTemplineDB(DBparams, mylogger, location, temp):    
+def logTemplineDB(DBparams, my_logger, location, temp):    
     try:
         connection = pymysql.connect(host=DBparams.host, user=DBparams.dbuser, passwd=DBparams.dbpassword, db=DBparams.db, charset=DBparams.charset, cursorclass=pymysql.cursors.DictCursor)
         with connection.cursor() as cursor:
-            cursor.execute ("INSERT INTO " + DBparams.temptable + " values(NOW(), NOW(), %s, %s, 'empty')", (location, temp))
+            #cursor.execute ("INSERT INTO " + DBparams.temptable + " values(NOW(), NOW(), %s, %s, 'empty')", (location, temp))
+            cursor.execute ("INSERT INTO " + DBparams.temptable + " values(NOW(), %s, %s)", (location, temp))
         connection.commit()
         connection.close()
     except:
         #print("logTemplineDB() exception thrown")
         my_logger.debug("logTemplineDB() exception thrown", exc_info=True)
 
-def logPresslineDB(DBparams, mylogger, location, pressure):    
+def logPresslineDB(DBparams, my_logger, location, pressure):    
     try:
         connection = pymysql.connect(host=DBparams.host, user=DBparams.dbuser, passwd=DBparams.dbpassword, db=DBparams.db, charset=DBparams.charset, cursorclass=pymysql.cursors.DictCursor)
         with connection.cursor() as cursor:        
@@ -22,7 +23,7 @@ def logPresslineDB(DBparams, mylogger, location, pressure):
         #print("logPresslineDB() exception thrown")
         my_logger.debug("logPresslineDB() exception thrown", exc_info=True)
 
-def logHumlineDB(DBparams, mylogger, location, humidity):    
+def logHumlineDB(DBparams, my_logger, location, humidity):    
     try:
         connection = pymysql.connect(host=DBparams.host, user=DBparams.dbuser, passwd=DBparams.dbpassword, db=DBparams.db, charset=DBparams.charset, cursorclass=pymysql.cursors.DictCursor)
         with connection.cursor() as cursor:        
@@ -34,11 +35,15 @@ def logHumlineDB(DBparams, mylogger, location, humidity):
         my_logger.debug("logHumlineDB() exception thrown", exc_info=True)
         
         
-def logControlLineDB(DBparams, mylogger, equipment, state):    
+def logControlLineDB(DBparams, my_logger, equipment, state):    
     try:
         connection = pymysql.connect(host=DBparams.host, user=DBparams.dbuser, passwd=DBparams.dbpassword, db=DBparams.db, charset=DBparams.charset, cursorclass=pymysql.cursors.DictCursor)
-        with connection.cursor() as cursor:        
-            cursor.execute ("INSERT INTO " + DBparams.controltable + " values(NOW(), %s, %s)", (equipment, bool(state)))        
+        with connection.cursor() as cursor:
+            result = cursor.execute ("Select tdate FROM controldat WHERE equipment='{}' ORDER by tdate DESC LIMIT 1".format(equipment))
+            for row in cursor:
+                #print(row)
+                cursor.execute ("INSERT INTO " + DBparams.controltable + " values(NOW(), %s, %s, TIMESTAMPDIFF(MINUTE, %s, NOW()))", (equipment, bool(state), row['tdate'].strftime('%Y-%m-%d %H:%M:%S') )) 
+                break       
         connection.commit()
         connection.close()
     except:
@@ -69,7 +74,7 @@ def CheckDatabase(DBparams, my_logger):
             result = cursor.execute ("SHOW TABLES LIKE '" + DBparams.controltable + "'")       
             if(result == 0):
                 my_logger.info("Control table '%s' not found in database, creating it.".format(DBparams.controltable))
-                cursor.execute ("CREATE TABLE " + DBparams.controltable + " (tdate DATETIME, equipment TEXT, state BOOLEAN);")
+                cursor.execute ("CREATE TABLE " + DBparams.controltable + " (tdate DATETIME, equipment TEXT, state BOOLEAN, dtime TIME);")
     
         
         connection.close()

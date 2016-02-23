@@ -17,6 +17,7 @@ from webiopi.clients import *
 from _ctypes import addressof
 from ThermostatParameters import *
 from dblogging import *
+from emailwarning import *
 
 
 HOST, PORT = "localhost", 50007
@@ -37,7 +38,7 @@ Sparams = SensorParameters()
 CurrentState = ThermostatState
 program = []
 DBparams = DatabaseParameters()
-
+email = emailNotifier()
 
 serverthread = None
 TempUpdateThread = None
@@ -116,6 +117,8 @@ def setup():
     # Check and possibly setup database. 
     #print(DBparams.to_JSON())
     CheckDatabase(DBparams, my_logger)
+    
+    
 
     my_logger.info("Setup Completed")
     #for x in range(0, program.__len__()):
@@ -190,6 +193,18 @@ def loop():
         
         CurrentState.sensorTemp = celsius
         
+        # email notification checker
+        if (email.enabled == True):
+            if (celsius < email.lowerlimit or celsius > email.upperlimit):
+                if(datetime.datetime.utcnow() - email.lastsend > datetime.timedelta(minutes=email.interval)):
+                    my_logger.debug("Temperature exceeeded warning.  {0] < {1} < {2}  Sending email notification".format(email.lowerlimit, celsius, email.upperlimit))
+                    try:
+                        email.sendNotification("Temperature warning. Measured temperature has reached {0} C on the {1} sensor".format(celsius, CurrentState.CurrentProgram.MasterTempSensor))
+                        email.lastsend = datetime.datetime.utcnow()
+                    except:
+                        my_logger.debug("sending warning email failed", exc_info=True)                      
+                
+                 
         try:
             if(CurrentState.mode == 1 and celsius != 0):
                 GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)

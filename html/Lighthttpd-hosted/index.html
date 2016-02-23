@@ -546,9 +546,10 @@
 			$("#dispTempSetC").val(Tstate.CurrentProgram.TempSetPointCool);
 			$("#dispFan").val(Tstate.CurrentProgram.fanon);		
 			
-			prgTime = new Date(Date.parse(Tstate.CurrentProgram.TimeActiveFrom));
+			prgTime = new Date(Date.parse(Tstate.CurrentProgram.TimeActiveFrom) + 5*60*60000 );
+			//prgTime = Date(prgTime + 5*60*60000);  // add tz offset
 			//alert(prgTime);
-			$("#dispTime").val(prgTime.toTimeString());
+			$("#dispTime").val(prgTime.toLocaleTimeString());
 			
 			
 			//$("#bt_tempDisplay").text(data[7] + " C");			
