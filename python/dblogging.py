@@ -39,14 +39,17 @@ def logControlLineDB(DBparams, my_logger, equipment, state):
     try:
         connection = pymysql.connect(host=DBparams.host, user=DBparams.dbuser, passwd=DBparams.dbpassword, db=DBparams.db, charset=DBparams.charset, cursorclass=pymysql.cursors.DictCursor)
         with connection.cursor() as cursor:
-            result = cursor.execute ("Select tdate FROM controldat WHERE equipment='{}' ORDER by tdate DESC LIMIT 1".format(equipment))
-            if(result > 1):
-                for row in cursor:
-                    #print(row)
-                    cursor.execute ("INSERT INTO " + DBparams.controltable + " values(NOW(), %s, %s, TIMESTAMPDIFF(MINUTE, %s, NOW()))", (equipment, bool(state), row['tdate'].strftime('%Y-%m-%d %H:%M:%S') )) 
-                    break      
+            cursor.execute ("Select tdate FROM controldat WHERE equipment='{}' ORDER by tdate DESC LIMIT 1".format(equipment))
+            row = cursor.fetchone()
+            
+            if(row != None):                
+                tdelta = datetime.datetime.now() - row['tdate']
+                sqlquery = "INSERT INTO " + DBparams.controltable + " values(NOW(), %s, %s, %s, %s)", (equipment, bool(state), tdelta.strftime('%%H:%M:%S'), tdelta.seconds ) 
+                print(sqlquery)
+                cursor.execute (sqlquery) 
+                    
             else:
-                 cursor.execute ("INSERT INTO " + DBparams.controltable + " values(NOW(), %s, %s, null)", (equipment, bool(state)))
+                 cursor.execute ("INSERT INTO " + DBparams.controltable + " values(NOW(), %s, %s, 0)", (equipment, bool(state)))
         connection.commit()
         connection.close()
     except:

@@ -173,7 +173,7 @@
 		<tr/>		
 		<tr>								
 				<td align="center"><button id="temp_up" class="button red bigrounded" onclick="Temp_up()" >UP</button></td>
-				<td align="center"><button id="temp_setpoint" class="button blue bigrounded"/>00.00</td>
+				<td align="center"><button id="temp_setpoint" class="button orange bigrounded"/>00.00</td>
 				<td align="center"><button id="temp_down" class="button blue bigrounded"  onclick="Temp_down()">DOWN</button></td>
 		</tr>
 		
@@ -555,7 +555,7 @@
 			//$("#bt_tempDisplay").text(data[7] + " C");			
 
 			
-			d3.selectAll("circle").attr("fill", "blue");
+			d3.selectAll("circle").attr("fill", "#515151");
 			
 			// Block for updating temperature sensor gauges
 			for (var key in Sparams){
