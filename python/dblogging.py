@@ -1,4 +1,5 @@
 import pymysql.cursors
+import datetime
 
 def logTemplineDB(DBparams, my_logger, location, temp):    
     try:
