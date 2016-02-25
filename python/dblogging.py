@@ -45,12 +45,12 @@ def logControlLineDB(DBparams, my_logger, equipment, state):
             
             if(row != None):                
                 tdelta = datetime.datetime.now() - row['tdate']
-                sqlquery = "INSERT INTO " + DBparams.controltable + " values(NOW(), %s, %s, %s, %s)", (equipment, bool(state), tdelta.strftime('%%H:%M:%S'), tdelta.seconds ) 
+                sqlquery = "INSERT INTO " + DBparams.controltable + " values(NOW(), %s, %s, 0, %s)", (equipment, bool(state),  tdelta.seconds ) 
                 print(sqlquery)
                 cursor.execute (sqlquery) 
                     
             else:
-                 cursor.execute ("INSERT INTO " + DBparams.controltable + " values(NOW(), %s, %s, 0)", (equipment, bool(state)))
+                 cursor.execute ("INSERT INTO " + DBparams.controltable + " values(NOW(), %s, %s, 0, 0)", (equipment, bool(state)))
         connection.commit()
         connection.close()
     except:
