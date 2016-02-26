@@ -47,7 +47,7 @@ def logControlLineDB(DBparams, my_logger, equipment, state):
                 tdelta = datetime.datetime.now() - row['tdate']
                 sqlquery = "INSERT INTO " + DBparams.controltable + " values(NOW(), '{}', {}, 0, {})".format(equipment, bool(state),  tdelta.total_seconds() )
                  
-                my_logger.debug(sqlquery)
+                #my_logger.debug(sqlquery)
                 cursor.execute (sqlquery) 
                     
             else:

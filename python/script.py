@@ -70,7 +70,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         elif("change_mode" in self.data.decode("utf-8")):
             setMode()
         elif("fan_change" in self.data.decode("utf-8")):
-            fan_change()
+            fan_change(5)
 
 
 def setup():
@@ -132,14 +132,8 @@ def loop():
     
     #global Sparams
     #global serverthread
-    try:
-        updateProgram()
-    except:
-        my_logger.debug("updateProgram() excepted", exc_info=True)
-        #print("updateProgram() threw exception")
     
     webiopi.sleep(10)
-    
     # Update harddrive space information. 
     diskstat = os.statvfs(Tparams.ThermostatStateFile)    
     CurrentState.hddspace = (diskstat.f_bavail * diskstat.f_frsize) / 1024000 
@@ -152,7 +146,11 @@ def loop():
             CurrentState.fanORactive = False
                 
         
-
+        try:
+            updateProgram()
+        except:
+            my_logger.debug("updateProgram() excepted", exc_info=True)
+            #print("updateProgram() threw exception")
         
         
         
