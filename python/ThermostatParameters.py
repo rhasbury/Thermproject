@@ -103,8 +103,8 @@ class DatabaseParameters:
     def __init__(self):
             config = configparser.RawConfigParser()            
             config.optionxform = str
-            config.read('/home/pi/thermostat/python/thermostat.conf')
-            settings = config['database']
+            config.read('/home/pi/thermostat/python/thermostat.conf')             
+            settings = config['database']            
             self.__dict__.update(settings)
             
             

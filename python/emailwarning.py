@@ -8,23 +8,24 @@ class emailNotifier:
     def __init__(self):
         config = configparser.RawConfigParser()            
         config.optionxform = str
-        config.read('/home/pi/thermostat/python/thermostat.conf')
-        settings = config['emailnotifications']            
-        self.enabled = bool(settings['enabled'])
-        self.sourceaddress = settings['sourceaddress']
-        self.sourcepassword = settings['sourcepassword']            
-        self.destinationaddress = settings['destinationaddress']
-        self.lowerlimit = float(settings['lowerlimit'])
-        self.upperlimit = float(settings['upperlimit'])
-        self.interval = int(settings['interval'])
-        self.mailserver = settings['mailserver']
-        self.mailport = settings['mailport']
-        self.lastsend = datetime.datetime(2000,1,1)
-        
+        config.read('/home/pi/thermostat/python/thermostat.conf')        
+        if(config.has_section('emailnotifications')):        
+            settings = config['emailnotifications']            
+            self.enabled = settings['enabled']
+            self.sourceaddress = settings['sourceaddress']
+            self.sourcepassword = settings['sourcepassword']            
+            self.destinationaddress = settings['destinationaddress']
+            self.lowerlimit = float(settings['lowerlimit'])
+            self.upperlimit = float(settings['upperlimit'])
+            self.interval = int(settings['interval'])
+            self.mailserver = settings['mailserver']
+            self.mailport = settings['mailport']
+            self.lastsend = datetime.datetime(2000,1,1)
+        else:
+            self.enabled = False
         
     def sendNotification(self, content):        
-  
-        
+   
         try:            
             
             message = """From: Thermostat rrthermostat@gmail.com
