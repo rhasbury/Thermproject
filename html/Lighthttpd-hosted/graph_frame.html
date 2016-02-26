@@ -9,6 +9,8 @@
         }
 </style>
 <body>
+
+		
 		<iframe src="small_inlay_temp.html" width="650" height="400" frameBorder="0"> 
 			<p>Your browser does not support iframes.</p>
 		</iframe>
@@ -22,5 +24,40 @@
 			<p>Your browser does not support iframes.</p>
 		</iframe>
 
+		<table border="1" style="width:30%" align="center" >
+		<tr>
+				<th colspan="2">Daily Runtime Totals</th>
+		</tr>
+		<tr>	
+				<td> AC  : </td><td><input type="text" id="ac_runtime" /></td>
+				<td> Fan  : </td><td><input type="text" id="heat_runtime" /></td>
+				<td> Heater  : </td><td><input type="text" id="fan_runtime" /></td>
+		</tr>
+    	</table>
+		
+		
 </body>
+<!--
+<script>
+		reply = 0;
+
+		function display_fan_runtime(){
+			
+			var oReq = new XMLHttpRequest(); //New request object
+			oReq.onload = function() {				
+				reply = JSON.parse(this.responseText);								
+				$("#fan_runtime").val(reply[0].tdelta/60);
+				}
+		
+			oReq.open("GET", "control_data_pull.php?date=2016-02-26&equipment=fan", true);
+			oReq.send();
+
+	
+		}
+	
+
+	
+	
+	
+</script> -->
 </html>
