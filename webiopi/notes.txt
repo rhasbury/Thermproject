@@ -1,0 +1,1 @@
+Webiopi modified to enable remote reading of humidity sensors. 

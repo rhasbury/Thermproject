@@ -314,22 +314,23 @@ def updateTemps():
                     my_logger.debug("Reading remote temperature failed. Sensor: {}".format(key), exc_info=True)
                     value['read_successful'] = False
     
-                    if(value['type'] == "bmp" ):
-                        try:                       
-                            value['pressure'] = readPressureFromSensor(value['ip'], value['webiopi_name'])
-                            value['read_successful'] = True        
-                        except:
-                            value['read_successful'] = False                    
-                            my_logger.debug("Reading remote pressure failed. Sensor: {}".format(key), exc_info=True)
-                    
-                    if(value['type'] == "htu" ):
-                        try:                       
-                            value['humidity'] =  readHumidityFromSensor(value['ip'], value['webiopi_name'])
-                            value['read_successful'] = True                    
-                                              
-                        except:
-                            value['read_successful'] = False                    
-                            my_logger.debug("Reading remote humidity failed. Sensor: {}".format(key), exc_info=True)
+                if(value['type'] == "bmp" ):
+                    try:                       
+                        value['pressure'] = readPressureFromSensor(value['ip'], value['webiopi_name'])
+                        value['read_successful'] = True        
+                    except:
+                        value['read_successful'] = False                    
+                        my_logger.debug("Reading remote pressure failed. Sensor: {}".format(key), exc_info=True)
+                
+                
+                if(value['type'] == "htu" ):
+                    try:                       
+                        value['humidity'] =  readHumidityFromSensor(value['ip'], value['webiopi_name'])                
+                        value['read_successful'] = True                    
+                                          
+                    except:
+                        value['read_successful'] = False                    
+                        my_logger.debug("Reading remote humidity failed. Sensor: {}".format(key), exc_info=True)
         
         # logging sensor data to mysql
         if (datetime.datetime.utcnow() - lastlogtime > datetime.timedelta(minutes=Tparams.loginterval)):        
@@ -429,13 +430,13 @@ def readFromSensor(address, name):
 def readHumidityFromSensor(address, name):
     client = PiHttpClient(address)            
     client.setCredentials("webiopi", "raspberry")
-    remoteTemp = Temperature(client, name)        
+    remoteTemp = Humidity(client, name)        
     return remoteTemp.getHumidity()
 
 def readPressureFromSensor(address, name):
     client = PiHttpClient(address)            
     client.setCredentials("webiopi", "raspberry")
-    remoteTemp = Temperature(client, name)        
+    remoteTemp = Pressure(client, name)        
     return remoteTemp.getPascalAtSea()
 
 
