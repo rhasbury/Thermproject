@@ -26,18 +26,18 @@
 
 		<table border="1" style="width:30%" align="center" >
 		<tr>
-				<th colspan="2">Daily Runtime Totals</th>
+				<th colspan="3" align="center" >Daily Runtime Totals (Minutes)</th>
 		</tr>
 		<tr>	
 				<td> AC  : </td><td><input type="text" id="ac_runtime" /></td>
-				<td> Fan  : </td><td><input type="text" id="heat_runtime" /></td>
-				<td> Heater  : </td><td><input type="text" id="fan_runtime" /></td>
+				<td> Heater : </td><td><input type="text" id="heat_runtime" /></td>
+				<td> Fan  : </td><td><input type="text" id="fan_runtime" /></td>
 		</tr>
     	</table>
 		
 		
 </body>
-<!--
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
 <script>
 		reply = 0;
 
@@ -46,18 +46,59 @@
 			var oReq = new XMLHttpRequest(); //New request object
 			oReq.onload = function() {				
 				reply = JSON.parse(this.responseText);								
-				$("#fan_runtime").val(reply[0].tdelta/60);
+				
+				$("#fan_runtime").val((reply[0].tdelta/60).toFixed(1));
 				}
-		
-			oReq.open("GET", "control_data_pull.php?date=2016-02-26&equipment=fan", true);
+			
+			date = new Date();
+			datestring = date.getFullYear().toString() + "-" + (date.getMonth()+1).toString() + "-" + date.getDate().toString();			
+			oReq.open("GET", "control_data_pull.php?date="+datestring+"&equipment=fan", true);
 			oReq.send();
 
 	
 		}
 	
+		function display_heater_runtime(){
+			
+			var oReq = new XMLHttpRequest(); //New request object
+			oReq.onload = function() {				
+				reply = JSON.parse(this.responseText);								
+				
+				$("#heat_runtime").val((reply[0].tdelta/60).toFixed(1));
+				}
+		
+			date = new Date();
+			datestring = date.getFullYear().toString() + "-" + (date.getMonth()+1).toString() + "-" + date.getDate().toString();
+			oReq.open("GET", "control_data_pull.php?date="+datestring+"&equipment=heater", true);
+			oReq.send();
+
+	
+		}
+		
+		function display_ac_runtime(){
+			
+			var oReq = new XMLHttpRequest(); //New request object
+			oReq.onload = function() {				
+				reply = JSON.parse(this.responseText);								
+				
+				$("#ac_runtime").val((reply[0].tdelta/60).toFixed(1) );
+				}
+			
+			date = new Date();
+			datestring = date.getFullYear().toString() + "-" + (date.getMonth()+1).toString() + "-" + date.getDate().toString();
+			oReq.open("GET", "control_data_pull.php?date="+datestring+"&equipment=ac", true);
+			oReq.send();
+
+	
+		}
+	
+	
+	display_fan_runtime();
+	display_heater_runtime();
+	display_ac_runtime();
 
 	
 	
 	
-</script> -->
+</script> 
 </html>
