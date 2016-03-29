@@ -19,8 +19,9 @@ from ThermostatParameters import *
 from dblogging import *
 from emailwarning import *
 
-
+# Connection information for pulling operational info (sensor readings, equipment state, etc) 
 HOST, PORT = "localhost", 50007
+
 
 GPIO = webiopi.GPIO # Helper for LOW/HIGH values
 lastlogtime = datetime.datetime.utcnow()
@@ -46,13 +47,8 @@ TempUpdateThread = None
 # setup function is automatically called at WebIOPi startup
 
 class MyTCPHandler(socketserver.BaseRequestHandler):
-    """
-    The RequestHandler class for our server.
-
-    It is instantiated once per connection to the server, and must
-    override the handle() method to implement communication to the
-    client.
-    """
+    
+   #The RequestHandler class for data requests from the web interface or any remote applications.   
 
     def handle(self):        
         # self.request is the TCP socket connected to the client
@@ -74,12 +70,9 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 
 
 def setup():
-    #global program
     global CurrentState
-    #global Tparams
-    #global Sparams
     global server
-   #global DBparams
+
     
     GPIO.setFunction(Tparams.HEATER, GPIO.OUT)
     GPIO.setFunction(Tparams.FAN, GPIO.OUT)
@@ -98,62 +91,56 @@ def setup():
         CurrentState.mode = 0
     f.close()
 
-        # Create the server, binding to localhost on port 9999
-    
-
-    # Activate the server; this will keep running until you
-    # interrupt the program with Ctrl-C
+    # Create the data server and assigning the request handler        
     server = socketserver.TCPServer((HOST, PORT), MyTCPHandler)
     serverthread = threading.Thread(target=server.serve_forever)
     serverthread.daemon = True
     serverthread.start()
     my_logger.info("Data sockect listner started")
     
+    
+    # Create the temperature sensor reading thread
     TempUpdateThread = threading.Thread(target=updateTemps)    
     TempUpdateThread.daemon = True
     TempUpdateThread.start()
     my_logger.info("Sensor update thread started")
     
-    # Check and possibly setup database. 
-    #print(DBparams.to_JSON())
+    # Check and possibly setup database to allow logging of data    
     CheckDatabase(DBparams, my_logger)
     
     
-
-    my_logger.info("Setup Completed")
-    #for x in range(0, program.__len__()):
-    #    printProram(program[x])
+    # All done setup tasks
+    my_logger.info("Setup Completed")    
 
 
 # loop function is repeatedly called by WebIOPi 
 def loop():
     global CurrentState
-    #global Tparams
-    
-    #global Sparams
-    #global serverthread
+
     
     webiopi.sleep(10)
     # Update harddrive space information. 
     diskstat = os.statvfs(Tparams.ThermostatStateFile)    
     CurrentState.hddspace = (diskstat.f_bavail * diskstat.f_frsize) / 1024000 
+
     
     try:    
+
+        # Check the status of the temperature override and disable if it's expired
         if (datetime.datetime.utcnow() - CurrentState.tempORtime > datetime.timedelta(minutes=CurrentState.tempORlength)):        
             CurrentState.tempORactive = False
-            
+        
+        # Check the status of the fan override and disable if it's expired
         if (datetime.datetime.utcnow() - CurrentState.fanORtime > datetime.timedelta(minutes=CurrentState.fanORlength)):        
             CurrentState.fanORactive = False
                 
         
         try:
+            # Check to see if we've changed program sections. 
             updateProgram()
         except:
             my_logger.debug("updateProgram() excepted", exc_info=True)
-            #print("updateProgram() threw exception")
-        
-        
-        
+
     
         
         # decide which temp we're using for control
@@ -171,7 +158,7 @@ def loop():
                     celsius = value['temperature']
     
     
-    #    Override section
+        # Override section
         
         if(CurrentState.tempORactive):
             CurrentState.tset = CurrentState.tempORtemp
@@ -197,14 +184,15 @@ def loop():
         if (email.enabled == True):
             if (celsius < email.lowerlimit or celsius > email.upperlimit):
                 if(datetime.datetime.utcnow() - email.lastsend > datetime.timedelta(minutes=email.interval)):
-                    my_logger.debug("Temperature exceeeded warning.  {0] < {1} < {2}  Sending email notification".format(email.lowerlimit, celsius, email.upperlimit))
+                    my_logger.debug("Temperature exceeded warning.  {0] < {1} < {2}  Sending email notification".format(email.lowerlimit, celsius, email.upperlimit))
                     try:
                         email.sendNotification("Temperature warning. Measured temperature has reached {0} C on the {1} sensor".format(celsius, CurrentState.CurrentProgram.MasterTempSensor))
                         email.lastsend = datetime.datetime.utcnow()
                     except:
                         my_logger.debug("sending warning email failed", exc_info=True)                      
                 
-                 
+        # Furnace and AC control logic starts here
+        # This should be the only block in which the heater, fan and AC gpios are touched.        
         try:
             if(CurrentState.mode == 1 and celsius != 0):
                 GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
@@ -237,7 +225,8 @@ def loop():
                 GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
         except:
             my_logger.debug("Error setting GPIOs AC/Heater", exc_info=True)
-        	   
+         
+               
         try:
             if(CurrentState.fanState == 1):
                 GPIO.digitalWrite(Tparams.FAN, GPIO.LOW)
@@ -248,7 +237,7 @@ def loop():
         except:
             my_logger.debug("Error setting GPIOs Fan", exc_info=True)
            
-    
+        # End of Furnace and AC logic block.
 
           
     
