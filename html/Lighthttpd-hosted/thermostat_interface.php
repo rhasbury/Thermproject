@@ -33,7 +33,7 @@
 	
 	
 	//Now receive reply from server
-	if(socket_recv ( $sock , $buf , 2045 , MSG_WAITALL ) === FALSE)
+	if(socket_recv ( $sock , $buf , 100045 , MSG_WAITALL ) === FALSE)
 	{
 		$errorcode = socket_last_error();
 		$errormsg = socket_strerror($errorcode);

@@ -9,6 +9,7 @@ import socketserver
 import threading
 import sys
 import Adafruit_BMP.BMP085 as BMP085
+from http.cookiejar import DAYS
 
 sys.path.append('/home/pi/thermostat/python')
 
@@ -48,9 +49,18 @@ TempUpdateThread = None
 
 class MyTCPHandler(socketserver.BaseRequestHandler):
     
+    #def obj_dict(obj):
+    #    return obj.__dict__
+
    #The RequestHandler class for data requests from the web interface or any remote applications.   
 
     def handle(self):        
+        date_handler = lambda obj: (
+            obj.isoformat()
+            if isinstance(obj, datetime.datetime)
+            or isinstance(obj, datetime.date)
+            else obj.__dict__            
+        )
         # self.request is the TCP socket connected to the client
         self.data = self.request.recv(1024).strip()        
         if("get_tparams" in self.data.decode("utf-8")):
@@ -67,6 +77,13 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             setMode()
         elif("fan_change" in self.data.decode("utf-8")):
             fan_change(5)
+        elif("get_program" in self.data.decode("utf-8")):
+            #json_string = json.dumps(program)            
+            #json_string = json.dumps([ob.__dict__ for ob in program], default=date_handler)
+            whole = loadProgramFromFileWhole()
+            json_string = json.dumps(whole, default=date_handler)
+            print(json_string)
+            self.request.sendall(bytes(json_string, 'UTF-8'))
 
 
 def setup():
@@ -355,7 +372,9 @@ def loadProgramFromFile():
     
     for line in f:        
         parts = line.split(",")        
-        program.append(ProgramDataClass(datetime.datetime.strptime(parts[0], '%H:%M'), parts[1], float(parts[2]), float(parts[3]), int(parts[4]), now.strftime('%A')))   
+        timebits = parts[0].split(':')
+        prgtime = datetime.datetime.combine(datetime.date.today(), datetime.time(int(timebits[0]), int(timebits[1])))
+        program.append(ProgramDataClass(prgtime, parts[1], float(parts[2]), float(parts[3]), int(parts[4]), now.strftime('%A')))   
     
     f.close()
     program.sort(key = lambda x: x.TimeActiveFrom)
@@ -430,75 +449,6 @@ def readPressureFromSensor(address, name):
 
 
 
-
-# @webiopi.macro
-# def getCurrentState():    
-#     global CurrentState
-#     if(CurrentState.tempORactive):            
-#         CurrentState.overrideexp = str(datetime.timedelta(minutes=CurrentState.tempORlength) - (datetime.datetime.utcnow() - CurrentState.tempORtime))[:7]   
-#     elif(CurrentState.fanORactive):    
-#         CurrentState.overrideexp = str(datetime.timedelta(minutes=CurrentState.fanORlength) - (datetime.datetime.utcnow() - CurrentState.fanORtime))[:7]        
-#     else:
-#         CurrentState.overrideexp = "No override"        
-#     diskstat = os.statvfs(Tparams.ThermostatStateFile)    
-#     CurrentState.hddspace = (diskstat.f_bavail * diskstat.f_frsize) / 1024000   # 
-#         
-#     #print (Tparams.to_JSON())
-#     
-#     return CurrentState.to_JSON()
-#     return "%d;%d;%s;%s;%d;%s;%s;%s;%s;%s;%s;%s;%s;%s;%s" % (CurrentState.TimeActiveFrom.hour, 
-#                                         CurrentState.TimeActiveFrom.minute, 
-#                                         CurrentState.MasterTempSensor, 
-#                                         str(Tparams.tset)[:6], 
-#                                         Tparams.fanState, 
-#                                         overrideexp, 
-#                                         str(Tparams.tempORtemp)[:6], 
-#                                         str(CurrentState.sensorTemp)[:6],
-#                                         str(25)[:6],
-#                                         str(30)[:6],
-#                                         str(35)[:6],
-#                                         str(40)[:6],
-#                                         str(45)[:6],
-#                                         str(50)[:6],
-#                                         str(55)) 
-
-
-
-# @webiopi.macro
-# def getProgram(index):    
-#     #global program
-#     ind = int(index) 
-#     if(ind < 0):
-#         ind = 0
-#     if(ind > (program.__len__()-1)):
-#         ind = (program.__len__()-1) 
-#        
-#     return "%s;%s;%f;%d;%d;%d" % (datetime.datetime.strftime(program[ind].TimeActiveFrom, '%H;%M'), program[ind].MasterTempSensor, program[ind].TempSetPointHeat, program[ind].fanon, program.__len__(), ind)
-#     
-# @webiopi.macro
-# def setProgram(index, time, sensor, temp, fanon ):
-#     global program
-#     ind = int(index) 
-#     #for x in range(0, (program.__len__())):
-#         #printProram(program[x])
-#     
-#     if(ind == (program.__len__())):    # new entry
-#         program.append(ProgramDataClass(datetime.datetime.strptime(time, '%H:%M'), int(sensor), float(temp), int(fanon)))
-# #        print("added new") 
-#     else:        
-#         program[ind].TimeActiveFrom = datetime.datetime.strptime(time, '%H:%M')
-#         program[ind].MasterTempSensor = int(sensor)
-#         program[ind].TempSetPointHeat    = float(temp) 
-#         program[ind].fanon = int(fanon)
-#    
-#     program.sort(key = lambda x: x.TimeActiveFrom)
-#     
-#     WriteProgramToFile()
-#     
-    
-
-
-
 #@webiopi.macro
 def temp_change(amount, length):
     global CurrentState        
@@ -535,17 +485,6 @@ def fan_change(length):
     CurrentState.fanORlength = int(length)
     CurrentState.fanORactive = True    
 
-#@webiopi.macro
-#def getMode():
-#    if(CurrentState.mode == 0):
-#        return "OFF"
-#    elif(CurrentState.mode == 1):
-#        return "HEAT"
-#    elif(CurrentState.mode == 2):
-#        return "COOL"
- #   else:
- #       return "Error"
-
 
 
 
@@ -558,13 +497,6 @@ def setMode():
     f.write(str(CurrentState.mode))
     f.close()
 
-#@webiopi.macro
-
-#def clearOverride():
-#    CurrentState.tempORactive = False
-#    CurrentState.fanORactive = False
-#    my_logger.info("Override cleared")
-  
 
 
 
@@ -587,6 +519,38 @@ def tail(f, n, offset=0):
 
     
     
+def loadProgramFromFileWhole():    
+    whole = []
+    for i in range(0, 7):
+            whole = whole + readOneDayProgram(i)
+    
+    return whole
+    
+
+
+
+def readOneDayProgram(day):    
+    whole = []
+    DAYSS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    ThermostatProgramFile = Tparams.ProgramsFolder + "{}.csv".format(DAYSS[day])
+    f = open(ThermostatProgramFile , 'r')
+    linein = f.readline()
+    for line in f:        
+        parts = line.split(",")        
+        timebits = parts[0].split(':')
+        
+        week_start = datetime.date.today() - datetime.timedelta(days=datetime.date.weekday(datetime.date.today()))
+        prg_day = week_start  + datetime.timedelta(days=day)  # 0 for monday, 1 for tuesday, and so on
+        prgtime = datetime.datetime.combine(prg_day, datetime.time(int(timebits[0]), int(timebits[1])))
+                
+        #dict([('title' : parts[1]), ('start' : prgtime)])
+        whole.append({'title' : parts[1], 'start' : prgtime})
+        #program.append(ProgramDataClass(prgtime, parts[1], float(parts[2]), float(parts[3]), int(parts[4]), now.strftime('%A')))
+               
+    f.close()
+    return whole
+
+
 
 if __name__ == "__main__":
     setup()
