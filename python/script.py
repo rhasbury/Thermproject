@@ -532,6 +532,7 @@ def loadProgramFromFileWhole():
 def readOneDayProgram(day):    
     whole = []
     DAYSS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    
     ThermostatProgramFile = Tparams.ProgramsFolder + "{}.csv".format(DAYSS[day])
     f = open(ThermostatProgramFile , 'r')
     linein = f.readline()
@@ -543,8 +544,10 @@ def readOneDayProgram(day):
         prg_day = week_start  + datetime.timedelta(days=day)  # 0 for monday, 1 for tuesday, and so on
         prgtime = datetime.datetime.combine(prg_day, datetime.time(int(timebits[0]), int(timebits[1])))
                 
-        #dict([('title' : parts[1]), ('start' : prgtime)])
-        whole.append({'title' : parts[1], 'start' : prgtime})
+        title = "{} {}  {}".format(parts[1], parts[2], parts[3])
+        description = "{} Heat: {}  Cool: {}".format(parts[1], parts[2], parts[3])
+        
+        whole.append({'title' : title, 'start' : prgtime, 'description' : description })
         #program.append(ProgramDataClass(prgtime, parts[1], float(parts[2]), float(parts[3]), int(parts[4]), now.strftime('%A')))
                
     f.close()
