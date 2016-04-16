@@ -187,11 +187,15 @@ def loop():
         
         if(CurrentState.fanORactive == True):            
             if(CurrentState.fanState != CurrentState.fanORstate):
-                logControlLineDB(DBparams, my_logger, 'fan', CurrentState.fanORstate)
+                runningtime = datetime.datetime.utcnow() - CurrentState.fanlastchange 
+                CurrentState.fanlastchange = datetime.datetime.utcnow()
+                logControlLineDB(DBparams, my_logger, 'fan', CurrentState.fanORstate, runningtime.seconds)
             CurrentState.fanState = CurrentState.fanORstate
         else:
             if(CurrentState.fanState != CurrentState.CurrentProgram.fanon):
-                logControlLineDB(DBparams, my_logger, 'fan', CurrentState.CurrentProgram.fanon)
+                runningtime = datetime.datetime.utcnow() - CurrentState.fanlastchange 
+                CurrentState.fanlastchange = datetime.datetime.utcnow()
+                logControlLineDB(DBparams, my_logger, 'fan', CurrentState.CurrentProgram.fanon, runningtime.seconds)
             CurrentState.fanState = CurrentState.CurrentProgram.fanon    
         
         
@@ -217,12 +221,16 @@ def loop():
                 if((CurrentState.tset - 0.5)  > celsius):
                    GPIO.digitalWrite(Tparams.HEATER, GPIO.LOW)
                    if(CurrentState.heaterstate == 0): 
-                       logControlLineDB(DBparams, my_logger, 'heater', 1)
+                       runningtime = datetime.datetime.utcnow() - CurrentState.heatlastchange 
+                       CurrentState.heatlastchange = datetime.datetime.utcnow()
+                       logControlLineDB(DBparams, my_logger, 'heater', 1, runningtime.seconds)                       
                    CurrentState.heaterstate = 1                       
                 elif((CurrentState.tset + 0.5) < celsius):
                    GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
                    if(CurrentState.heaterstate == 1):
-                       logControlLineDB(DBparams, my_logger, 'heater', 0)
+                       runningtime = datetime.datetime.utcnow() - CurrentState.heatlastchange 
+                       CurrentState.heatlastchange = datetime.datetime.utcnow()
+                       logControlLineDB(DBparams, my_logger, 'heater', 0, runningtime.seconds)
                    CurrentState.heaterstate = 0
             elif(CurrentState.mode == 2 and celsius != 0):
                 GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
@@ -230,12 +238,16 @@ def loop():
                 if((CurrentState.tset - 0.5) > celsius):
                    GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
                    if(CurrentState.acstate == 1): 
-                       logControlLineDB(DBparams, my_logger, 'ac', 0)
+                       runningtime = datetime.datetime.utcnow() - CurrentState.coollastchange 
+                       CurrentState.coollastchange = datetime.datetime.utcnow()
+                       logControlLineDB(DBparams, my_logger, 'ac', 0, runningtime.seconds)
                    CurrentState.acstate = 0                   
                 elif((CurrentState.tset + 0.5) < celsius):
                    GPIO.digitalWrite(Tparams.AC, GPIO.LOW)
                    if(CurrentState.acstate == 0): 
-                       logControlLineDB(DBparams, my_logger, 'ac', 1)
+                       runningtime = datetime.datetime.utcnow() - CurrentState.coollastchange 
+                       CurrentState.coollastchange = datetime.datetime.utcnow()
+                       logControlLineDB(DBparams, my_logger, 'ac', 1, runningtime.seconds)
                    CurrentState.acstate = 1
             else:
                 GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)

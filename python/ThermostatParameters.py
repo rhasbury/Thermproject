@@ -38,6 +38,9 @@ class ThermostatState:
         self.overrideexp = 0 
         self.hddspace = 0         
         self.sensorTemp = 0
+        self.heatlastchange = datetime.datetime.utcnow() 
+        self.coollastchange = datetime.datetime.utcnow()
+        self.fanlastchange = datetime.datetime.utcnow()  
     
     def to_JSON(self):
         date_handler = lambda obj: (

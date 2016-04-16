@@ -36,7 +36,7 @@ def logHumlineDB(DBparams, my_logger, location, humidity):
         my_logger.debug("logHumlineDB() exception thrown", exc_info=True)
         
         
-def logControlLineDB(DBparams, my_logger, equipment, state):    
+def logControlLineDB(DBparams, my_logger, equipment, state, runtime):    
     try:
         connection = pymysql.connect(host=DBparams.host, user=DBparams.dbuser, passwd=DBparams.dbpassword, db=DBparams.db, charset=DBparams.charset, cursorclass=pymysql.cursors.DictCursor)
         with connection.cursor() as cursor:
@@ -45,13 +45,13 @@ def logControlLineDB(DBparams, my_logger, equipment, state):
             
             if(row != None):                
                 tdelta = datetime.datetime.now() - row['tdate']
-                sqlquery = "INSERT INTO " + DBparams.controltable + " values(NOW(), '{}', {}, 0, {})".format(equipment, bool(state),  tdelta.total_seconds() )
+                sqlquery = "INSERT INTO " + DBparams.controltable + " values(NOW(), '{}', {}, 0, {}, [])".format(equipment, bool(state),  tdelta.total_seconds(), runtime )
                  
                 #my_logger.debug(sqlquery)
                 cursor.execute (sqlquery) 
                     
             else:
-                 cursor.execute ("INSERT INTO " + DBparams.controltable + " values(NOW(), {}, {}, 0, 0)".format(equipment, bool(state)))
+                 cursor.execute ("INSERT INTO " + DBparams.controltable + " values(NOW(), {}, {}, 0, 0, [])".format(equipment, bool(state), runtime))
         connection.commit()
         connection.close()
     except:
@@ -82,7 +82,7 @@ def CheckDatabase(DBparams, my_logger):
             result = cursor.execute ("SHOW TABLES LIKE '" + DBparams.controltable + "'")       
             if(result == 0):
                 my_logger.info("Control table '%s' not found in database, creating it.".format(DBparams.controltable))
-                cursor.execute ("CREATE TABLE " + DBparams.controltable + " (tdate DATETIME, equipment TEXT, state BOOLEAN, dtime TIME);")
+                cursor.execute ("CREATE TABLE " + DBparams.controltable + " (tdate DATETIME, equipment TEXT, state BOOLEAN, dtime TIME, rtime NUMERIC);")
     
         
         connection.close()
