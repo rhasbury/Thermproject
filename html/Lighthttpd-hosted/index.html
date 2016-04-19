@@ -167,7 +167,16 @@
 <!-- 				<td><button id="bt_sensorid" class="SEN"/></td>
 				<td><button id="bt_tempDisplay"/></td> -->
 				<td></td>
-				<td align="center"><button id="bt_mode" class="button black bigrounded" onclick="Change_mode()" /> MODE </td>
+				<td align="center"><button id="bt_mode" class="button black bigrounded" /> MODE </td>
+				<td align="center">
+					<select onchange="Change_mode()" id="sel_mode">
+					  <option value="0">OFF</option>
+					  <option value="1">HEAT</option>
+					  <option value="2">COOL</option>					  
+					</select>
+				
+				</td>
+				
 				<td></td>
 		</tr>
 		<tr/>		
@@ -214,10 +223,17 @@
 
 		<br>	
 			<div align="center">
-		<iframe src="graph_frame.html" width="700" height="2400" frameBorder="0" align="center"> 
+			<a href="graph_frame.html">Data History</a>
+		<!-- <iframe src="graph_frame.html" width="700" height="2400" frameBorder="0" align="center"> 		
 			<p>Your browser does not support iframes.</p>
-		</iframe>
+		</iframe> -->
+		
+		<br>
+		<br>
+		<a href="programming.html">Program Calendar</a>
+		
 		</div>
+		
 		
 		
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
@@ -525,14 +541,17 @@
 			
 			if(Tstate.mode == 1){
 			 $("#bt_mode").text("HEAT");
+			 //$("#sel_mode").val("1");			 
 			 $("#temp_setpoint").text(Tstate.tset);
 			}
 			else if(Tstate.mode == 2) {
 			$("#bt_mode").text("COOL");			
+			//$("#sel_mode").val("2");
 			$("#temp_setpoint").text(Tstate.tset);
 			}			
 			else {
 			$("#bt_mode").text("OFF");
+			//$("#sel_mode").val("0");
 			$("#temp_setpoint").text("----");			
 			};
 			
@@ -628,9 +647,18 @@
 			oReq.onload = function() {				
 				result = this.responseText;
 				}
-		
-			oReq.open("GET", "thermostat_interface.php?command=change_mode", true);
-			
+	
+			alert($("#sel_mode").val());
+			if($( "#sel_mode" ).val() == "1"){			
+				oReq.open("GET", "thermostat_interface.php?command=change_mode_heat", true);
+				}
+			else if($( "#sel_mode" ).val() == "2"){			
+				oReq.open("GET", "thermostat_interface.php?command=change_mode_cool", true);
+				}
+			else{			
+				oReq.open("GET", "thermostat_interface.php?command=change_mode_off", true);
+				}
+				
 			oReq.send();	
 		}
 

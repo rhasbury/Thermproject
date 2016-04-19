@@ -11,7 +11,7 @@
 	$date = $_GET['date'];
 	$equipment = $_GET['equipment'];
 
-	$myquery = "SELECT SUM(tdelta) as 'tdelta' FROM controldat WHERE state is false AND equipment LIKE  '" . $equipment . "'  AND DAY(tdate) = DAY('" . $date . "')";
+	$myquery = "SELECT SUM(rtime) as 'tdelta' FROM controldat WHERE state is false AND equipment LIKE  '" . $equipment . "'  AND DAY(tdate) = DAY('" . $date . "')";
  
 	error_log($myquery , 0);
     $query = mysql_query($myquery);

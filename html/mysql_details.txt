@@ -1,6 +1,18 @@
 root password is blank
 Thermostat user is "monitor" password is "password"
 
+mysql> CREATE DATABASE temps
+mysql> USE temps
+
+mysql> CREATE USER 'monitor'@'localhost' IDENTIFIED BY 'password';
+mysql> GRANT ALL PRIVILEGES ON temps.* TO 'monitor'@'localhost'
+mysql> FLUSH PRIVILEGES;
+mysql> quit
+
+
+
+
+
 CREATE TABLE tempdat (tdate DATETIME, ttime TIME, zone TEXT, temperature NUMERIC(10,5), extra TEXT);
 
 CREATE TABLE pressdat (tdate DATETIME, zone TEXT, pressure NUMERIC(10,5));

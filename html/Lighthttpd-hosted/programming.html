@@ -63,23 +63,12 @@
 		}
 		
 		function get_program(){
-			
-			var map = {
-				TimeActiveFrom : "start",
-				TempSetPointHeat : "title",
-				};
+	
 			
 			var oReq = new XMLHttpRequest(); //New request object
 			oReq.onload = function() {				
 				program = JSON.parse(this.responseText)
-				alert(JSON.stringify(program));
-				/*
-				_.each(program, function(value, key) {
-					key = map[key]; // || key;
-					cal_events[key] = value;					
-				});
-				alert(JSON.stringify(cal_events));
-				*/
+				//alert(JSON.stringify(program));
 				}
 						
 			oReq.open("GET", "thermostat_interface.php?command=get_program", true);
