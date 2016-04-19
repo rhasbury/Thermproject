@@ -45,13 +45,13 @@ def logControlLineDB(DBparams, my_logger, equipment, state, runtime):
             
             if(row != None):                
                 tdelta = datetime.datetime.now() - row['tdate']
-                sqlquery = "INSERT INTO " + DBparams.controltable + " values(NOW(), '{}', {}, 0, {}, [])".format(equipment, bool(state),  tdelta.total_seconds(), runtime )
+                sqlquery = "INSERT INTO " + DBparams.controltable + " values(NOW(), '{}', {}, {}, {})".format(equipment, bool(state),  tdelta.total_seconds(), runtime )
                  
                 #my_logger.debug(sqlquery)
                 cursor.execute (sqlquery) 
                     
             else:
-                 cursor.execute ("INSERT INTO " + DBparams.controltable + " values(NOW(), {}, {}, 0, 0, [])".format(equipment, bool(state), runtime))
+                 cursor.execute ("INSERT INTO " + DBparams.controltable + " values(NOW(), '{}', {}, 0, {})".format(equipment, bool(state), runtime))
         connection.commit()
         connection.close()
     except:
@@ -66,22 +66,22 @@ def CheckDatabase(DBparams, my_logger):
         with connection.cursor() as cursor:        
             result = cursor.execute ("SHOW TABLES LIKE '" + DBparams.temptable + "'")       
             if(result == 0):
-                my_logger.info("Temperature table '%s' not found in database, creating it.".format(DBparams.temptable))
+                my_logger.info("Temperature table '{}' not found in database, creating it.".format(DBparams.temptable))
                 cursor.execute ("CREATE TABLE " + DBparams.temptable + " (tdate DATETIME, zone TEXT, temperature NUMERIC(10,5));")
             
             result = cursor.execute ("SHOW TABLES LIKE '" + DBparams.presstable + "'")       
             if(result == 0):
-                my_logger.info("Pressure table '%s' not found in database, creating it.".format(DBparams.presstable))
+                my_logger.info("Pressure table '{}' not found in database, creating it.".format(DBparams.presstable))
                 cursor.execute ("CREATE TABLE " + DBparams.presstable + " (tdate DATETIME, zone TEXT, pressure NUMERIC(10,5));")                            
             
             result = cursor.execute ("SHOW TABLES LIKE '" + DBparams.humiditytable + "'")       
             if(result == 0):
-                my_logger.info("Humidity table '%s' not found in database, creating it.".format(DBparams.humiditytable))
+                my_logger.info("Humidity table '{}' not found in database, creating it.".format(DBparams.humiditytable))
                 cursor.execute ("CREATE TABLE " + DBparams.humiditytable + " (tdate DATETIME, zone TEXT, humidity NUMERIC(10,5));")
             
             result = cursor.execute ("SHOW TABLES LIKE '" + DBparams.controltable + "'")       
             if(result == 0):
-                my_logger.info("Control table '%s' not found in database, creating it.".format(DBparams.controltable))
+                my_logger.info("Control table '{}' not found in database, creating it.".format(DBparams.controltable))
                 cursor.execute ("CREATE TABLE " + DBparams.controltable + " (tdate DATETIME, equipment TEXT, state BOOLEAN, dtime TIME, rtime NUMERIC);")
     
         

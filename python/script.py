@@ -73,8 +73,12 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             temp_change(1, 30)
         elif("temp_down" in self.data.decode("utf-8")):
             temp_change(-1, 30)            
-        elif("change_mode" in self.data.decode("utf-8")):
-            setMode()
+        elif("change_mode_off" in self.data.decode("utf-8")):                        
+            setMode(0)
+        elif("change_mode_heat" in self.data.decode("utf-8")):
+            setMode(1)
+        elif("change_mode_cool" in self.data.decode("utf-8")):
+            setMode(2)
         elif("fan_change" in self.data.decode("utf-8")):
             fan_change(5)
         elif("get_program" in self.data.decode("utf-8")):
@@ -82,7 +86,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             #json_string = json.dumps([ob.__dict__ for ob in program], default=date_handler)
             whole = loadProgramFromFileWhole()
             json_string = json.dumps(whole, default=date_handler)
-            print(json_string)
+            #print(json_string)
             self.request.sendall(bytes(json_string, 'UTF-8'))
 
 
@@ -502,9 +506,11 @@ def fan_change(length):
 
 
 #@webiopi.macro
-def setMode():    
+def setMode(mode):    
     global CurrentState
-    CurrentState.mode = (CurrentState.mode + 1) % 3
+    #CurrentState.mode = (CurrentState.mode + 1) % 3
+    if(0 <= mode <= 2):
+        CurrentState.mode = mode    
     f = open(Tparams.ThermostatStateFile, 'w') 
     f.write(str(CurrentState.mode))
     f.close()
