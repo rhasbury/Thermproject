@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<style>
+body {
+    font: 10px sans-serif;
+}
+.bar {
+    shape-rendering: crispEdges;
+}
+.axis path,
+.axis line {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+}
+</style>
+
+</html>
+
+<body>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script>
+    var margin = {
+            top: 10,
+            right: 30,
+            bottom: 30,
+            left: 50
+        },
+        width = 960 - margin.left - margin.right,
+        height = 500 - margin.top - margin.bottom;
+
+    var parseDate = d3.time.format("%Y-%m-%d %H:%M:%S").parse;
+    var formatDate = d3.time.format("%m/%y");
+    var formatCount = d3.format(",.0f");
+
+    var x = d3.time.scale().range([0, width]);
+    var y = d3.scale.linear().range([height, 0]);
+    var color = d3.scale.category10();
+
+    var xAxis = d3.svg.axis().scale(x)
+        .orient("bottom").tickFormat(formatDate);
+
+    var yAxis = d3.svg.axis().scale(y)
+        .orient("left").ticks(12);
+
+    var stack = d3.layout.stack()
+        .values(function(d) {
+            return d.values;
+        });
+
+    // Create the SVG drawing area
+    var svg = d3.select("body")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    // Get the data
+   d3.json("runtimel_data_pull.php", function(error, data) {
+
+        // Crazy loop to duplicate instanaces based on rtime, as the histogram only counts objects and not my seconds element. 
+		extradata = [];
+		for ( var i = 0, len = data.length; i <= len ; i++){									
+				if(typeof data[i] != 'undefined'){						
+						for ( var k = 0, len = data[i].rtime -1; k < len ; k++){
+							extradata.push(data[i]);
+						}									
+				}
+		}
+		data.push.apply(data, extradata);
+	
+		
+		
+		// Parse the date strings into javascript dates
+        data.forEach(function(d) {
+            d.created_date = parseDate(d["tdate"]);
+        });
+
+        // Determine the first and list dates in the data set
+        var dayExtent = d3.extent(data, function(d) {
+            return d.created_date;
+        });
+
+        // Create one bin per month, use an offset to include the first and last months
+        var dayBins = d3.time.days(d3.time.day.offset(dayExtent[0], -1),
+            d3.time.day.offset(dayExtent[1], 1));
+
+        // Use the histogram layout to create a function that will bin the data
+        var binByMonth = d3.layout.histogram()
+            .value(function(d) {
+                return d.created_date;
+            })
+            .bins(dayBins);
+
+        // Use D3's nest function to group the data by equipment
+        var dataGroupedByequipment = d3.nest()
+            .key(function(d) {
+                return d["equipment"]
+            })
+            .map(data, d3.map);
+
+        // Apply the histogram binning function to the data and convert from
+        // a map to an array so that the stack layout can consume it
+        var histDataByequipment = [];
+        dataGroupedByequipment.forEach(function(key, value) {
+            // Bin the data for each equipment by month
+            var histData = binByMonth(value);
+            histDataByequipment.push({
+                equipment: key,
+                values: histData
+            });
+        });
+
+        var stackedHistData = stack(histDataByequipment);
+
+        // Scale the range of the data by setting the domain
+        x.domain(d3.extent(dayBins));
+        y.domain([0, d3.max(stackedHistData[stackedHistData.length - 1].values, function(d) {
+            return d.y + d.y0;
+        })]);
+
+        // Set up one group for each equipment
+        // Note that color doesn't have a domain set, so colors are assigned to equipments
+        // below on a first come, first serve basis
+        var equipment = svg.selectAll(".equipment")
+            .data(stackedHistData)
+          .enter().append("g")
+            .attr("class", "equipment")
+            .style("fill", function(d, i) {
+                return color(d.equipment);
+            })
+            .style("stroke", function(d, i) {
+                return d3.rgb(color(d.equipment)).darker();
+            });
+
+        // Months have slightly different lengths so calculate the width for each bin
+        // Draw the rectangles, starting from the upper left corner and going down
+        equipment.selectAll(".bar")
+            .data(function(d) {
+                return d.values;
+            })
+          .enter().append("rect")
+            .attr("class", "bar")
+            .attr("x", function(d) {
+                return x(d.x);
+            })
+            .attr("width", function(d) {
+                return x(new Date(d.x.getTime() + d.dx)) - x(d.x) - 2;
+            })
+            .attr("y", function(d) {
+                return y(d.y0 + d.y);
+            })
+            .attr("height", function(d) {
+                return y(d.y0) - y(d.y0 + d.y);
+            });
+
+        // Add the X Axis
+        svg.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + height + ")")
+            .call(xAxis);
+
+        // Add the Y Axis and label
+        svg.append("g")
+            .attr("class", "y axis")
+            .call(yAxis)
+            .append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 6)
+            .attr("dy", ".71em")
+            .style("text-anchor", "end")
+            .text("Seconds of runtime");
+
+        // Add the legend and center it horizontally
+        var maxLegendWidth = 110;
+        var xStart = (width - maxLegendWidth * color.domain().length) / 2;
+        var legend = svg.selectAll(".legend")
+            .data(color.domain().slice())
+          .enter().append("g")
+            .attr("class", "legend")
+            .attr("transform", function(d, i) {
+                return "translate(" + i * maxLegendWidth + ",0)";
+            });
+
+        legend.append("rect")
+            .attr("x", xStart)
+            .attr("width", 18)
+            .attr("height", 18)
+            .style("fill", color);
+
+        legend.append("text")
+            .attr("x", xStart + 24)
+            .attr("y", 9)
+            .attr("dy", ".35em")
+            .style("text-anchor", "start")
+            .text(function(d) {
+                return d;
+            });
+
+    });
+    </script>
+</body>
