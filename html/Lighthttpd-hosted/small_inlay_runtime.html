@@ -31,7 +31,7 @@ body {
         height = 500 - margin.top - margin.bottom;
 
     var parseDate = d3.time.format("%Y-%m-%d %H:%M:%S").parse;
-    var formatDate = d3.time.format("%m/%y");
+    var formatDate = d3.time.format("%d/%m");
     var formatCount = d3.format(",.0f");
 
     var x = d3.time.scale().range([0, width]);
