@@ -58,7 +58,7 @@ body {
         .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
     // Get the data
-   d3.json("runtimel_data_pull.php", function(error, data) {
+   d3.json("runtime_data_pull.php", function(error, data) {
 
         // Crazy loop to duplicate instanaces based on rtime, as the histogram only counts objects and not my seconds element. 
 		extradata = [];

@@ -7,23 +7,16 @@
     $server = mysql_connect($host, $username, $password);
     $connection = mysql_select_db($database, $server);
 
-//    $myquery = "
-//SELECT  `date`, `close` FROM  `data2`
-//";
 
-//$date = '2015-05-12';
-
-//    $myquery = "
-//SELECT  UNIX_TIMESTAMP(`tdate`) AS 'fix_time', 'zone', 'temperature'  FROM  `tempdat` WHERE tdate LIKE " . "'" . $date . "%'" . " ORDER by tdate DESC LIMIT 6000
-//";
-
-// Order by was killing my temps database for some reason. Removed. 
-
-    $myquery = "
-SELECT  UNIX_TIMESTAMP(`tdate`) AS 'fix_time', zone, pressure  FROM  pressdat ORDER by tdate DESC LIMIT 4000
-";
-
-
+	if(isset($_GET["equipment"])){
+		$equipment = $_GET['equipment'];
+		$myquery = "SELECT tdate, rtime FROM controldat WHERE state is false AND equipment LIKE  '" . $equipment . "'  ORDER by tdate DESC LIMIT 3000";
+	}
+	else {
+		$myquery = "SELECT tdate, rtime, equipment FROM controldat WHERE state is false ORDER by tdate DESC LIMIT 300";
+	}
+	
+	
 	error_log($myquery , 0);
     $query = mysql_query($myquery);
     
