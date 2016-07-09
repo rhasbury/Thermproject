@@ -168,18 +168,24 @@
 				<td><button id="bt_tempDisplay"/></td> -->
 				<td></td>
 				<td align="center"><button id="bt_mode" class="button black bigrounded" /> MODE </td>
-				<td align="center">
+			<!--	<td align="center">
 					<select onchange="Change_mode()" id="sel_mode">
 					  <option value="0">OFF</option>
 					  <option value="1">HEAT</option>
 					  <option value="2">COOL</option>					  
 					</select>
 				
-				</td>
-				
+				</td>								-->
+				<td></td>
 				<td></td>
 		</tr>
-		<tr/>		
+		<tr>
+			
+			<td align="center"> <input type="radio" name="mode" onclick="Change_mode_radio(0)" value="Off">Off<br> </td>
+			<td align="center"> <input type="radio" name="mode" onclick="Change_mode_radio(1)" value="Heat">Heat<br> </td>
+			<td align="center"> <input type="radio" name="mode" onclick="Change_mode_radio(2)" value="Cool">Cool<br> </td>			
+			
+		</tr>	
 		<tr>								
 				<td align="center"><button id="temp_up" class="button red bigrounded" onclick="Temp_up()" >UP</button></td>
 				<td align="center"><button id="temp_setpoint" class="button orange bigrounded"/>00.00</td>
@@ -662,6 +668,27 @@
 			oReq.send();	
 		}
 
+		function Change_mode_radio(mode){
+			var oReq = new XMLHttpRequest(); //New request object
+			oReq.onload = function() {				
+				result = this.responseText;
+				}
+	
+			
+			if(mode == 1){			
+				oReq.open("GET", "thermostat_interface.php?command=change_mode_heat", true);
+				}
+			else if(mode == 2){			
+				oReq.open("GET", "thermostat_interface.php?command=change_mode_cool", true);
+				}
+			else{			
+				oReq.open("GET", "thermostat_interface.php?command=change_mode_off", true);
+				}
+				
+			oReq.send();	
+		}
+		
+		
 		function Fan_change(){
 			var oReq = new XMLHttpRequest(); //New request object
 			oReq.onload = function() {				
