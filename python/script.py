@@ -48,16 +48,19 @@ TempUpdateThread = None
 # setup function is automatically called at WebIOPi startup
 
 class MyTCPHandler(socketserver.BaseRequestHandler):
+    
+    #def obj_dict(obj):
+    #    return obj.__dict__
 
    #The RequestHandler class for data requests from the web interface or any remote applications.   
 
     def handle(self):        
         date_handler = lambda obj: (
-                        obj.isoformat()
-                        if isinstance(obj, datetime.datetime)
-                        or isinstance(obj, datetime.date)
-                        else obj.__dict__            
-                        )
+            obj.isoformat()
+            if isinstance(obj, datetime.datetime)
+            or isinstance(obj, datetime.date)
+            else obj.__dict__            
+        )
         # self.request is the TCP socket connected to the client
         self.data = self.request.recv(1024).strip()        
         if("get_tparams" in self.data.decode("utf-8")):
