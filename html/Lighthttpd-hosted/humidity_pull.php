@@ -9,7 +9,7 @@
 
 
     $myquery = "
-SELECT  UNIX_TIMESTAMP(`tdate`) AS 'fix_time', zone, humidity  FROM  humdat ORDER by tdate DESC LIMIT 3000
+SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', humidity AS 'y', zone FROM  humdat ORDER by tdate DESC LIMIT 3000
 ";
 
 

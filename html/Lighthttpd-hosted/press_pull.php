@@ -20,7 +20,7 @@
 // Order by was killing my temps database for some reason. Removed. 
 
     $myquery = "
-SELECT  UNIX_TIMESTAMP(`tdate`) AS 'fix_time', zone, pressure  FROM  pressdat WHERE zone LIKE 'Living Room' ORDER by tdate DESC LIMIT 4000
+SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', pressure AS 'y', zone FROM  pressdat WHERE zone LIKE 'Living Room' ORDER by tdate DESC LIMIT 4000
 ";
 
 

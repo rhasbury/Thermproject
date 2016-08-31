@@ -14,13 +14,13 @@
 $date = '2015-05-12';
 
 //    $myquery = "
-//SELECT  UNIX_TIMESTAMP(`tdate`) AS 'fix_time', 'zone', 'temperature'  FROM  `tempdat` WHERE tdate LIKE " . "'" . $date . "%'" . " ORDER by tdate DESC LIMIT 3000
+//SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', 'zone', 'temperature'  FROM  `tempdat` WHERE tdate LIKE " . "'" . $date . "%'" . " ORDER by tdate DESC LIMIT 3000
 //";
 
 // Order by was killing my temps database for some reason. Removed. 
 
     $myquery = "
-SELECT  UNIX_TIMESTAMP(`tdate`) AS 'fix_time', type, gasreading  FROM gasdat ORDER by tdate DESC LIMIT 3000
+SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', gasreading AS 'y', type AS 'zone' FROM gasdat ORDER by tdate DESC LIMIT 3000
 ";
 
 
