@@ -1,0 +1,59 @@
+
+
+{ "Bedroom" : { 
+		"ip" : "192.168.1.117", "type" : "bmp", "webiopiname" : "bmp0", "program" : {
+				"weekday" : [
+				{"time" : "00:00", "cool" : 0 , "heat" : 0, "fan" : 10 },
+				{"time" : "01:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "02:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "03:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "04:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "05:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "06:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "07:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "08:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "09:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "10:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "11:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "12:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "13:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "14:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "15:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "16:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "17:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "18:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "19:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "20:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "21:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "22:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "23:00", "cool" : 0 , "heat" : 0, "fan" : 0 }				
+				],
+				"weekend" : [
+				{"time" : "00:00", "cool" : 0 , "heat" : 0, "fan" : 10 },
+				{"time" : "01:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "02:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "03:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "04:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "05:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "06:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "07:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "08:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "09:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "10:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "11:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "12:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "13:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "14:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "15:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "16:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "17:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "18:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "19:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "20:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "21:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "22:00", "cool" : 0 , "heat" : 0, "fan" : 0 },
+				{"time" : "23:00", "cool" : 0 , "heat" : 0, "fan" : 0 }				
+				]
+
+				
+			

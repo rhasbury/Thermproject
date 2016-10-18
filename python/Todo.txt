@@ -11,3 +11,15 @@
 + Create new http interface. 
 + Make adding temperature sensors configurable and display on http scaleable 
 - Openelec plugin?  
+
+
+Core
+- Change programs to include temperature ranges for each sensor. 
+- Add ability to have vacation mode. Or holiday mode (eg holiday monday, don't care about basement temp)
+- If temp differential between two locations is greater than X degrees, activate fan for a time. 
+
+UI
+- Simplify main screen for easy adjustments. 
+	(What location? too cold/hot?)
+- Create frame for detailed current state
+
