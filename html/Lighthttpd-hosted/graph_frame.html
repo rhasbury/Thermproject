@@ -30,7 +30,7 @@
 
 		<table border="1" style="width:30%" align="center" >
 		<tr>	
-				<th colspan="6">Daily Runtime Totals (Minutes)</th>
+				<th colspan="6">Today's Runtime Totals (Minutes)</th>
 		</tr>
 		<tr>	
 				<td> AC  : </td><td><input type="text" id="ac_runtime" /></td>
@@ -38,6 +38,17 @@
 				<td> Fan  : </td><td><input type="text" id="fan_runtime" /></td>
 		</tr>
     	</table>
+		<table border="1" style="width:30%" align="center" >
+		<tr>	
+				<th colspan="6">Yesterdays's Runtime Totals (Minutes)</th>
+		</tr>
+		<tr>	
+				<td> AC  : </td><td><input type="text" id="ac_runtime_y" /></td>
+				<td> Heater : </td><td><input type="text" id="heat_runtime_y" /></td>
+				<td> Fan  : </td><td><input type="text" id="fan_runtime_y" /></td>
+		</tr>
+    	</table>
+
 		
 		
 </body>
@@ -97,9 +108,67 @@
 		}
 	
 	
+		function display_fan_runtime_y(){
+			
+			var oReq = new XMLHttpRequest(); //New request object
+			oReq.onload = function() {				
+				reply = JSON.parse(this.responseText);								
+				
+				$("#fan_runtime_y").val((reply[0].tdelta/60).toFixed(1));
+				}
+			
+			date = new Date();
+			date.setDate(date.getDate() - 1);
+			datestring = date.getFullYear().toString() + "-" + (date.getMonth()+1).toString() + "-" + date.getDate().toString();			
+			oReq.open("GET", "control_data_pull.php?date="+datestring+"&equipment=fan", true);
+			oReq.send();
+
+	
+		}
+	
+		function display_heater_runtime_y(){
+			
+			var oReq = new XMLHttpRequest(); //New request object
+			oReq.onload = function() {				
+				reply = JSON.parse(this.responseText);								
+				
+				$("#heat_runtime_y").val((reply[0].tdelta/60).toFixed(1));
+				}
+		
+			date = new Date();
+			date.setDate(date.getDate() - 1);
+			datestring = date.getFullYear().toString() + "-" + (date.getMonth()+1).toString() + "-" + date.getDate().toString();
+			oReq.open("GET", "control_data_pull.php?date="+datestring+"&equipment=heater", true);
+			oReq.send();
+
+	
+		}
+		
+		function display_ac_runtime_y(){
+			
+			var oReq = new XMLHttpRequest(); //New request object
+			oReq.onload = function() {				
+				reply = JSON.parse(this.responseText);								
+				
+				$("#ac_runtime_y").val((reply[0].tdelta/60).toFixed(1) );
+				}
+			
+			date = new Date();
+			date.setDate(date.getDate() - 1);
+			datestring = date.getFullYear().toString() + "-" + (date.getMonth()+1).toString() + "-" + date.getDate().toString();
+			oReq.open("GET", "control_data_pull.php?date="+datestring+"&equipment=ac", true);
+			oReq.send();
+
+	
+		}
+	
+	
 	display_fan_runtime();
 	display_heater_runtime();
 	display_ac_runtime();
+	display_fan_runtime_y();
+	display_heater_runtime_y();
+	display_ac_runtime_y();
 
 	
 	
