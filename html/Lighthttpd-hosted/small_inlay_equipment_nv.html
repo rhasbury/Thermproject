@@ -22,7 +22,72 @@ AC
 <script src="src/d3.min.js"></script>
 <script src="src/nv.d3.min.js"></script>
 <script src="src/stream_layers.js"></script>
--
+<script type='text/javascript'>
+
+	
+d3.json("control_data_hist.php?equipment=heater", function(error, data) {	
+	
+	
+	
+	data.forEach(function(d) {		
+		d.x = new Date(+d.x*1000);
+		//d.x = +d.x;
+		d.y = +d.y;
+
+		}); 
+	
+	var dataGroup = d3.nest()
+		.key(function(d) {
+			return d.zone;
+		})
+    	.entries(data);
+	
+	//console.log(dataGroup);
+	
+	
+	nv.addGraph(function() {
+	    var chart = nv.models.discreteBarChart()
+		  .x(function(d) { return d.x })    //Specify the data accessors.
+		  .y(function(d) { return d.y })
+		  .staggerLabels(true)    //Too many bars and not enough room? Try staggering labels.
+		  .tooltips(true)        //Don't show tooltips
+		  .showValues(false)       //...instead, show the bar value right on top of each bar.		  
+		  ;
+
+	  chart.xAxis
+		  .tickFormat(function(d) {
+            return d3.time.format('%b-%d')(new Date(d))
+          });
+
+/*
+	  chart.x2Axis
+		  .tickFormat(function(d) {
+            return d3.time.format('%a-%d')(new Date(d))
+          });
+*/
+		
+	  chart.yAxis
+		  .tickFormat(d3.format(',.2f'));
+
+/*
+	  chart.y2Axis
+		  .tickFormat(d3.format(',.2f'));
+*/
+
+	  d3.select('#chart_heater svg')
+		  .datum(dataGroup)
+		  .transition().duration(500)
+		  .call(chart);
+
+	  nv.utils.windowResize(chart.update);
+
+	  return chart;
+	});
+	
+	
+});
+
+</script>
 <script type='text/javascript'>
 
 	
