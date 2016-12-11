@@ -16,7 +16,7 @@
 <script type='text/javascript'>
 
 	
-d3.json("press_pull.php", function(error, data) {	
+d3.json("general_pull.php?type=press", function(error, data) {	
 	
 	
 	
@@ -41,12 +41,12 @@ d3.json("press_pull.php", function(error, data) {
 
 	  chart.xAxis
 		  .tickFormat(function(d) {
-            return d3.time.format('%a-%d')(new Date(d))
+            return d3.time.format('%a-%d %H:%M')(new Date(d))
           });
 	  
 	  chart.x2Axis
 		  .tickFormat(function(d) {
-            return d3.time.format('%a-%d')(new Date(d))
+            return d3.time.format('%a-%d %H:%M')(new Date(d))
           });
 		
 	  chart.yAxis

@@ -14,6 +14,9 @@ Average Power vs day
   <svg style='height:500px'> </svg>
 </div>
 	
+<div id='mbar_chart'>
+  <svg style='height:600px'> </svg>
+</div>
 <script src="src/d3.min.js"></script>
 <script src="src/nv.d3.min.js"></script>
 <script src="src/stream_layers.js"></script>
@@ -42,15 +45,16 @@ d3.json("power_pull_nv.php", function(error, data) {
 	
 	nv.addGraph(function() {
 	  var chart = nv.models.lineWithFocusChart();
+	  			//.useInteractiveGuideline(true);
 
 	  chart.xAxis
 		  .tickFormat(function(d) {
-            return d3.time.format('%a-%d')(new Date(d))
+            return d3.time.format('%a-%d %H:%M')(new Date(d))
           });
 	  
 	  chart.x2Axis
 		  .tickFormat(function(d) {
-            return d3.time.format('%a-%d')(new Date(d))
+            return d3.time.format('%a-%d %H:%M')(new Date(d))
           });
 		
 	  chart.yAxis
@@ -101,7 +105,6 @@ d3.json("power_pull_nv_hist.php", function(error, data) {
 		  .x(function(d) { return d.x })    //Specify the data accessors.
 		  .y(function(d) { return d.y })
 		  .staggerLabels(true)    //Too many bars and not enough room? Try staggering labels.
-		  .tooltips(true)        //Don't show tooltips
 		  .showValues(false)       //...instead, show the bar value right on top of each bar.		  
 		  ;
 
@@ -120,6 +123,8 @@ d3.json("power_pull_nv_hist.php", function(error, data) {
 	  chart.yAxis
 		  .tickFormat(d3.format(',.2f'));
 
+		chart.tooltip.enabled()
+		
 /*
 	  chart.y2Axis
 		  .tickFormat(d3.format(',.2f'));
@@ -139,4 +144,47 @@ d3.json("power_pull_nv_hist.php", function(error, data) {
 });
 
 </script>
+		<script type='text/javascript'>
+
+	
+d3.json("power_pull_nv_hist_multi.php", function(error, data) {	
+	console.log(data);
+	
+	nv.addGraph(function() {
+		var chart = nv.models.multiBarChart()		  
+		  .reduceXTicks(true)   //If 'false', every single x-axis tick label will be rendered.
+		  .rotateLabels(0)      //Angle to rotate x-axis labels.
+		  .showControls(true)   //Allow user to switch between 'Grouped' and 'Stacked' mode.
+		  .groupSpacing(0.1)    //Distance between each group of bars.
+		;
+
+	  	chart.xAxis
+			  .tickFormat(function(d) {
+				return d3.time.format('%b-%d')(new Date(d*1000))
+			  });
+		
+		chart.yAxis
+			.tickFormat(d3.format(',.1f'));
+
+		chart.forceY([0,35000]);
+		
+		d3.select('#mbar_chart svg')
+			.datum(data)
+			.transition().duration(500)
+			.call(chart);
+
+		nv.utils.windowResize(chart.update);
+
+		return chart;
+	});
+	
+
+	
+	
+});
+	
+			
+</script>
+	
+	
 </body>
