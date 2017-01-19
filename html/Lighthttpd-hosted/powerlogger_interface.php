@@ -9,7 +9,7 @@
 	} 
 	
 	
-	if(!socket_connect($sock , '192.168.0.108' , 50008)){
+	if(!socket_connect($sock , 'localhost' , 50008)){
 	
     $errorcode = socket_last_error();
     $errormsg = socket_strerror($errorcode);

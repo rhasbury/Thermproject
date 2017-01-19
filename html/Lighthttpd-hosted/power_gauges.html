@@ -4,7 +4,7 @@
     <meta charset="utf-8">
 	<meta name="viewport" content="width=320" />
 	<meta name="apple-mobile-web-app-capable" content="yes" />
-	<title>Gauge</title>
+	<title>Power Gauges</title>
 	<script type="text/javascript" src="http://d3js.org/d3.v2.min.js"></script>
 	<style>
 	body {
@@ -30,14 +30,8 @@
 	</style>
 </head>
 <body>
-<tr>
-<td><div id="power-gauge1" class="power-gauge" ></div></td>
-<td><div id="power-gauge2" class="power-gauge"></div></td>
-</tr>
-<tr>
-<td><div id="power-gauge3" class="power-gauge"></div></td>
-<td><div id="power-gauge4" class="power-gauge"></div></td>
-</tr>
+<div id="power-gauge" class="power-gauge" ></div>
+
 <script>
 var gauge = function(container, configuration) {
 	var that = {};
@@ -204,14 +198,23 @@ var gauge = function(container, configuration) {
 
 <script>
 var powers = 0;
+var powerGauge = [];
 
+    
 function onDocumentReady() {
-	var powerGauge1 = gauge('#power-gauge1', {
+	//divname = '#power-gauge';
+    //var gaugediv = document.createElement(divname);
+    get_Powers();
+    setTimeout(function () { 
+                            CreateGauges();
+                            }, 2000);
+    /*
+    var powerGauge1 = gauge('#power-gauge1', {
 		size: 300,
 		clipWidth: 300,
 		clipHeight: 300,
 		ringWidth: 60,
-		maxValue: 100,
+		maxValue: 3000,
 		transitionMs: 4000,
 	});
 	powerGauge1.render();
@@ -221,7 +224,7 @@ function onDocumentReady() {
 		clipWidth: 300,
 		clipHeight: 300,
 		ringWidth: 60,
-		maxValue: 100,
+		maxValue: 3000,
 		transitionMs: 4000,
 	});
 	powerGauge2.render();
@@ -231,7 +234,7 @@ function onDocumentReady() {
 		clipWidth: 300,
 		clipHeight: 300,
 		ringWidth: 60,
-		maxValue: 100,
+		maxValue: 1000,
 		transitionMs: 4000,
 	});
 	powerGauge3.render();
@@ -241,52 +244,99 @@ function onDocumentReady() {
 		clipWidth: 300,
 		clipHeight: 300,
 		ringWidth: 60,
-		maxValue: 100,
+		maxValue: 1000,
 		transitionMs: 4000,
 	});
 	powerGauge4.render();
-
+    */
 
 
 	
-	function updateReadings() {
-		// just pump in random data here...
-		//powerGauge.update(Math.random() * 10);
-		get_Powers();
-		//alert(powers['twofortywatts']/1000);
-		powerGauge1.update(powers['twofortywatts']/1000);
-		powerGauge2.update(powers['onetwentywatts']/1000);
-		powerGauge3.update(powers['clamp1watts']/1000);
-		powerGauge4.update(powers['clamp2watts']/1000);
-		
-	}
+
 	
 	// every few seconds update reading values
-	updateReadings();
+	//updateReadings();
 	setInterval(function() {
 		updateReadings();
 	}, 5 * 1000);
 }
 
+    
+    
 if ( !window.isLoaded ) {
 	window.addEventListener("load", function() {
-		onDocumentReady();
+		
+        onDocumentReady();
 	}, false);
 } else {
+    
 	onDocumentReady();
 }
 
 function get_Powers(){
 	
 	var oReq = new XMLHttpRequest(); //New request object
-	oReq.onload = function() {				
-		powers = JSON.parse(this.responseText)
+	oReq.onload = function() {						
+        powers = JSON.parse(this.responseText)        
 		}
 
 	oReq.open("GET", "powerlogger_interface.php?command=get_powers", true);
 	oReq.send();		
 
 }
+
+function CreateGauges(){
+    get_Powers();
+    i = 0;    
+    for (var key in powers){
+        console.log("inloop");        
+        divname = key.replace(/\s+/g, '');
+        var gaugediv = document.createElement(divname);
+        document.getElementById('power-gauge').appendChild(gaugediv);
+        
+        var svg = d3.select(divname)
+            .append("text")
+            .attr("x", 0 )
+            .attr("y", 0)
+            .attr("width", 10)
+            .attr("height", 10)
+            .attr("dy", ".35em")
+            .text(divname);
+
+        /*svg.append("svg:svg")
+            .attr("width", 100)
+            .attr("height", 100)
+            .attr("x", 0 )
+            .attr("y", 10);
+        */
+        					
+        
+        powerGauge[i] = gauge(divname, {
+            size: 300,
+            clipWidth: 300,
+            clipHeight: 300,
+            ringWidth: 60,
+            maxValue: 3000,
+            transitionMs: 4000,            
+	        });
+        powerGauge[i].render();
+    i++;    
+    }
+    
+}
+   
+
+function updateReadings() {
+		// just pump in random data here...
+		//powerGauge.update(Math.random() * 10);
+		get_Powers();
+		//alert(powers['twofortywatts']/1000);
+		powerGauge[0].update(powers['twofortywatts']);
+		powerGauge[1].update(powers['onetwentywatts']);
+		powerGauge[2].update(powers['clamp1watts']);
+		powerGauge[3].update(powers['clamp2watts']);
+		
+	}
 </script>
 </body>
 </html>
