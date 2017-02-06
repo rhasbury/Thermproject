@@ -3,7 +3,7 @@
 + Temperature adjustments should stick to the time slot, or average out. 
 - Temperature adjustments should be used for adaptations
 + Create javascript <-> python daemon communication method to get away from webiopi http hosting
-- Deal with disconnected sensors better.CURRENTLY no fallback! 
++ Deal with disconnected sensors better.CURRENTLY no fallback! 
 + Send email notifications on low temperatures. 
 + log furnace/fan/AC on off state to mysql for plotting, and create report for running time, etc.
 - LCD interface with buttons for management when network is down

@@ -10,6 +10,7 @@ import threading
 import sys
 import Adafruit_BMP.BMP085 as BMP085
 from http.cookiejar import DAYS
+from setuptools.command.build_ext import if_dl
 
 sys.path.append('/home/pi/thermostat/python')
 
@@ -165,20 +166,31 @@ def loop():
     
         
         # decide which temp we're using for control
-        if(Sparams.RemoteSensors.get(CurrentState.CurrentProgram.MasterTempSensor) != None):        
-            celsius = Sparams.RemoteSensors[CurrentState.CurrentProgram.MasterTempSensor]['temperature']
+        try:
+            if(Sparams.RemoteSensors.get(CurrentState.CurrentProgram.MasterTempSensor) != None):        
+                if(Sparams.RemoteSensors[CurrentState.CurrentProgram.MasterTempSensor]['read_successful'] == False):
+                    raise ValueError('Remote sensor reading is untrustworthy')            
+                celsius = Sparams.RemoteSensors[CurrentState.CurrentProgram.MasterTempSensor]['temperature']
+                
+            elif(Sparams.LocalSensors.get(CurrentState.CurrentProgram.MasterTempSensor) != None):        
+                if(Sparams.LocalSensors[CurrentState.CurrentProgram.MasterTempSensor]['read_successful'] == False):
+                    raise ValueError('Local sensor reading is untrustworthy')            
+                celsius = Sparams.LocalSensors[CurrentState.CurrentProgram.MasterTempSensor]['temperature']
+    
+            else:
+                raise ValueError('could not determine master sesnsor')           
         
-        elif(Sparams.LocalSensors.get(CurrentState.CurrentProgram.MasterTempSensor) != None):        
-            celsius = Sparams.LocalSensors[CurrentState.CurrentProgram.MasterTempSensor]['temperature']
-        
-        else:
+        except:        
             celsius = 0
-            my_logger.debug("Failed to determine master sensor. Falling back to any local sensor")
+            my_logger.debug("Problem in sensor selection", exc_info=True)
             for (key, value) in Sparams.LocalSensors.items():
                 if(value['read_successful'] == True):
                     celsius = value['temperature']
+
+        
+
     
-    
+        if(celsius = 0 )
         # Override section
         
         if(CurrentState.tempORactive):
