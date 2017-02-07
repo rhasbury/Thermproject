@@ -113,7 +113,15 @@ def setup():
         CurrentState.mode = 0
     f.close()
 
-    # Create the data server and assigning the request handler        
+    f = open(Tparams.ThermostatTempFile, 'r') 
+    try:
+        CurrentState.tbaseset = int(f.readline())
+    except:
+        CurrentState.tbaseset = 21
+    f.close()
+
+
+    # Create the data server and assigning the request handler            
     server = socketserver.TCPServer((HOST, PORT), MyTCPHandler)
     serverthread = threading.Thread(target=server.serve_forever)
     serverthread.daemon = True
@@ -186,19 +194,16 @@ def loop():
             for (key, value) in Sparams.LocalSensors.items():
                 if(value['read_successful'] == True):
                     celsius = value['temperature']
+                    break
 
+            
         
-
-    
-        if(celsius = 0 )
-        # Override section
-        
-        if(CurrentState.tempORactive):
-            CurrentState.tset = CurrentState.tempORtemp
-        elif(CurrentState.mode == 2):
-            CurrentState.tset = CurrentState.CurrentProgram.TempSetPointCool
+        # This section applies an offset to the temperature setpoint from the program file. 
+        if(CurrentState.mode == 2):
+            CurrentState.tset = CurrentState.tbaseset + CurrentState.CurrentProgram.TempSetPointCool
         else:
-            CurrentState.tset = CurrentState.CurrentProgram.TempSetPointHeat
+            CurrentState.tset = CurrentState.tbaseset + CurrentState.CurrentProgram.TempSetPointHeat
+        
       
         
         if(CurrentState.fanORactive == True):            
@@ -214,8 +219,10 @@ def loop():
                 logControlLineDB(DBparams, my_logger, 'fan', CurrentState.CurrentProgram.fanon, runningtime.seconds)
             CurrentState.fanState = CurrentState.CurrentProgram.fanon    
         
-        
+        # Save sensor temp to state object for access by external apps
         CurrentState.sensorTemp = celsius
+
+
         
         # email notification checker
         if (email.enabled == True):
@@ -228,6 +235,8 @@ def loop():
                     except:
                         my_logger.debug("sending warning email failed", exc_info=True)                      
                 
+        
+        
         # Furnace and AC control logic starts here
         # This should be the only block in which the heater, fan and AC gpios are touched.        
         try:
@@ -291,6 +300,8 @@ def loop():
         print ("attempting to close threads.")
         serverthread.join()
         TempUpdateThread.cancel()
+        serverthread.shutdown()
+        serverthread.server_close()
         print ("threads successfully closed")
 
 #def destroy():
@@ -483,22 +494,13 @@ def temp_change(amount, length):
     global Tparams
     global program
     ActiveProgramIndex
-    #if(CurrentState.tempORactive == False):
-    #    CurrentState.tempORtemp = CurrentState.tset
- 
-    #CurrentState.tempORtemp = CurrentState.tempORtemp + (int(amount)* 0.5)
-    #CurrentState.tempORtime = datetime.datetime.utcnow()
-    #CurrentState.tempORlength = int(length)
-    #CurrentState.tempORactive = True
      
-    if(CurrentState.mode == 1):
-        program[ActiveProgramIndex].TempSetPointHeat = program[ActiveProgramIndex].TempSetPointHeat + (int(amount)* 0.5) 
-        CurrentState.tset = CurrentState.CurrentProgram.TempSetPointHeat
-    elif(CurrentState.mode == 2):
-        program[ActiveProgramIndex].TempSetPointCool = program[ActiveProgramIndex].TempSetPointCool + (int(amount)* 0.5)
-        CurrentState.tset = CurrentState.CurrentProgram.TempSetPointCool
+    CurrentState.tbaseset = CurrentState.tbaseset + (int(amount)* 0.5) 
+     
+    f = open(Tparams.ThermostatTempFile, 'w') 
+    f.write(str(CurrentState.tbaseset))
+    f.close() 
     
-    WriteProgramToFile()
     
 
 
