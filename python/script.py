@@ -494,6 +494,13 @@ def temp_change(amount, length):
     global Tparams
     global program
     ActiveProgramIndex
+    #if(CurrentState.tempORactive == False):
+    #    CurrentState.tempORtemp = CurrentState.tset
+ 
+    #CurrentState.tempORtemp = CurrentState.tempORtemp + (int(amount)* 0.5)
+    #CurrentState.tempORtime = datetime.datetime.utcnow()
+    #CurrentState.tempORlength = int(length)
+    #CurrentState.tempORactive = True
      
     CurrentState.tbaseset = CurrentState.tbaseset + (int(amount)* 0.5) 
      
@@ -501,6 +508,7 @@ def temp_change(amount, length):
     f.write(str(CurrentState.tbaseset))
     f.close() 
     
+    WriteProgramToFile()
     
 
 
