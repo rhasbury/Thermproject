@@ -94,6 +94,7 @@ class ThermostatParameters:
             self.FAN = int(settings['FAN'])
             self.AC = int(settings['AC'])            
             self.ThermostatStateFile = settings['ThermostatStateFile']
+            self.ThermostatTempFile = settings['ThermostatTempFile']
             self.ThermostatLogFile = settings['ThermostatLogFile']
             self.ProgramsFolder = settings['ProgramsFolder']
             self.loginterval = int(settings['loginterval'])

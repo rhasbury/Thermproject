@@ -2,24 +2,11 @@
 + Free space indicator
 + Temperature adjustments should stick to the time slot, or average out. 
 - Temperature adjustments should be used for adaptations
--- Create helper application that restarts when the loop fails, or a cron job that restarts the application. 
 + Create javascript <-> python daemon communication method to get away from webiopi http hosting
-- Deal with disconnected sensors better.CURRENTLY no fallback! 
++ Deal with disconnected sensors better.CURRENTLY no fallback! 
 + Send email notifications on low temperatures. 
 + log furnace/fan/AC on off state to mysql for plotting, and create report for running time, etc.
 - LCD interface with buttons for management when network is down
 + Create new http interface. 
 + Make adding temperature sensors configurable and display on http scaleable 
 - Openelec plugin?  
-
-
-Core
-- Change programs to include temperature ranges for each sensor. 
-- Add ability to have vacation mode. Or holiday mode (eg holiday monday, don't care about basement temp)
-- If temp differential between two locations is greater than X degrees, activate fan for a time. 
-
-UI
-- Simplify main screen for easy adjustments. 
-	(What location? too cold/hot?)
-- Create frame for detailed current state
-

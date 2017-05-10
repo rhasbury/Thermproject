@@ -10,6 +10,7 @@ import threading
 import sys
 import Adafruit_BMP.BMP085 as BMP085
 from http.cookiejar import DAYS
+from setuptools.command.build_ext import if_dl
 
 sys.path.append('/home/pi/thermostat/python')
 
@@ -112,7 +113,15 @@ def setup():
         CurrentState.mode = 0
     f.close()
 
-    # Create the data server and assigning the request handler        
+    f = open(Tparams.ThermostatTempFile, 'r') 
+    try:
+        CurrentState.tbaseset = int(f.readline())
+    except:
+        CurrentState.tbaseset = 21
+    f.close()
+
+
+    # Create the data server and assigning the request handler            
     server = socketserver.TCPServer((HOST, PORT), MyTCPHandler)
     serverthread = threading.Thread(target=server.serve_forever)
     serverthread.daemon = True
@@ -165,28 +174,36 @@ def loop():
     
         
         # decide which temp we're using for control
-        if(Sparams.RemoteSensors.get(CurrentState.CurrentProgram.MasterTempSensor) != None):        
-            celsius = Sparams.RemoteSensors[CurrentState.CurrentProgram.MasterTempSensor]['temperature']
+        try:
+            if(Sparams.RemoteSensors.get(CurrentState.CurrentProgram.MasterTempSensor) != None):        
+                if(Sparams.RemoteSensors[CurrentState.CurrentProgram.MasterTempSensor]['read_successful'] == False):
+                    raise ValueError('Remote sensor reading is untrustworthy')            
+                celsius = Sparams.RemoteSensors[CurrentState.CurrentProgram.MasterTempSensor]['temperature']
+                
+            elif(Sparams.LocalSensors.get(CurrentState.CurrentProgram.MasterTempSensor) != None):        
+                if(Sparams.LocalSensors[CurrentState.CurrentProgram.MasterTempSensor]['read_successful'] == False):
+                    raise ValueError('Local sensor reading is untrustworthy')            
+                celsius = Sparams.LocalSensors[CurrentState.CurrentProgram.MasterTempSensor]['temperature']
+    
+            else:
+                raise ValueError('could not determine master sesnsor')           
         
-        elif(Sparams.LocalSensors.get(CurrentState.CurrentProgram.MasterTempSensor) != None):        
-            celsius = Sparams.LocalSensors[CurrentState.CurrentProgram.MasterTempSensor]['temperature']
-        
-        else:
+        except:        
             celsius = 0
-            my_logger.debug("Failed to determine master sensor. Falling back to any local sensor")
+            my_logger.debug("Problem in sensor selection", exc_info=True)
             for (key, value) in Sparams.LocalSensors.items():
                 if(value['read_successful'] == True):
                     celsius = value['temperature']
-    
-    
-        # Override section
+                    break
+
+            
         
-        if(CurrentState.tempORactive):
-            CurrentState.tset = CurrentState.tempORtemp
-        elif(CurrentState.mode == 2):
-            CurrentState.tset = CurrentState.CurrentProgram.TempSetPointCool
+        # This section applies an offset to the temperature setpoint from the program file. 
+        if(CurrentState.mode == 2):
+            CurrentState.tset = CurrentState.tbaseset + CurrentState.CurrentProgram.TempSetPointCool
         else:
-            CurrentState.tset = CurrentState.CurrentProgram.TempSetPointHeat
+            CurrentState.tset = CurrentState.tbaseset + CurrentState.CurrentProgram.TempSetPointHeat
+        
       
         
         if(CurrentState.fanORactive == True):            
@@ -202,8 +219,10 @@ def loop():
                 logControlLineDB(DBparams, my_logger, 'fan', CurrentState.CurrentProgram.fanon, runningtime.seconds)
             CurrentState.fanState = CurrentState.CurrentProgram.fanon    
         
-        
+        # Save sensor temp to state object for access by external apps
         CurrentState.sensorTemp = celsius
+
+
         
         # email notification checker
         if (email.enabled == True):
@@ -216,6 +235,8 @@ def loop():
                     except:
                         my_logger.debug("sending warning email failed", exc_info=True)                      
                 
+        
+        
         # Furnace and AC control logic starts here
         # This should be the only block in which the heater, fan and AC gpios are touched.        
         try:
@@ -279,6 +300,8 @@ def loop():
         print ("attempting to close threads.")
         serverthread.join()
         TempUpdateThread.cancel()
+        serverthread.shutdown()
+        serverthread.server_close()
         print ("threads successfully closed")
 
 #def destroy():
@@ -479,12 +502,11 @@ def temp_change(amount, length):
     #CurrentState.tempORlength = int(length)
     #CurrentState.tempORactive = True
      
-    if(CurrentState.mode == 1):
-        program[ActiveProgramIndex].TempSetPointHeat = program[ActiveProgramIndex].TempSetPointHeat + (int(amount)* 0.5) 
-        CurrentState.tset = CurrentState.CurrentProgram.TempSetPointHeat
-    elif(CurrentState.mode == 2):
-        program[ActiveProgramIndex].TempSetPointCool = program[ActiveProgramIndex].TempSetPointCool + (int(amount)* 0.5)
-        CurrentState.tset = CurrentState.CurrentProgram.TempSetPointCool
+    CurrentState.tbaseset = CurrentState.tbaseset + (int(amount)* 0.5) 
+     
+    f = open(Tparams.ThermostatTempFile, 'w') 
+    f.write(str(CurrentState.tbaseset))
+    f.close() 
     
     WriteProgramToFile()
     
