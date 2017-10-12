@@ -87,7 +87,7 @@ d3.json("power_pull_nv_hist.php", function(error, data) {
 	data.forEach(function(d) {		
 		d.x = new Date(+d.x*1000);
 		//d.x = +d.x;
-		d.y = +d.y;
+		d.y = +d.y/1000;
 
 		}); 
 	

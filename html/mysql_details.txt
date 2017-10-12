@@ -23,3 +23,9 @@ Query for pulling GPX visualizer data
 SELECT 'date', 'latitude', 'longitude' UNION SELECT date_time, n_lat, w_long FROM gps ORDER BY date DESC LIMIT 10000 INTO OUTFILE '/home/pi/temperature/gpxvisualiser.txt' FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n';
 
 SELECT 'date', 'latitude', 'longitude', 'enginetemp', 'ambienttemp' UNION SELECT date_time, n_lat, w_long, enginetemp, ambienttemp FROM gps WHERE date_time BETWEEN '2015-07-31 00:00:00' AND '2015-08-01 00:00:00' INTO OUTFILE '/home/pi/temperature/gpxvisualiser.txt' FIELDS TERMINATED BY ',' LINES TERMINATED BY '\n';
+
+
+CREATE TABLE ag_temp_data_daily (tdate DATE, temperature NUMERIC(10,5), extra TEXT);
+CREATE TABLE ag_temp_equipment_daily (tdate DATE, fan NUMERIC, heater NUMERIC, ac NUMERIC);
+CREATE TABLE ag_power_daily (tdate DATE, kwhtotal NUMERIC);
+//CREATE TABLE ag_gas_daily (tdate DATE, temperature NUMERIC(10,5), extra TEXT);
