@@ -1,0 +1,191 @@
+
+//Table structure
+CREATE TABLE ag_power_daily (tdate DATE, kwhtotal NUMERIC);
+CREATE TABLE ag_temp_daily (tdate DATE, average_temp NUMERIC(10,5), zone TEXT);
+CREATE TABLE ag_control_daily (tdate DATE, runtime_s NUMERIC, equipment TEXT);
+CREATE TABLE ag_gas_daily (tdate DATE, type TEXT, gas_avg NUMERIC);
+CREATE TABLE ag_press_daily (tdate DATE, average_press NUMERIC(10,5), zone TEXT);
+CREATE TABLE ag_hum_daily (tdate DATE, average_humidity NUMERIC(10,5), zone TEXT);
+
+
+
+
+
+DELETE FROM ag_power_daily ;
+DELETE FROM ag_temp_daily ;
+DELETE FROM ag_control_daily ;
+DELETE FROM ag_gas_daily ;
+DELETE FROM ag_press_daily ;
+DELETE FROM ag_hum_daily ;
+
+
+
+Drop Procedure update_power_daily;
+Drop Procedure update_temp_daily;
+Drop Procedure update_control_daily;
+Drop Procedure update_gas_daily;
+Drop Procedure update_press_daily;
+Drop Procedure update_hum_daily;
+
+
+call update_power_daily;
+call update_temp_daily;
+call update_control_daily;
+call update_gas_daily;
+call update_press_daily;
+call update_hum_daily;
+
+
+// *****************Daily updaters*******************
+
+// this one works. Does daily KwH updates
+DELIMITER $$
+CREATE PROCEDURE update_power_daily()
+BEGIN
+DECLARE last_date DATE;
+SET last_date = (SELECT tdate FROM ag_power_daily ORDER BY tdate DESC LIMIT 1 );
+SELECT last_date;
+IF (last_date IS NULL) THEN BEGIN
+	SELECT ("was null");
+	INSERT INTO ag_power_daily SELECT DATE(tdate), SUM(`powerreading`) as 'kwhtotal' FROM (SELECT tdate, type,powerreading FROM powerdat WHERE tdate between "2016-01-01" AND CURDATE()) AS rawdata WHERE (type like '240v Total' OR type like '120v Total') GROUP BY DATE(tdate) ORDER BY tdate DESC LIMIT 30;	
+	END;
+ELSEIF (last_date < SUBDATE(CURDATE(),1)) THEN 
+	BEGIN	
+	SELECT ("wasn't today");
+	INSERT INTO ag_power_daily SELECT DATE(tdate), SUM(`powerreading`) as 'kwhtotal' FROM (SELECT tdate, type,powerreading FROM powerdat WHERE tdate between ADDDATE(last_date,1) AND CURDATE()) AS rawdata WHERE (type like '240v Total' OR type like '120v Total') GROUP BY DATE(tdate) LIMIT 30;
+	END;
+END IF;
+END;
+$$
+DELIMITER ;
+
+
+
+
+// Daily temperature update
+DELIMITER $$
+CREATE PROCEDURE update_temp_daily()
+BEGIN
+DECLARE last_date DATE;
+SET last_date = (SELECT tdate FROM ag_temp_daily ORDER BY tdate DESC LIMIT 1 );
+SELECT last_date;
+IF (last_date IS NULL) THEN BEGIN
+	SELECT ("was null");
+	INSERT INTO ag_temp_daily SELECT DATE(tdate), AVG(`temperature`) as 'average_temp', zone FROM (SELECT * from tempdat WHERE tdate between "2016-01-01" AND CURDATE() ORDER BY tdate DESC LIMIT 10000) AS rawdata GROUP BY zone, DATE(tdate) ORDER BY tdate DESC;
+	END;
+ELSEIF (last_date < SUBDATE(CURDATE(),1)) THEN 
+	BEGIN	
+	SELECT ("wasn't today");
+	SELECT(last_date);
+	SELECT(SUBDATE(CURDATE(),1));
+	INSERT INTO ag_temp_daily SELECT DATE(tdate), AVG(`temperature`) as 'average_temp', zone FROM (SELECT * from tempdat WHERE tdate between ADDDATE(last_date,1) AND CURDATE() ORDER BY tdate DESC LIMIT 10000) AS rawdata GROUP BY zone, DATE(tdate) ORDER BY tdate DESC;	
+	END;
+END IF;
+END;
+$$
+DELIMITER ;
+
+
+// Daily equipment usage update
+DELIMITER $$
+CREATE PROCEDURE update_control_daily()
+BEGIN
+DECLARE last_date DATE;
+SET last_date = (SELECT tdate FROM ag_control_daily ORDER BY tdate DESC LIMIT 1 );
+SELECT last_date;
+IF (last_date IS NULL) THEN BEGIN
+	SELECT ("was null");
+	INSERT INTO ag_control_daily SELECT DATE(tdate), SUM(`rtime`) as 'runtime_s', equipment FROM (SELECT * from controldat WHERE tdate between "2016-01-01" AND CURDATE() ORDER BY tdate DESC LIMIT 10000) AS rawdata WHERE state is false GROUP BY equipment, DATE(tdate) ORDER BY tdate DESC;
+	END;
+ELSEIF (last_date < SUBDATE(CURDATE(),1)) THEN 
+	BEGIN
+	SELECT ("wasn't today");
+	SELECT(last_date);
+	SELECT(SUBDATE(CURDATE(),1));
+	INSERT INTO ag_control_daily SELECT DATE(tdate), SUM(`rtime`) as 'runtime_s', equipment FROM (SELECT * from controldat WHERE tdate between ADDDATE(last_date,1) AND CURDATE() ORDER BY tdate DESC LIMIT 10000) AS rawdata WHERE state is false GROUP BY equipment, DATE(tdate) ORDER BY tdate DESC;	
+	END;
+END IF;
+END;
+$$
+DELIMITER ;
+
+
+
+// Daily Gas sensor average update
+DELIMITER $$
+CREATE PROCEDURE update_gas_daily()
+BEGIN
+DECLARE last_date DATE;
+SET last_date = (SELECT tdate FROM ag_gas_daily ORDER BY tdate DESC LIMIT 1 );
+SELECT last_date;
+IF (last_date IS NULL) THEN BEGIN
+	SELECT ("was null");
+	INSERT INTO ag_gas_daily SELECT DATE(tdate), type, AVG(`gasreading`) as 'gas_avg' FROM (SELECT * from gasdat WHERE tdate between "2016-01-01" AND CURDATE() ORDER BY tdate DESC LIMIT 5000) AS rawdata GROUP BY type, DATE(tdate) ORDER BY tdate DESC;
+	END;
+ELSEIF (last_date < SUBDATE(CURDATE(),1)) THEN 
+	BEGIN	
+	SELECT ("wasn't today");
+	INSERT INTO ag_gas_daily SELECT DATE(tdate), type, AVG(`gasreading`) as 'gas_avg' FROM (SELECT * from gasdat WHERE tdate between ADDDATE(last_date,1) AND CURDATE() ORDER BY tdate DESC LIMIT 5000) AS rawdata GROUP BY type, DATE(tdate) ORDER BY tdate DESC;
+	END;
+END IF;
+END;
+$$
+DELIMITER ;
+
+
+// Daily pressure sensor average update
+DELIMITER $$
+CREATE PROCEDURE update_press_daily()
+BEGIN
+DECLARE last_date DATE;
+SET last_date = (SELECT tdate FROM ag_press_daily ORDER BY tdate DESC LIMIT 1 );
+SELECT last_date;
+IF (last_date IS NULL) THEN BEGIN
+	SELECT ("was null");
+	INSERT INTO ag_press_daily SELECT DATE(tdate), AVG(`pressure`) as 'average_press', zone FROM (SELECT * from pressdat WHERE tdate between "2016-01-01" AND CURDATE() ORDER BY tdate DESC LIMIT 5000) AS rawdata GROUP BY zone, DATE(tdate) ORDER BY tdate DESC;
+	END;
+ELSEIF (last_date < SUBDATE(CURDATE(),1)) THEN 
+	BEGIN	
+	SELECT ("wasn't today");
+	INSERT INTO ag_press_daily SELECT DATE(tdate), AVG(`pressure`) as 'average_press', zone FROM (SELECT * from pressdat WHERE tdate between ADDDATE(last_date,1) AND CURDATE() ORDER BY tdate DESC LIMIT 5000) AS rawdata GROUP BY zone, DATE(tdate) ORDER BY tdate DESC;
+	END;
+END IF;
+END;
+$$
+DELIMITER ;
+
+
+// Daily humidity sensor average update
+DELIMITER $$
+CREATE PROCEDURE update_hum_daily()
+BEGIN
+DECLARE last_date DATE;
+SET last_date = (SELECT tdate FROM ag_hum_daily ORDER BY tdate DESC LIMIT 1 );
+SELECT last_date;
+IF (last_date IS NULL) THEN BEGIN
+	SELECT ("was null");
+	INSERT INTO ag_hum_daily SELECT DATE(tdate), AVG(`humidity`) as 'average_humidity', zone FROM (SELECT * from humdat WHERE tdate between "2016-01-01" AND CURDATE() ORDER BY tdate DESC LIMIT 5000) AS rawdata GROUP BY zone, DATE(tdate) ORDER BY tdate DESC;
+	END;
+ELSEIF (last_date < SUBDATE(CURDATE(),1)) THEN 
+	BEGIN	
+	SELECT ("wasn't today");
+	INSERT INTO ag_hum_daily SELECT DATE(tdate), AVG(`humidity`) as 'average_humidity', zone FROM (SELECT * from humdat WHERE tdate between ADDDATE(last_date,1) AND CURDATE() ORDER BY tdate DESC LIMIT 5000) AS rawdata GROUP BY zone, DATE(tdate) ORDER BY tdate DESC;
+	END;
+END IF;
+END;
+$$
+DELIMITER ;
+
+
+
+// *****************Hourly updaters*******************
+
+
+
+
+
+	SELECT ('was null');
+	SELECT ('wasn't today');
+
+
+DELETE FROM ag_power_daily ORDER BY tdate DESC limit 16;

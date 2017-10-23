@@ -1,0 +1,60 @@
+
+//Table structure
+
+CREATE TABLE ag_temp_hourly (tdate DATETIME, average_temp NUMERIC(10,5), zone TEXT);
+CREATE TABLE ag_power_hourly (tdate DATE, kwhtotal NUMERIC);
+CREATE TABLE ag_control_hourly (tdate DATE, runtime_s NUMERIC, equipment TEXT);
+CREATE TABLE ag_gas_hourly (tdate DATE, type TEXT, gas_avg NUMERIC);
+CREATE TABLE ag_press_hourly (tdate DATE, average_press NUMERIC(10,5), zone TEXT);
+CREATE TABLE ag_hum_hourly (tdate DATE, average_humidity NUMERIC(10,5), zone TEXT);
+
+
+
+
+DELETE FROM ag_power_hourly ;
+DELETE FROM ag_temp_hourly ;
+DELETE FROM ag_control_hourly ;
+DELETE FROM ag_gas_hourly ;
+DELETE FROM ag_press_hourly ;
+DELETE FROM ag_hum_hourly ;
+
+
+
+Drop Procedure update_power_hourly;
+Drop Procedure update_temp_hourly;
+Drop Procedure update_control_hourly;
+Drop Procedure update_gas_hourly;
+Drop Procedure update_press_hourly;
+Drop Procedure update_hum_hourly;
+
+
+call update_power_hourly;
+call update_temp_hourly;
+call update_control_hourly;
+call update_gas_hourly;
+call update_press_hourly;
+call update_hum_hourly;
+
+
+// Hourly temperature update
+DELIMITER $$
+CREATE PROCEDURE update_temp_hourly()
+BEGIN
+DECLARE last_date DATETIME;
+SET last_date = (SELECT tdate FROM ag_temp_hourly ORDER BY tdate DESC LIMIT 1 ) + INTERVAL 1 HOUR;
+SELECT last_date;
+IF (last_date IS NULL) THEN BEGIN
+	SELECT ("was null");
+	INSERT INTO ag_temp_hourly SELECT tdate, AVG(`temperature`) as 'average_temp', zone FROM (SELECT * from tempdat WHERE tdate between "2016-01-01" AND SUBTIME(NOW(),1) ORDER BY tdate DESC LIMIT 10000) AS rawdata GROUP BY zone, HOUR(tdate) ORDER BY tdate DESC;
+	END;
+ELSEIF (last_date < SUBDATE(CURDATE(),1)) THEN 
+	BEGIN	
+	SELECT ("wasn't today");
+	INSERT INTO ag_temp_hourly SELECT tdate, AVG(`temperature`) as 'average_temp', zone FROM (SELECT * from tempdat WHERE tdate between last_date AND SUBTIME(NOW(),1) ORDER BY tdate DESC LIMIT 10000) AS rawdata GROUP BY zone, HOUR(tdate) ORDER BY tdate DESC;
+	END;
+END IF;
+END;
+$$
+DELIMITER ;
+
+
