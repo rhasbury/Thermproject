@@ -32,7 +32,7 @@ d3.json("control_data_hist.php?equipment=heater", function(error, data) {
 	data.forEach(function(d) {		
 		d.x = new Date(+d.x*1000);
 		//d.x = +d.x;
-		d.y = +d.y;
+		d.y = +d.y/60; // divide by 60 for minutes
 
 		}); 
 	
@@ -98,7 +98,7 @@ d3.json("control_data_hist.php?equipment=fan", function(error, data) {
 	data.forEach(function(d) {		
 		d.x = new Date(+d.x*1000);
 		//d.x = +d.x;
-		d.y = +d.y;
+		d.y = +d.y/60; // divide by 60 for minutes
 
 		}); 
 	
@@ -164,7 +164,7 @@ d3.json("control_data_hist.php?equipment=ac", function(error, data) {
 	data.forEach(function(d) {		
 		d.x = new Date(+d.x*1000);
 		//d.x = +d.x;
-		d.y = +d.y;
+		d.y = +d.y/60; // divide by 60 for minutes
 
 		}); 
 	

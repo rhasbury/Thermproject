@@ -8,11 +8,11 @@
     $connection = mysql_select_db($database, $server);
 
 
-	$date = $_GET['date'];
-	$equipment = $_GET['equipment'];
+    $myquery = "
+SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', powerreading AS 'y', type AS type FROM powerdatw ORDER by tdate DESC LIMIT 10000
+";
 
-	$myquery = "SELECT runtime_s as 'tdelta' FROM ag_control_daily AND equipment LIKE  '" . $equipment . "'  AND DATE(tdate) = DATE('" . $date . "') ORDER BY tdate DESC LIMIT 1000";
- 
+
 	error_log($myquery , 0);
     $query = mysql_query($myquery);
     

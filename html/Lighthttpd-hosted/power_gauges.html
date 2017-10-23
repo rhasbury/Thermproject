@@ -205,9 +205,8 @@ function onDocumentReady() {
 	//divname = '#power-gauge';
     //var gaugediv = document.createElement(divname);
     get_Powers();
-    setTimeout(function () { 
-                            CreateGauges();
-                            }, 2000);
+    setTimeout(function () { CreateGauges();}, 2000);
+    
     /*
     var powerGauge1 = gauge('#power-gauge1', {
 		size: 300,
@@ -218,37 +217,7 @@ function onDocumentReady() {
 		transitionMs: 4000,
 	});
 	powerGauge1.render();
-
-	var powerGauge2 = gauge('#power-gauge2', {
-		size: 300,
-		clipWidth: 300,
-		clipHeight: 300,
-		ringWidth: 60,
-		maxValue: 3000,
-		transitionMs: 4000,
-	});
-	powerGauge2.render();
-	
-	var powerGauge3 = gauge('#power-gauge3', {
-		size: 300,
-		clipWidth: 300,
-		clipHeight: 300,
-		ringWidth: 60,
-		maxValue: 1000,
-		transitionMs: 4000,
-	});
-	powerGauge3.render();
-	
-	var powerGauge4 = gauge('#power-gauge4', {
-		size: 300,
-		clipWidth: 300,
-		clipHeight: 300,
-		ringWidth: 60,
-		maxValue: 1000,
-		transitionMs: 4000,
-	});
-	powerGauge4.render();
-    */
+*/
 
 
 	
@@ -256,7 +225,8 @@ function onDocumentReady() {
 	
 	// every few seconds update reading values
 	//updateReadings();
-	setInterval(function() {
+
+    setInterval(function() {
 		updateReadings();
 	}, 5 * 1000);
 }
@@ -289,7 +259,7 @@ function CreateGauges(){
     get_Powers();
     i = 0;    
     for (var key in powers){
-        console.log("inloop");        
+        //console.log("inloop");        
         divname = key.replace(/\s+/g, '');
         var gaugediv = document.createElement(divname);
         document.getElementById('power-gauge').appendChild(gaugediv);

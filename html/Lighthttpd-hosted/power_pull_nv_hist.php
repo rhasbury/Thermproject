@@ -9,7 +9,7 @@
 
 
     $myquery = "
-SELECT UNIX_TIMESTAMP(DATE(tdate)) as 'x', SUM(`powerreading`) as 'y' FROM powerdat WHERE (type like '240v Total' OR type like '120v Total') GROUP BY  DATE(tdate) ORDER BY tdate DESC LIMIT 20
+SELECT UNIX_TIMESTAMP(DATE(tdate)) as 'x', `kwhtotal` as 'y' FROM ag_power_daily ORDER BY tdate DESC LIMIT 100
 ";
 
 

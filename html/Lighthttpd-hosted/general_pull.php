@@ -14,7 +14,7 @@
 		case "temp":			
 			
 				$myquery = "
-					SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', temperature AS 'y', zone  FROM  tempdat ORDER by tdate DESC LIMIT 3000
+					SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', temperature AS 'y', zone  FROM tempdat ORDER by tdate DESC LIMIT 1000
 					";
 				break;
 
@@ -22,13 +22,13 @@
 		case "press":			
 			
 				$myquery = "
-					SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', pressure AS 'y', zone FROM  pressdat WHERE zone LIKE 'Living Room' ORDER by tdate DESC LIMIT 4000
+					SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', average_press AS 'y', zone FROM  ag_press_daily WHERE zone LIKE 'Living Room' ORDER by tdate DESC LIMIT 4000
 					";
 				break;
 
 		case "humidity":						
 				$myquery = "
-					SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', humidity AS 'y', zone FROM  humdat ORDER by tdate DESC LIMIT 2000
+					SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', average_humidity AS 'y', zone FROM  ag_hum_daily ORDER by tdate DESC LIMIT 2000
 					";
 				break;
 		
