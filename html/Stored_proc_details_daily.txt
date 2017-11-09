@@ -1,14 +1,11 @@
 
 //Table structure
 CREATE TABLE ag_power_daily (tdate DATE, kwhtotal NUMERIC);
-CREATE TABLE ag_temp_daily (tdate DATE, average_temp NUMERIC(10,5), zone TEXT);
+CREATE TABLE ag_temp_daily (tdate DATE, average_temp NUMERIC(10,5), max_temp NUMERIC(10,5), min_temp NUMERIC(10,5), zone TEXT);
 CREATE TABLE ag_control_daily (tdate DATE, runtime_s NUMERIC, equipment TEXT);
 CREATE TABLE ag_gas_daily (tdate DATE, type TEXT, gas_avg NUMERIC);
 CREATE TABLE ag_press_daily (tdate DATE, average_press NUMERIC(10,5), zone TEXT);
 CREATE TABLE ag_hum_daily (tdate DATE, average_humidity NUMERIC(10,5), zone TEXT);
-
-
-
 
 
 DELETE FROM ag_power_daily ;
@@ -17,7 +14,6 @@ DELETE FROM ag_control_daily ;
 DELETE FROM ag_gas_daily ;
 DELETE FROM ag_press_daily ;
 DELETE FROM ag_hum_daily ;
-
 
 
 Drop Procedure update_power_daily;
@@ -71,14 +67,14 @@ SET last_date = (SELECT tdate FROM ag_temp_daily ORDER BY tdate DESC LIMIT 1 );
 SELECT last_date;
 IF (last_date IS NULL) THEN BEGIN
 	SELECT ("was null");
-	INSERT INTO ag_temp_daily SELECT DATE(tdate), AVG(`temperature`) as 'average_temp', zone FROM (SELECT * from tempdat WHERE tdate between "2016-01-01" AND CURDATE() ORDER BY tdate DESC LIMIT 10000) AS rawdata GROUP BY zone, DATE(tdate) ORDER BY tdate DESC;
+	INSERT INTO ag_temp_daily SELECT DATE(tdate), AVG(temperature) as 'average_temp', MAX(temperature) as 'max_temp', MIN(temperature) as 'min_temp', zone FROM (SELECT * from tempdat WHERE tdate between "2016-01-01" AND CURDATE() ORDER BY tdate DESC LIMIT 10000) AS rawdata GROUP BY zone, DATE(tdate) ORDER BY tdate DESC;
 	END;
 ELSEIF (last_date < SUBDATE(CURDATE(),1)) THEN 
 	BEGIN	
 	SELECT ("wasn't today");
 	SELECT(last_date);
 	SELECT(SUBDATE(CURDATE(),1));
-	INSERT INTO ag_temp_daily SELECT DATE(tdate), AVG(`temperature`) as 'average_temp', zone FROM (SELECT * from tempdat WHERE tdate between ADDDATE(last_date,1) AND CURDATE() ORDER BY tdate DESC LIMIT 10000) AS rawdata GROUP BY zone, DATE(tdate) ORDER BY tdate DESC;	
+	INSERT INTO ag_temp_daily SELECT DATE(tdate), AVG(temperature) as 'average_temp', MAX(temperature) as 'max_temp', MIN(temperature) as 'min_temp', zone FROM (SELECT * from tempdat WHERE tdate between ADDDATE(last_date,1) AND CURDATE() ORDER BY tdate DESC LIMIT 10000) AS rawdata GROUP BY zone, DATE(tdate) ORDER BY tdate DESC;	
 	END;
 END IF;
 END;
@@ -179,6 +175,22 @@ DELIMITER ;
 
 
 // *****************Hourly updaters*******************
+
+delimiter |
+CREATE EVENT update_daily_ag_tables
+    ON SCHEDULE	EVERY 1 HOUR
+    DO
+	BEGIN
+		CALL update_power_daily;
+		CALL update_temp_daily;
+		CALL update_control_daily;
+		CALL update_gas_daily;
+		CALL update_press_daily;
+		CALL update_hum_daily;
+      END |
+delimiter ;
+
+
 
 
 

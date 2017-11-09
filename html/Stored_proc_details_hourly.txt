@@ -41,16 +41,18 @@ DELIMITER $$
 CREATE PROCEDURE update_temp_hourly()
 BEGIN
 DECLARE last_date DATETIME;
-SET last_date = (SELECT tdate FROM ag_temp_hourly ORDER BY tdate DESC LIMIT 1 ) + INTERVAL 1 HOUR;
+SET last_date = (SELECT tdate FROM ag_temp_hourly ORDER BY tdate DESC LIMIT 1 );
 SELECT last_date;
 IF (last_date IS NULL) THEN BEGIN
 	SELECT ("was null");
-	INSERT INTO ag_temp_hourly SELECT tdate, AVG(`temperature`) as 'average_temp', zone FROM (SELECT * from tempdat WHERE tdate between "2016-01-01" AND SUBTIME(NOW(),1) ORDER BY tdate DESC LIMIT 10000) AS rawdata GROUP BY zone, HOUR(tdate) ORDER BY tdate DESC;
+	SELECT (HOUR(last_date));
+	INSERT INTO ag_temp_hourly SELECT tdate, AVG(`temperature`) as 'average_temp', zone FROM (SELECT * from tempdat WHERE tdate between "2016-01-01" AND SUBTIME(NOW()),INTERVAL 1 HOUR) ORDER BY tdate DESC LIMIT 10000) AS rawdata GROUP BY zone, DATE(tdate), HOUR(tdate) ORDER BY tdate DESC;
 	END;
 ELSEIF (last_date < SUBDATE(CURDATE(),1)) THEN 
 	BEGIN	
 	SELECT ("wasn't today");
-	INSERT INTO ag_temp_hourly SELECT tdate, AVG(`temperature`) as 'average_temp', zone FROM (SELECT * from tempdat WHERE tdate between last_date AND SUBTIME(NOW(),1) ORDER BY tdate DESC LIMIT 10000) AS rawdata GROUP BY zone, HOUR(tdate) ORDER BY tdate DESC;
+	SELECT (HOUR(last_date));
+	INSERT INTO ag_temp_hourly SELECT tdate, AVG(`temperature`) as 'average_temp', zone FROM (SELECT * from tempdat WHERE tdate between ADDTIME(HOUR(last_date), INTERVAL 1 HOUR) AND SUBTIME(NOW(),1) ORDER BY tdate DESC LIMIT 10000) AS rawdata GROUP BY zone, HOUR(tdate) ORDER BY tdate DESC;
 	END;
 END IF;
 END;
