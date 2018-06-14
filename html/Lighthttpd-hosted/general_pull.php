@@ -1,73 +1,138 @@
 <?php
     $username = "monitor"; 
     $password = "password";   
-    $host = "localhost";
+    $host = "192.168.1.104";
     $database="temps";
     
-    $server = mysql_connect($host, $username, $password);
-    $connection = mysql_select_db($database, $server);
 
+	$mysqli = new mysqli($host, $username, $password, $database);
+	
+	
 	$type = $_GET['type'];
 
-	switch ($type) {
-
-		case "temp":			
-			
-				$myquery = "
-					SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', temperature AS 'y', zone  FROM tempdat ORDER by tdate DESC LIMIT 1000
-					";
-				break;
-
-			
-		case "press":			
-			
-				$myquery = "
-					SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', average_press AS 'y', zone FROM  ag_press_daily WHERE zone LIKE 'Living Room' ORDER by tdate DESC LIMIT 4000
-					";
-				break;
-
-		case "humidity":						
-				$myquery = "
-					SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', average_humidity AS 'y', zone FROM  ag_hum_daily ORDER by tdate DESC LIMIT 2000
-					";
-				break;
+	if(isset($_GET['zone']) && !empty($_GET['zone'])){ 	   
+		$zone =  " WHERE zone LIKE '".$_GET['zone']."' ";
 		
+		} 
+	else {
+    	$zone = " ";
+		}		
 		
-		case "gas":						
-				$myquery = "
-					SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', gasreading AS 'y', type AS 'zone' FROM gasdat ORDER by tdate DESC LIMIT 3000
-					";
-				break;
-			
-		case "light":						
-				$myquery = "
-					SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', lightlevel AS 'y', zone FROM lightdat ORDER by tdate DESC LIMIT 300
-					";
-				break;
-		default:
-			echo "no argument";
-			exit ();
-			
+
+	if(isset($_GET['daily'])){
+		switch ($type) { 	   
+			case "temp":			
+
+					$myquery = "
+						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', average_temp AS 'y', zone  FROM ag_temp_daily".$zone."ORDER by tdate DESC LIMIT 1000
+						";
+					break;
+
+
+			case "press":			
+
+					$myquery = "
+						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', average_press AS 'y', zone FROM  ag_press_daily WHERE zone LIKE 'Living Room' ORDER by tdate DESC LIMIT 4000
+						";
+					break;
+
+			case "humidity":						
+					$myquery = "
+						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', average_humidity AS 'y', zone FROM  ag_hum_daily ORDER by tdate DESC LIMIT 2000
+						";
+					break;
+
+
+			case "gas":						
+					$myquery = "
+						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', gasreading AS 'y', type AS 'zone' FROM gasdat ORDER by tdate DESC LIMIT 3000
+						";
+					break;
+
+			case "light":						
+					$myquery = "
+						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', lightlevel AS 'y', zone FROM lightdat ORDER by tdate DESC LIMIT 300
+						";
+					break;
+			default:
+				echo "no argument";
+				exit ();
+
+		
+		} 
 	}
+	else {			
+		switch ($type) {
 
+			case "temp":			
+
+					$myquery = "
+						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', temperature AS 'y', zone  FROM tempdat".$zone."ORDER by tdate DESC LIMIT 1500
+						";
+					break;
+
+			case "temp2":			
+
+					$myquery = "
+						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', temperature AS 'y', zone  FROM tempdat2".$zone."ORDER by tdate DESC LIMIT 2000
+						";
+					break;
+			
+			case "temp3":			
+					$myquery = "
+						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', temperature AS 'y', zone  FROM tempdat3".$zone."ORDER by tdate DESC LIMIT 2000
+						";
+					break;                
+			case "press":			
+
+					$myquery = "
+						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', average_press AS 'y', zone FROM  ag_press_daily WHERE zone LIKE 'Living Room' ORDER by tdate DESC LIMIT 4000
+						";
+					break;
+
+			case "humidity":						
+					$myquery = "
+						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', average_humidity AS 'y', zone FROM  ag_hum_daily ORDER by tdate DESC LIMIT 2000
+						";
+					break;
+
+
+			case "gas":						
+					$myquery = "
+						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', gasreading AS 'y', type AS 'zone' FROM gasdat ORDER by tdate DESC LIMIT 3000
+						";
+					break;
+
+			case "light":						
+					$myquery = "
+						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', lightlevel AS 'y', zone FROM lightdat ORDER by tdate DESC LIMIT 300
+						";
+					break;
+			default:
+				echo "no argument";
+				exit ();
+
+		}
+	}
 	
 			
 
 	error_log($myquery , 0);
-    $query = mysql_query($myquery);
     
-    if ( ! $query ) {
-        echo mysql_error();
+    $result = $mysqli->query($myquery);
+	
+    if ( ! $result ) {
+        echo $mysqli->error;
         die;
     }
     
     $data = array();
     
-    for ($x = 0; $x < mysql_num_rows($query); $x++) {
-        $data[] = mysql_fetch_assoc($query);
+    for ($x = 0; $x < $result->num_rows; $x++) {
+        $data[] = $result->fetch_assoc();
     }
     
     echo json_encode($data);     
      
-    mysql_close($server);
+    $mysqli->close();
 ?>

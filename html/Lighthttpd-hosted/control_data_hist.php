@@ -1,12 +1,10 @@
 <?php
     $username = "monitor"; 
     $password = "password";   
-    $host = "localhost";
+    $host = "192.168.1.104";
     $database="temps";
     
-    $server = mysql_connect($host, $username, $password);
-    $connection = mysql_select_db($database, $server);
-
+	$mysqli = new mysqli($host, $username, $password, $database);
 
 	$equipment = $_GET['equipment'];
 
@@ -17,20 +15,22 @@
 		
  
 	error_log($myquery , 0);
-    $query = mysql_query($myquery);
+    $result = $mysqli->query($myquery);
     
-    if ( ! $query ) {
-        echo mysql_error();
+    if ( ! $result ) {
+        echo $mysqli->error;
         die;
     }
     
+    
     $data = array();
     
-    for ($x = 0; $x < mysql_num_rows($query); $x++) {
-        $data[] = mysql_fetch_assoc($query);
+    
+    for ($x = 0; $x < $result->num_rows; $x++) {
+        $data[] = $result->fetch_assoc();
     }
     
     echo json_encode($data);     
      
-    mysql_close($server);
+    $mysqli->close();
 ?>

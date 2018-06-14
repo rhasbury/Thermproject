@@ -1,0 +1,117 @@
+<head>
+  	<meta charset="utf-8">
+  	<title>All Purpose Chart</title>
+	
+	<link rel="stylesheet" type="text/css" href="src/nv.d3.css">
+</head>
+<body>
+
+<select id="rSelect">
+  <option value=" ">all</option>
+  <option value="&daily">daily</option>  
+</select>
+
+<select id="gSelect">
+  <option value="temp">temp</option>
+  <option value="temp2">temp2</option>
+  <option value="temp3">temp3</option>  
+  <option value="press">press</option>  
+  <option value="light">light</option>  
+  <option value="humidity">humidity</option>    
+</select>
+<button onclick="drawgraph()" type="button">Pull</button>
+
+
+<div id='chart'>
+  <svg style='height:500px'> </svg>
+</div>
+	
+	
+<script src="src/d3.min.js"></script>
+<script src="src/nv.d3.min.js"></script> 
+<script src="src/stream_layers.js"></script>
+<!-- <script src='https://cdnjs.cloudflare.com/ajax/libs/spin.js/2.0.1/spin.min.js'></script> -->
+<script src='src/spin.min.js'></script>
+<script type='text/javascript'>
+
+var opts = {
+  lines: 9, // The number of lines to draw
+  length: 9, // The length of each line
+  width: 5, // The line thickness
+  radius: 14, // The radius of the inner circle
+  color: '#EE3124', // #rgb or #rrggbb or array of colors
+  speed: 1.9, // Rounds per second
+  trail: 40, // Afterglow percentage
+  className: 'spinner', // The CSS class to assign to the spinner
+};
+
+
+var target = document.getElementById('chart');
+
+function drawgraph() {
+	var spinner = new Spinner(opts).spin(target);
+	var sel = document.getElementById("gSelect");
+	var range = document.getElementById("rSelect");
+	
+	d3.json("general_pull.php?type=" + sel.options[sel.selectedIndex].text + range.options[range.selectedIndex].value , function(error, data) {	
+		
+		
+		if (typeof data == "undefined"){
+		spinner.stop();
+		
+		}
+		else { 
+		
+			
+			data.forEach(function(d) {		
+				d.x = new Date(+d.x*1000);
+				//d.x = +d.x;
+				d.y = +d.y;
+
+				}); 
+			
+			var dataGroup = d3.nest()
+				.key(function(d) {
+					return d.zone;
+				})
+				.entries(data);
+			
+			//console.log(dataGroup);
+			
+			
+			nv.addGraph(function() {
+			  var chart = nv.models.lineWithFocusChart();
+
+			  chart.xAxis
+				  .tickFormat(function(d) {
+					return d3.time.format('%a-%d %H:%M')(new Date(d))
+				  });
+			  
+			  chart.x2Axis
+				  .tickFormat(function(d) {
+					return d3.time.format('%a-%d %H:%M')(new Date(d))
+				  });
+				
+			  chart.yAxis
+				  .tickFormat(d3.format(',.2f'));
+
+			  chart.y2Axis
+				  .tickFormat(d3.format(',.2f'));
+
+			  d3.select('#chart svg')
+				  .datum(dataGroup)
+				  .transition().duration(500)
+				  .call(chart);
+
+			  nv.utils.windowResize(chart.update);
+			spinner.stop();
+			return chart;
+			});
+			}
+		});
+		
+		
+	};
+
+</script>
+</body>
