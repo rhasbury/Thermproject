@@ -103,6 +103,10 @@ def setup():
     GPIO.setFunction(Tparams.FAN, GPIO.OUT)
     GPIO.setFunction(Tparams.AC, GPIO.OUT)
     
+    GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
+    GPIO.digitalWrite(Tparams.FAN, GPIO.HIGH)
+    GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
+
     
     loadProgramFromFile()
     updateProgram()
