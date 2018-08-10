@@ -8,9 +8,9 @@
     <!-- <script type="text/javascript" src="http://iop.io/js/vendor/d3.v3.min.js"></script> -->
 	<script type="text/javascript" src="src/d3.min.js"></script> 
     <!--<script type="text/javascript" src="http://iop.io/js/vendor/polymer/PointerEvents/pointerevents.js"></script> -->
-	 <script type="text/javascript" src="src/pointerevents.js"></script> 
+	<!-- <script type="text/javascript" src="src/pointerevents.js"></script> -->
     <!-- <script type="text/javascript" src="http://iop.io/js/vendor/polymer/PointerGestures/pointergestures.js"></script> -->
-	 <script type="text/javascript" src="src/pointergestures.js"></script>
+<!--	 <script type="text/javascript" src="src/pointergestures.js"></script> -->
     <!-- <script type="text/javascript" src="http://iop.io/js/iopctrl.js"></script> -->
 	<script type="text/javascript" src="src/iopctrl.js"></script>
     
@@ -162,9 +162,9 @@
 	<table style="width:30%" align="center" cellspacing="10">
 
 		<tr>
-				<td align="center"><button id="bt_heater" class="button blue bigrounded">NULL</td>				
-				<td align="center"><button id="bt_fanstate" class="button blue bigrounded" onclick="Fan_change()" />NULL</td>
-				<td align="center"><button id="bt_acstate" class="button blue bigrounded"/>NULL</td>
+				<td align="center"><button id="bt_heater" class="button blue bigrounded"> Heater off </td>				
+				<td align="center"><button id="bt_fanstate" class="button blue bigrounded" onclick="Fan_change()" />Fan off</td>
+				<td align="center"><button id="bt_acstate" class="button blue bigrounded"/>AC off</td>
 		</tr>
 		<tr/>
 		<tr>
@@ -211,10 +211,10 @@
 				<th colspan="2">Current Program Data</th>
 		</tr>
 		<tr>
-				<td>Day :</td>	<td><input type="text" id="dispDay" /></td>
+				<td>Start :</td>	<td><input type="text" id="dispStart" /></td>
 		</tr>		
 		<tr>
-				<td>Time :</td>	<td><input type="text" id="dispTime" /></td>
+				<td>End :</td>	<td><input type="text" id="dispEnd" /></td>
 		</tr>
 		<tr>
 				<td>Active Sensor : </td><td><input type="text" id="dispSensor" /></td>
@@ -266,15 +266,27 @@
 		var Sparams = 0;
 		var Tparams = 0;
 		var Tstate = 0;
+		var program = 0;
 		
 		get_sparams();
 		//get_tparams();
 		get_tstate();
+		get_program();
 		setTimeout( CreateTempGauges, 500 );
 		setInterval(UpdateUI, 1000);
 		
 		
-
+		function get_program(){
+			
+			var oReq = new XMLHttpRequest(); //New request object
+			oReq.onload = function() {				
+				program = JSON.parse(this.responseText)
+				}
+		
+			oReq.open("GET", "thermostat_interface.php?command=get_program_active", true);
+			oReq.send();
+	
+		}
 		
 		function get_sparams(){
 			
@@ -528,46 +540,48 @@
 		function UpdateUI(){
 			get_sparams();
 			get_tstate();
+			get_program();
 			var i  = 0;				
+			
 			
 			
 			if (Tstate.heaterstate == 0) {
 				// jQuery functions
 				$("#bt_heater").attr("class", "button gray bigrounded");
-				$("#bt_heater").text("Heater OFF");
+				$("#bt_heater").text("  Heater OFF  ");
 			}
 			else {
 				$("#bt_heater").attr("class", "button red bigrounded");
-				$("#bt_heater").text("Heater ON");
+				$("#bt_heater").text("Heater Running");
 			}
 			
 			if (Tstate.acstate == 0) {
 				// jQuery functions
 				$("#bt_acstate").attr("class", "button gray bigrounded");
-				$("#bt_acstate").text("AC OFF  ");
+				$("#bt_acstate").text(" AC OFF ");
 			}
 			else {
 				$("#bt_acstate").attr("class", "button blue bigrounded");
-				$("#bt_acstate").text("AC ON  ");
+				$("#bt_acstate").text("AC Running");
 			}		
 			
 			if(Tstate.fanState == 0){
 				$("#bt_fanstate").attr("class", "button gray bigrounded");
-				$("#bt_fanstate").text("Fan OFF ");						
+				$("#bt_fanstate").text(" Fan OFF ");						
 				}
 			else{
 				$("#bt_fanstate").attr("class", "button green bigrounded");
-				$("#bt_fanstate").text("Fan ON ");	
+				$("#bt_fanstate").text("Fan Running ");	
 				}
 	
 			
 			if(Tstate.mode == 1){
-			 $("#bt_mode").text("HEAT");
+			 $("#bt_mode").text("HEATING");
 			 //$("#sel_mode").val("1");			 
 			 $("#temp_setpoint").text(Tstate.tset);
 			}
 			else if(Tstate.mode == 2) {
-			$("#bt_mode").text("COOL");			
+			$("#bt_mode").text("COOLING");			
 			//$("#sel_mode").val("2");
 			$("#temp_setpoint").text(Tstate.tset);
 			}			
@@ -581,22 +595,25 @@
 			
 
 			
-			$("#dispDay").val(Tstate.CurrentProgram.Day);			
-			$("#dispSensor").val(Tstate.CurrentProgram.MasterTempSensor);
-			$("#dispTempSetH").val(Tstate.CurrentProgram.TempSetPointHeat);
-			$("#dispTempSetC").val(Tstate.CurrentProgram.TempSetPointCool);
-			$("#dispFan").val(Tstate.CurrentProgram.fanon);		
+			$("#dispStart").val(program.start);			
+			$("#dispEnd").val(program.end);
+			$("#dispSensor").val(program.TempSensor);
+			$("#dispTempSetH").val(program.TempSetPointHeat);
+			$("#dispTempSetC").val(program.TempSetPointCool);
+			$("#dispFan").val(program.EnableFan);	
 			
-			prgTime = new Date(Date.parse(Tstate.CurrentProgram.TimeActiveFrom) + 5*60*60000 );
+			//prgTime = new Date(Date.parse(Tstate.CurrentProgram.TimeActiveFrom) + 5*60*60000 );
 			//prgTime = Date(prgTime + 5*60*60000);  // add tz offset
 			//alert(prgTime);
-			$("#dispTime").val(prgTime.toLocaleTimeString());
+			//$("#dispTime").val(prgTime.toLocaleTimeString());
 			
 			
 			//$("#bt_tempDisplay").text(data[7] + " C");			
 
 			
 			d3.selectAll("circle").attr("fill", "#515151");
+			
+			
 			
 			// Block for updating temperature sensor gauges
 			for (var key in Sparams){
@@ -611,9 +628,12 @@
 					//document.getElementById('temp_gauge_container').appendChild(gaugediv);
 					//gaugeobj = d3.select("#" + divname);
 					//alert(JSON.stringify(gaugeobj));
-					if(sensors == Tstate.CurrentProgram.MasterTempSensor){
+					
+					if(sensors == program.TempSensor){
 						var circle = d3.select(divname).selectAll("circle");
-						circle.attr("fill", "red");
+						circle.attr("fill", "red");						
+						$("#temp_temperature").text(sensorobj['temperature'].toFixed(2));
+						$("#temp_sensor").text(program.TempSensor);
 						}
 					segDisplay[i].value(sensorobj['temperature']);						
 					gauge[i].value(sensorobj['temperature']);										
@@ -715,8 +735,25 @@
 			
 			oReq.send();	
 		}
+		
+		function showsysinfotable() {
+			var x = document.getElementById("sysinfotable");
+			if (x.style.display === "none") {
+				x.style.display = "block";
+			} else {
+				x.style.display = "none";
+			}
+		}
 
-
+		function showgauges() {
+			var x = document.getElementById("gauge_all");
+			if (x.style.display === "none") {
+				x.style.display = "block";
+			} else {
+				x.style.display = "none";
+			}
+		}
+		
 			
 		
     

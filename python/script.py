@@ -8,7 +8,7 @@ import os
 import socketserver
 import threading
 import sys
-import Adafruit_BMP.BMP085 as BMP085
+#import Adafruit_BMP.BMP085 as BMP085
 from http.cookiejar import DAYS
 from setuptools.command.build_ext import if_dl
 
@@ -27,7 +27,10 @@ HOST, PORT = "localhost", 50007
 
 GPIO = webiopi.GPIO # Helper for LOW/HIGH values
 lastlogtime = datetime.datetime.utcnow()
-ActiveProgramIndex = 0 
+ActiveProgramID = 0
+ActiveProgram = 0 
+LastProgram = 0 
+LastProgramID = 0
 my_logger = logging.getLogger('MyLogger')
 formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 hdlr = logging.FileHandler('/home/pi/thermostat/thermostat.log')
@@ -82,13 +85,13 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             setMode(2)
         elif("fan_change" in self.data.decode("utf-8")):
             fan_change(5)
-        elif("get_program" in self.data.decode("utf-8")):
-            #json_string = json.dumps(program)            
-            #json_string = json.dumps([ob.__dict__ for ob in program], default=date_handler)
-            whole = loadProgramFromFileWhole()
-            json_string = json.dumps(whole, default=date_handler)
-            #print(json_string)
+        elif("get_program_all" in self.data.decode("utf-8")):
+            json_string = json.dumps(program)
             self.request.sendall(bytes(json_string, 'UTF-8'))
+        elif("get_program_active" in self.data.decode("utf-8")):
+            json_string = json.dumps(ActiveProgram)
+            self.request.sendall(bytes(json_string, 'UTF-8'))
+
 
 
 def setup():
@@ -102,8 +105,9 @@ def setup():
     
     
     loadProgramFromFile()
-    CurrentState = ThermostatState(program[0])
-    CurrentState.tempORtemp = CurrentState.CurrentProgram.TempSetPointHeat    
+    updateProgram()
+    CurrentState = ThermostatState()
+    #CurrentState.tempORtemp = CurrentState.CurrentProgram.TempSetPointHeat    
     CurrentState.heaterstate = 0
     CurrentState.acstate = 0
     f = open(Tparams.ThermostatStateFile, 'r') 
@@ -113,12 +117,9 @@ def setup():
         CurrentState.mode = 0
     f.close()
 
-    f = open(Tparams.ThermostatTempFile, 'r') 
-    try:
-        CurrentState.tbaseset = int(f.readline())
-    except:
-        CurrentState.tbaseset = 21
-    f.close()
+    #f = open(Tparams.ThermostatTempFile, 'r') 
+
+    #f.close()
 
 
     # Create the data server and assigning the request handler            
@@ -146,6 +147,9 @@ def setup():
 # loop function is repeatedly called by WebIOPi 
 def loop():
     global CurrentState
+    global program
+    global ActiveProgram
+    global ActiveProgramID
 
     
     webiopi.sleep(10)
@@ -173,17 +177,18 @@ def loop():
 
     
         
-        # decide which temp we're using for control
+        # decide which temp we're using for control and test it, allowing for failures        
         try:
-            if(Sparams.RemoteSensors.get(CurrentState.CurrentProgram.MasterTempSensor) != None):        
-                if(Sparams.RemoteSensors[CurrentState.CurrentProgram.MasterTempSensor]['read_successful'] == False):
+            SensName = ActiveProgram["TempSensor"] # added this to make the lines below more readable
+            if(Sparams.RemoteSensors.get(SensName) != None):        
+                if(Sparams.RemoteSensors[SensName]['read_successful'] == False):
                     raise ValueError('Remote sensor reading is untrustworthy')            
-                celsius = Sparams.RemoteSensors[CurrentState.CurrentProgram.MasterTempSensor]['temperature']
+                celsius = Sparams.RemoteSensors[SensName]['temperature']
                 
-            elif(Sparams.LocalSensors.get(CurrentState.CurrentProgram.MasterTempSensor) != None):        
-                if(Sparams.LocalSensors[CurrentState.CurrentProgram.MasterTempSensor]['read_successful'] == False):
+            elif(Sparams.LocalSensors.get(SensName) != None):        
+                if(Sparams.LocalSensors[SensName]['read_successful'] == False):
                     raise ValueError('Local sensor reading is untrustworthy')            
-                celsius = Sparams.LocalSensors[CurrentState.CurrentProgram.MasterTempSensor]['temperature']
+                celsius = Sparams.LocalSensors[SensName]['temperature']
     
             else:
                 raise ValueError('could not determine master sesnsor')           
@@ -198,14 +203,16 @@ def loop():
 
             
         
-        # This section applies an offset to the temperature setpoint from the program file. 
+
+
         if(CurrentState.mode == 2):
-            CurrentState.tset = CurrentState.tbaseset + CurrentState.CurrentProgram.TempSetPointCool
+            CurrentState.tset = ActiveProgram["TempSetPointCool"]
         else:
-            CurrentState.tset = CurrentState.tbaseset + CurrentState.CurrentProgram.TempSetPointHeat
+            CurrentState.tset = ActiveProgram["TempSetPointHeat"]
+
         
       
-        
+        # Check for fan override and apply
         if(CurrentState.fanORactive == True):            
             if(CurrentState.fanState != CurrentState.fanORstate):
                 runningtime = datetime.datetime.utcnow() - CurrentState.fanlastchange 
@@ -213,11 +220,11 @@ def loop():
                 logControlLineDB(DBparams, my_logger, 'fan', CurrentState.fanORstate, runningtime.seconds)
             CurrentState.fanState = CurrentState.fanORstate
         else:
-            if(CurrentState.fanState != CurrentState.CurrentProgram.fanon):
+            if(CurrentState.fanState != ActiveProgram['EnableFan']):
                 runningtime = datetime.datetime.utcnow() - CurrentState.fanlastchange 
                 CurrentState.fanlastchange = datetime.datetime.utcnow()
-                logControlLineDB(DBparams, my_logger, 'fan', CurrentState.CurrentProgram.fanon, runningtime.seconds)
-            CurrentState.fanState = CurrentState.CurrentProgram.fanon    
+                logControlLineDB(DBparams, my_logger, 'fan', ActiveProgram['EnableFan'], runningtime.seconds)
+            CurrentState.fanState = ActiveProgram['EnableFan']   
         
         # Save sensor temp to state object for access by external apps
         CurrentState.sensorTemp = celsius
@@ -230,7 +237,7 @@ def loop():
                 if(datetime.datetime.utcnow() - email.lastsend > datetime.timedelta(minutes=email.interval)):
                     my_logger.debug("Temperature exceeded warning.  {0] < {1} < {2}  Sending email notification".format(email.lowerlimit, celsius, email.upperlimit))
                     try:
-                        email.sendNotification("Temperature warning. Measured temperature has reached {0} C on the {1} sensor".format(celsius, CurrentState.CurrentProgram.MasterTempSensor))
+                        email.sendNotification("Temperature warning. Measured temperature has reached {0} C on the {1} sensor".format(celsius, SensName))
                         email.lastsend = datetime.datetime.utcnow()
                     except:
                         my_logger.debug("sending warning email failed", exc_info=True)                      
@@ -382,18 +389,20 @@ def updateTemps():
                 lastlogtime = datetime.datetime.utcnow()        
                 try:
                     for (key, value) in Sparams.LocalSensors.items(): 
-                        logTemplineDB(DBparams, my_logger, key, value['temperature'])
-                        if(value['type'] == "bmp" ):                    
-                            logPresslineDB(DBparams, my_logger, key, value['pressure'])
-                        if(value['type'] == "htu" ):
-                            logHumlineDB(DBparams, my_logger, key, value['humidity'])               
+                        if(value['read_successful'] == True):
+                            logTemplineDB(DBparams, my_logger, key, value['temperature'])
+                            if(value['type'] == "bmp" ):                    
+                                logPresslineDB(DBparams, my_logger, key, value['pressure'])
+                            if(value['type'] == "htu" ):
+                                logHumlineDB(DBparams, my_logger, key, value['humidity'])               
                         
-                    for (key, value) in Sparams.RemoteSensors.items(): 
-                        logTemplineDB(DBparams, my_logger, key, value['temperature'])
-                        if(value['type'] == "bmp" ):                    
-                            logPresslineDB(DBparams, my_logger, key, value['pressure'])
-                        if(value['type'] == "htu" ):
-                            logHumlineDB(DBparams, my_logger, key, value['humidity'])  
+                    for (key, value) in Sparams.RemoteSensors.items():
+                        if(value['read_successful'] == True): 
+                            logTemplineDB(DBparams, my_logger, key, value['temperature'])
+                            if(value['type'] == "bmp" ):                    
+                                logPresslineDB(DBparams, my_logger, key, value['pressure'])
+                            if(value['type'] == "htu" ):
+                                logHumlineDB(DBparams, my_logger, key, value['humidity'])  
                         
                 except:
                     my_logger.debug("Error logging temperatures to MYsql", exc_info=True)   
@@ -402,70 +411,61 @@ def updateTemps():
 
 
 def loadProgramFromFile():
-    global program
-    now = datetime.datetime.now()
-    ThermostatProgramFile = Tparams.ProgramsFolder + "{0}.csv".format(now.strftime('%A'))
-    f = open(ThermostatProgramFile , 'r')
-    del program[:]
-    linein = f.readline()
-    
-    for line in f:        
-        parts = line.split(",")        
-        timebits = parts[0].split(':')
-        prgtime = datetime.datetime.combine(datetime.date.today(), datetime.time(int(timebits[0]), int(timebits[1])))
-        program.append(ProgramDataClass(prgtime, parts[1], float(parts[2]), float(parts[3]), int(parts[4]), now.strftime('%A')))   
-    
-    f.close()
-    program.sort(key = lambda x: x.TimeActiveFrom)
+    global program    
+    try:
+        with open(Tparams.ProgramsFile) as json_data:
+            program = json.load(json_data)
+
+    except:
+        program = 0
+
     
     
 def WriteProgramToFile():
-    now = datetime.datetime.now()
-    ThermostatProgramFile = "/home/pi/thermostat/python/Programs/{0}.csv".format(now.strftime('%A'))
-
-    f = open(ThermostatProgramFile, 'w')    
-    f.write("# TimeActiveFrom, MasterTempSensor (0=localsensor, 1=?, 2=? ), temperature set point, enable fan\n")
-    
-    for x in range(0, (program.__len__())):
-        f.write(datetime.datetime.strftime(program[x].TimeActiveFrom, '%H:%M'))
-        f.write(",")
-        f.write(str(program[x].MasterTempSensor))
-        f.write(",")
-        f.write(str(program[x].TempSetPointHeat))
-        f.write(",")
-        f.write(str(program[x].TempSetPointCool))
-        f.write(",")
-        f.write(str(program[x].fanon))
-        f.write("\n")
-       
-    f.close()
+    global program
+    with open(Tparams.ProgramsFile, 'w') as outfile:
+        json.dump(program, outfile, indent=2)
 
 
-
-
-def printProram(prg):
-    print(prg.TimeActiveFrom, prg.MasterTempSensor, prg.TempSetPointHeat, prg.fanon)
     
     
 def updateProgram():
-    global CurrentState    
-    global ActiveProgramIndex
-    
+    global ActiveProgram
+    global ActiveProgramID
+    global program
+    global LastProgram
+    global LastProgramID
+           
     now = datetime.datetime.now()
-    if(program[0].Day != now.strftime('%A')):
-        loadProgramFromFile()
+    now_time = now.time()
+    today = "Saturday" # set saturday to be the default program if all else fails.
+    if(now.isoweekday() in range(1, 6)):
+        today = "Weekday" 
+    elif(now.isoweekday() == 7):
+        today = "Sunday" 
+    #elif() # Figure out if the day is on a known list of holidays. 
+    #    today = "Holiday"
+    #elif() # Figure out if today is part of a vacation
+    #    today = "AwayMode"   
     
-    progfound = False
-    for x in range((program.__len__()-1), -1, -1):
-        for y in range(now.minute, -1, -1):
-            if(program[x].TimeActiveFrom.hour == now.hour and program[x].TimeActiveFrom.minute == y):
-                CurrentState.CurrentProgram = program[x]
-                ActiveProgramIndex = x
-                #printProram(CurrentState.CurrentProgram)
-                progfound = True
+    try:
+        for id, values  in program["programs"][today].items():    
+            start = datetime.datetime.strptime(values["start"], "%H:%M")
+            end = datetime.datetime.strptime(values["end"], "%H:%M") 
+            if(now_time >= start.time() and now_time > end.time()):
+                LastProgram = values
+                LastProgramID = id
+            if(now_time >= start.time() and now_time < end.time()):
+                ActiveProgram = values
+                ActiveProgramID = id
                 break
-        if(progfound):
-            break
+
+    except:
+        ActiveProgram = json.loads('{ "start" : "00:00" , "end" : "00:00", "TempSensor" : "Living Room", "TempSetPointHeat" :21, "TempSetPointCool" : 23, "EnableFan" : 0}')
+        ActiveProgramID = "failed"
+    
+#    print(ActiveProgram)
+#    print(ActiveProgramID)
    
 
 def readFromSensor(address, name):
@@ -492,8 +492,9 @@ def readPressureFromSensor(address, name):
 def temp_change(amount, length):
     global CurrentState        
     global Tparams
-    global program
-    ActiveProgramIndex
+    global program    
+    global ActiveProgram
+    global ActiveProgramID
     #if(CurrentState.tempORactive == False):
     #    CurrentState.tempORtemp = CurrentState.tset
  
@@ -502,29 +503,27 @@ def temp_change(amount, length):
     #CurrentState.tempORlength = int(length)
     #CurrentState.tempORactive = True
      
-    CurrentState.tbaseset = CurrentState.tbaseset + (int(amount)* 0.5) 
+    if(CurrentState.mode == 2):
+        ActiveProgram["TempSetPointCool"] = ActiveProgram["TempSetPointCool"] + (int(amount)* 0.5) 
+    else:
+        ActiveProgram["TempSetPointHeat"] = ActiveProgram["TempSetPointHeat"] + (int(amount)* 0.5)     
      
-    f = open(Tparams.ThermostatTempFile, 'w') 
-    f.write(str(CurrentState.tbaseset))
-    f.close() 
-    
-    WriteProgramToFile()
-    
 
+    WriteProgramToFile()
+    #updateProgram()
+    
 
 #@webiopi.macro
 def fan_change(length):
     global CurrentState        
     global Tparams
+    global program
     if(CurrentState.fanORactive == False):
-        CurrentState.fanORstate = CurrentState.CurrentProgram.fanon 
+        CurrentState.fanORstate = program['EnableFan'] 
     CurrentState.fanORstate = (CurrentState.fanORstate + 1) % 2    
     CurrentState.fanORtime = datetime.datetime.utcnow()
     CurrentState.fanORlength = int(length)
     CurrentState.fanORactive = True    
-
-
-
 
 
 #@webiopi.macro
@@ -557,41 +556,6 @@ def tail(f, n, offset=0):
             return lines[-to_read:offset and -offset or None]
         avg_line_length *= 1.3
 
-    
-    
-def loadProgramFromFileWhole():    
-    whole = []
-    for i in range(0, 7):
-            whole = whole + readOneDayProgram(i)
-    
-    return whole
-    
-
-
-
-def readOneDayProgram(day):    
-    whole = []
-    DAYSS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-    
-    ThermostatProgramFile = Tparams.ProgramsFolder + "{}.csv".format(DAYSS[day])
-    f = open(ThermostatProgramFile , 'r')
-    linein = f.readline()
-    for line in f:        
-        parts = line.split(",")        
-        timebits = parts[0].split(':')
-        
-        week_start = datetime.date.today() - datetime.timedelta(days=datetime.date.weekday(datetime.date.today()))
-        prg_day = week_start  + datetime.timedelta(days=day)  # 0 for monday, 1 for tuesday, and so on
-        prgtime = datetime.datetime.combine(prg_day, datetime.time(int(timebits[0]), int(timebits[1])))
-                
-        title = "{} {}  {}".format(parts[1], parts[2], parts[3])
-        description = "{} Heat: {}  Cool: {}".format(parts[1], parts[2], parts[3])
-        
-        whole.append({'title' : title, 'start' : prgtime, 'description' : description })
-        #program.append(ProgramDataClass(prgtime, parts[1], float(parts[2]), float(parts[3]), int(parts[4]), now.strftime('%A')))
-               
-    f.close()
-    return whole
 
 
 

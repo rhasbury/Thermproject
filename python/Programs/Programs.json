@@ -1,0 +1,44 @@
+{ 	"basetemp" : 20,
+	
+	"programs" :
+		{	"Weekday" : 
+			{ 	"default" : { "start" : "00:00" , "end" : "00:00", "TempSensor" : "Living Room", "TempSetPointHeat" :0, "TempSetPointCool" : 0, "EnableFan" : 0},
+				"1" : 		{ "start" : "00:00" , "end" : "05:00", "TempSensor" : "Bedroom", "TempSetPointHeat" : 2, "TempSetPointCool" : 3, "EnableFan" : 0},
+				"2" : 		{ "start" : "05:00" , "end" : "07:00", "TempSensor" : "Living Room", "TempSetPointHeat" : 3, "TempSetPointCool" : 3, "EnableFan" : 0},
+				"3" : 		{ "start" : "09:00" , "end" : "11:00", "TempSensor" : "Basement", "TempSetPointHeat" : 0, "TempSetPointCool" : 1, "EnableFan" : 0},
+				"4" : 		{ "start" : "11:00" , "end" : "14:00", "TempSensor" : "Basement", "TempSetPointHeat" : 1.5, "TempSetPointCool" : 1, "EnableFan" : 0},
+				"5" : 		{ "start" : "14:00" , "end" : "16:45", "TempSensor" : "Basement", "TempSetPointHeat" : 0, "TempSetPointCool" : 1, "EnableFan" : 0},
+				"6" : 		{ "start" : "16:46" , "end" : "20:00", "TempSensor" : "Living Room", "TempSetPointHeat" : 2, "TempSetPointCool" : 3, "EnableFan" : 0},
+				"7" : 		{ "start" : "20:00" , "end" : "23:59", "TempSensor" : "Bedroom", "TempSetPointHeat" : 2, "TempSetPointCool" : 3, "EnableFan" : 0}
+
+			},
+			"Saturday" : 
+			{ 	"default" : { "start" : "00:00" , "end" : "00:00", "TempSensor" : "Living Room", "TempSetPointHeat" :0, "TempSetPointCool" : 0, "EnableFan" : 0},
+				"1" : 		{ "start" : "00:00" , "end" : "05:00", "TempSensor" : "Bedroom", "TempSetPointHeat" : 2, "TempSetPointCool" : 3, "EnableFan" : 0},
+				"2" : 		{ "start" : "05:00" , "end" : "20:00", "TempSensor" : "Living Room", "TempSetPointHeat" : 2, "TempSetPointCool" : 3, "EnableFan" : 0},				
+				"3" : 		{ "start" : "20:00" , "end" : "23:59", "TempSensor" : "Bedroom", "TempSetPointHeat" : 2, "TempSetPointCool" : 3, "EnableFan" : 0}
+
+			},
+			"Sunday" : 
+			{ 	"default" : { "start" : "00:00" , "end" : "00:00", "TempSensor" : "Living Room", "TempSetPointHeat" :0, "TempSetPointCool" : 0, "EnableFan" : 0},
+				"1" : 		{ "start" : "00:00" , "end" : "05:00", "TempSensor" : "Bedroom", "TempSetPointHeat" : 2, "TempSetPointCool" : 3, "EnableFan" : 0},
+				"2" : 		{ "start" : "05:00" , "end" : "20:00", "TempSensor" : "Living Room", "TempSetPointHeat" : 2, "TempSetPointCool" : 3, "EnableFan" : 0},				
+				"3" : 		{ "start" : "20:00" , "end" : "23:59", "TempSensor" : "Bedroom", "TempSetPointHeat" : 2, "TempSetPointCool" : 3, "EnableFan" : 0}
+
+			},
+			"Holiday" : 
+			{ 	"default" : { "start" : "00:00" , "end" : "00:00", "TempSensor" : "Living Room", "TempSetPointHeat" :0, "TempSetPointCool" : 0, "EnableFan" : 0},
+				"1" : 		{ "start" : "00:00" , "end" : "05:00", "TempSensor" : "Bedroom", "TempSetPointHeat" : 2, "TempSetPointCool" : 3, "EnableFan" : 0},
+				"2" : 		{ "start" : "05:00" , "end" : "20:00", "TempSensor" : "Living Room", "TempSetPointHeat" : 2, "TempSetPointCool" : 3, "EnableFan" : 0},				
+				"3" : 		{ "start" : "20:00" , "end" : "23:59", "TempSensor" : "Bedroom", "TempSetPointHeat" : 2, "TempSetPointCool" : 3, "EnableFan" : 0}
+
+			},
+			"AwayMode" : 
+			{ 	"default" : { "start" : "00:00" , "end" : "00:00", "TempSensor" : "Living Room", "TempSetPointHeat" : -3, "TempSetPointCool" : 3, "EnableFan" : 0}
+			}
+		}
+}
+
+
+
+			

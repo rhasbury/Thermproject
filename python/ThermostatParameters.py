@@ -7,20 +7,20 @@ import json
 
 
 
-class ProgramDataClass:     
-    def __init__(self, TimeActive, MasterTempS, TempSetP, TempSetPC, FanOnoff, Day):
-        self.TimeActiveFrom = TimeActive                        # The time this program segment is active from
-        self.MasterTempSensor = MasterTempS                     # The index of the active temp sensor
-        self.TempSetPointHeat    = TempSetP                     # temperature set point for AC
-        self.TempSetPointCool    = TempSetPC                    # temperature set point for AC
-        self.fanon   = FanOnoff                                 # is the fan on or off
-        self.Day   = Day               
-    
+# class ProgramDataClass:     
+#     def __init__(self, TimeActive, MasterTempS, TempSetP, TempSetPC, FanOnoff, Day):
+#         self.TimeActiveFrom = TimeActive                        # The time this program segment is active from
+#         self.MasterTempSensor = MasterTempS                     # The index of the active temp sensor
+#         self.TempSetPointHeat    = TempSetP                     # temperature set point for AC
+#         self.TempSetPointCool    = TempSetPC                    # temperature set point for AC
+#         self.fanon   = FanOnoff                                 # is the fan on or off
+#         self.Day   = Day               
+#     
 
 
 class ThermostatState:
-    def __init__(self, program): 
-        self.CurrentProgram = program
+    def __init__(self): 
+        #self.CurrentProgram = program
         
         self.tempORtime = datetime.datetime.utcnow()    
         self.tempORactive = False
@@ -97,6 +97,7 @@ class ThermostatParameters:
             self.ThermostatTempFile = settings['ThermostatTempFile']
             self.ThermostatLogFile = settings['ThermostatLogFile']
             self.ProgramsFolder = settings['ProgramsFolder']
+            self.ProgramsFile = settings['ProgramsFile']
             self.loginterval = int(settings['loginterval'])
     
     def to_JSON(self):
