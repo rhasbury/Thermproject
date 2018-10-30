@@ -204,9 +204,7 @@ def loop():
                 if(value['read_successful'] == True):
                     celsius = value['temperature']
                     break
-
-            
-        
+     
 
 
         if(CurrentState.mode == 2):
@@ -229,11 +227,49 @@ def loop():
                 CurrentState.fanlastchange = datetime.datetime.utcnow()
                 logControlLineDB(DBparams, my_logger, 'fan', ActiveProgram['EnableFan'], runningtime.seconds)
             CurrentState.fanState = ActiveProgram['EnableFan']   
+
+            
+        # Loop through sensors and detect if any of them are too hot or too cold, if they are further down it will cause just the fan to run and turn off heating or cooling. 
+        CurrentState.toohot = False
+        CurrentState.toocold = False
+        for (key, value) in Sparams.LocalSensors.items():
+            #my_logger.info("comparing {0} to {1}.".format(value['temperature'], value['max_temp']))
+            if(value['temperature'] > value['max_temp']):
+                CurrentState.toohot = True
+                my_logger.info("Sensor at {0} reading too hot at {1}.".format(key, value['temperature']))
+                break            
+        
+        for (key, value) in Sparams.LocalSensors.items():
+            #my_logger.info("comparing {0} to {1}.".format(value['temperature'], value['min_temp']))
+            if(value['temperature'] < value['min_temp']):
+                CurrentState.toocold = True
+                my_logger.info("Sensor at {0} reading too cold at {1}.".format(key, value['temperature']))
+                break           
+
+                       
+        for (key, value) in Sparams.RemoteSensors.items():
+            #my_logger.info("comparing {0} to {1}.".format(value['temperature'], value['min_temp']))
+            if(value['temperature'] < value['min_temp']):
+                CurrentState.toocold = True
+                my_logger.info("Sensor at {0} reading too cold at {1}".format(key, value['temperature']))
+                break
+               
+                
+        for (key, value) in Sparams.RemoteSensors.items():
+            #my_logger.info("comparing {0} to {1}.".format(value['temperature'], value['max_temp']))
+            if(value['temperature'] > value['max_temp']):
+                CurrentState.toohot = True
+                my_logger.info("Sensor at {0} reading too hot at {1}".format(key, value['temperature']))
+                break
+
+        
         
         # Save sensor temp to state object for access by external apps
         CurrentState.sensorTemp = celsius
 
 
+        
+        
         
         # email notification checker
         if (email.enabled == True):
@@ -254,31 +290,51 @@ def loop():
             if(CurrentState.mode == 1 and celsius != 0):
                 GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
                 CurrentState.acstate = 0 
-                if((CurrentState.tset - 0.5)  > celsius):
-                   GPIO.digitalWrite(Tparams.HEATER, GPIO.LOW)
+                if((CurrentState.tset - 0.5)  > celsius and CurrentState.toohot == False):
+                   CurrentState.fanState = 0
+                   GPIO.digitalWrite(Tparams.HEATER, GPIO.LOW)                               
                    if(CurrentState.heaterstate == 0): 
                        runningtime = datetime.datetime.utcnow() - CurrentState.heatlastchange 
                        CurrentState.heatlastchange = datetime.datetime.utcnow()
                        logControlLineDB(DBparams, my_logger, 'heater', 1, runningtime.seconds)                       
                    CurrentState.heaterstate = 1                       
-                elif((CurrentState.tset + 0.5) < celsius):
+                elif((CurrentState.tset - 0.5) > celsius and CurrentState.toohot == True):
                    GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
+                   CurrentState.fanState = 1
+                   if(CurrentState.heaterstate == 0):
+                       runningtime = datetime.datetime.utcnow() - CurrentState.heatlastchange 
+                       CurrentState.heatlastchange = datetime.datetime.utcnow()
+                       logControlLineDB(DBparams, my_logger, 'heater', 1, runningtime.seconds)
+                   CurrentState.heaterstate = 1
+                elif((CurrentState.tset + 0.5) < celsius and CurrentState.toohot == False):
+                   GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
+                   CurrentState.fanState = 0
                    if(CurrentState.heaterstate == 1):
                        runningtime = datetime.datetime.utcnow() - CurrentState.heatlastchange 
                        CurrentState.heatlastchange = datetime.datetime.utcnow()
                        logControlLineDB(DBparams, my_logger, 'heater', 0, runningtime.seconds)
                    CurrentState.heaterstate = 0
-            elif(CurrentState.mode == 2 and celsius != 0):
+            elif(CurrentState.mode == 2 and celsius != 0 ):
                 GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
                 CurrentState.heaterstate = 0
-                if((CurrentState.tset - 0.5) > celsius):
+                if((CurrentState.tset - 0.5) > celsius and CurrentState.toocold == False):
+                   CurrentState.fanState = 0
                    GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
                    if(CurrentState.acstate == 1): 
                        runningtime = datetime.datetime.utcnow() - CurrentState.coollastchange 
                        CurrentState.coollastchange = datetime.datetime.utcnow()
                        logControlLineDB(DBparams, my_logger, 'ac', 0, runningtime.seconds)
                    CurrentState.acstate = 0                   
-                elif((CurrentState.tset + 0.5) < celsius):
+                elif((CurrentState.tset + 0.5) < celsius and CurrentState.toocold == True):                 
+                   GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
+                   CurrentState.fanState = 1
+                   if(CurrentState.acstate == 0): 
+                       runningtime = datetime.datetime.utcnow() - CurrentState.coollastchange 
+                       CurrentState.coollastchange = datetime.datetime.utcnow()
+                       logControlLineDB(DBparams, my_logger, 'ac', 1, runningtime.seconds)
+                   CurrentState.acstate = 1
+                elif((CurrentState.tset + 0.5) < celsius and CurrentState.toocold == False):
+                   CurrentState.fanState = 0
                    GPIO.digitalWrite(Tparams.AC, GPIO.LOW)
                    if(CurrentState.acstate == 0): 
                        runningtime = datetime.datetime.utcnow() - CurrentState.coollastchange 
@@ -288,8 +344,9 @@ def loop():
             else:
                 GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
                 GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
+                GPIO.digitalWrite(Tparams.FAN, GPIO.HIGH)
         except:
-            my_logger.debug("Error setting GPIOs AC/Heater", exc_info=True)
+            my_logger.debug("Error setting GPIOs AC/Heater/FAN", exc_info=True)
          
                
         try:
@@ -365,7 +422,7 @@ def updateTemps():
             for (key, value) in Sparams.RemoteSensors.items():
                 try:                
                     value['temperature'] = readFromSensor(value['ip'], value['webiopi_name'])
-                    value['read_successful'] = True
+                    value['read_successful'] = True                    
                 except:            
                     my_logger.debug("Reading remote temperature failed. Sensor: {}".format(key), exc_info=True)
                     value['read_successful'] = False

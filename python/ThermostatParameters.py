@@ -41,6 +41,8 @@ class ThermostatState:
         self.heatlastchange = datetime.datetime.utcnow() 
         self.coollastchange = datetime.datetime.utcnow()
         self.fanlastchange = datetime.datetime.utcnow()  
+        self.toohot = False
+        self.toocold = False
     
     def to_JSON(self):
         date_handler = lambda obj: (
@@ -69,6 +71,8 @@ class SensorParameters:
             self.LocalSensors[key]['type'] = cfg[0].strip()
             self.LocalSensors[key]['i2c_address'] = cfg[1].strip()
             self.LocalSensors[key]['webiopi_name'] = cfg[2].strip()
+            self.LocalSensors[key]['max_temp'] = float(cfg[3].strip())
+            self.LocalSensors[key]['min_temp'] = float(cfg[4].strip())
 
             
         
@@ -79,6 +83,8 @@ class SensorParameters:
             self.RemoteSensors[key]['ip'] = cfg[0].strip()
             self.RemoteSensors[key]['type'] = cfg[1].strip()
             self.RemoteSensors[key]['webiopi_name'] = cfg[2].strip()
+            self.RemoteSensors[key]['max_temp'] = float(cfg[3].strip())
+            self.RemoteSensors[key]['min_temp'] = float(cfg[4].strip())
             
     def to_JSON(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
