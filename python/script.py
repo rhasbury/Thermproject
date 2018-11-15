@@ -181,9 +181,9 @@ def loop():
 
     
         
-        # decide which temp we're using for control and test it, allowing for failures        
+        # decide which temp we're using for control and test it, allowing for failures             
         try:
-            SensName = ActiveProgram["TempSensor"] # added this to make the lines below more readable
+            SensName = ActiveProgram['TempSensor'] # added this to make the lines below more readable
             if(Sparams.RemoteSensors.get(SensName) != None):        
                 if(Sparams.RemoteSensors[SensName]['read_successful'] == False):
                     raise ValueError('Remote sensor reading is untrustworthy')            
@@ -208,9 +208,9 @@ def loop():
 
 
         if(CurrentState.mode == 2):
-            CurrentState.tset = ActiveProgram["TempSetPointCool"]
+            CurrentState.tset = ActiveProgram['TempSetPointCool']
         else:
-            CurrentState.tset = ActiveProgram["TempSetPointHeat"]
+            CurrentState.tset = ActiveProgram['TempSetPointHeat']
 
         
       
@@ -267,15 +267,14 @@ def loop():
         # Save sensor temp to state object for access by external apps
         CurrentState.sensorTemp = celsius
 
-
-        
+  
         
         
         # email notification checker
-        if (email.enabled == True):
+        if (email.enabled == 1):            
             if (celsius < email.lowerlimit or celsius > email.upperlimit):
                 if(datetime.datetime.utcnow() - email.lastsend > datetime.timedelta(minutes=email.interval)):
-                    my_logger.debug("Temperature exceeded warning.  {0] < {1} < {2}  Sending email notification".format(email.lowerlimit, celsius, email.upperlimit))
+                    my_logger.debug("Temperature exceeded warning.  {0} < {1} < {2}  Sending email notification".format(email.lowerlimit, celsius, email.upperlimit))
                     try:
                         email.sendNotification("Temperature warning. Measured temperature has reached {0} C on the {1} sensor".format(celsius, SensName))
                         email.lastsend = datetime.datetime.utcnow()
@@ -297,8 +296,9 @@ def loop():
                        runningtime = datetime.datetime.utcnow() - CurrentState.heatlastchange 
                        CurrentState.heatlastchange = datetime.datetime.utcnow()
                        logControlLineDB(DBparams, my_logger, 'heater', 1, runningtime.seconds)                       
-                   CurrentState.heaterstate = 1                       
-                elif((CurrentState.tset - 0.5) > celsius and CurrentState.toohot == True):
+                   CurrentState.heaterstate = 1
+                   my_logger.info("HEAT - {0} > {1} and toohot is false".format((CurrentState.tset - 0.5), celsius))
+                elif(CurrentState.toohot == True):
                    GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
                    CurrentState.fanState = 1
                    if(CurrentState.heaterstate == 0):
@@ -306,6 +306,7 @@ def loop():
                        CurrentState.heatlastchange = datetime.datetime.utcnow()
                        logControlLineDB(DBparams, my_logger, 'heater', 1, runningtime.seconds)
                    CurrentState.heaterstate = 1
+                   my_logger.info("HEAT - {0} > {1} and toohot is true".format((CurrentState.tset - 0.5), celsius))
                 elif((CurrentState.tset + 0.5) < celsius and CurrentState.toohot == False):
                    GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
                    CurrentState.fanState = 0
@@ -314,6 +315,7 @@ def loop():
                        CurrentState.heatlastchange = datetime.datetime.utcnow()
                        logControlLineDB(DBparams, my_logger, 'heater', 0, runningtime.seconds)
                    CurrentState.heaterstate = 0
+                   my_logger.info("HEAT - {0} < {1} and toohot is false".format((CurrentState.tset - 0.5), celsius))
             elif(CurrentState.mode == 2 and celsius != 0 ):
                 GPIO.digitalWrite(Tparams.HEATER, GPIO.HIGH)
                 CurrentState.heaterstate = 0
@@ -325,7 +327,7 @@ def loop():
                        CurrentState.coollastchange = datetime.datetime.utcnow()
                        logControlLineDB(DBparams, my_logger, 'ac', 0, runningtime.seconds)
                    CurrentState.acstate = 0                   
-                elif((CurrentState.tset + 0.5) < celsius and CurrentState.toocold == True):                 
+                elif(CurrentState.toocold == True):                 
                    GPIO.digitalWrite(Tparams.AC, GPIO.HIGH)
                    CurrentState.fanState = 1
                    if(CurrentState.acstate == 0): 
@@ -479,6 +481,7 @@ def loadProgramFromFile():
 
     except:
         program = 0
+    
 
     
     
@@ -507,26 +510,28 @@ def updateProgram():
     #elif() # Figure out if the day is on a known list of holidays. 
     #    today = "Holiday"
     #elif() # Figure out if today is part of a vacation
-    #    today = "AwayMode"   
-    
+    #    today = "AwayMode"       
     try:
+        LastProgram = program["programs"][today]["default"]
+        LastProgramID = "default"
         for id, values  in program["programs"][today].items():    
-            start = datetime.datetime.strptime(values["start"], "%H:%M")
-            end = datetime.datetime.strptime(values["end"], "%H:%M") 
-            if(now_time >= start.time() and now_time > end.time()):
-                LastProgram = values
-                LastProgramID = id
-            if(now_time >= start.time() and now_time < end.time()):
-                ActiveProgram = values
-                ActiveProgramID = id
-                break
+            if(id != "default"):
+                start = datetime.datetime.strptime(values["start"], "%H:%M")
+                end = datetime.datetime.strptime(values["end"], "%H:%M") 
+                if(now_time >= start.time() and now_time > end.time()):
+                    LastProgram = values
+                    LastProgramID = id
+                if(now_time >= start.time() and now_time < end.time()):
+                    ActiveProgram = values
+                    ActiveProgramID = id
+                    break
 
     except:
         ActiveProgram = json.loads('{ "start" : "00:00" , "end" : "00:00", "TempSensor" : "Living Room", "TempSetPointHeat" :21, "TempSetPointCool" : 23, "EnableFan" : 0}')
         ActiveProgramID = "failed"
     
-#    print(ActiveProgram)
-#    print(ActiveProgramID)
+    #print(ActiveProgram)
+    #print(ActiveProgramID)
    
 
 def readFromSensor(address, name):

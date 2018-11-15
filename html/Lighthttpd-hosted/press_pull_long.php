@@ -1,10 +1,11 @@
 <?php
     $username = "monitor"; 
     $password = "password";   
-    $host = "192.168.1.104";
+    $host = "localhost";
     $database="temps";
-	
-	$mysqli = new mysqli($host, $username, $password, $database);
+    
+    $server = mysql_connect($host, $username, $password);
+    $connection = mysql_select_db($database, $server);
 
 //    $myquery = "
 //SELECT  `date`, `close` FROM  `data2`
@@ -24,22 +25,20 @@ SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', pressure AS 'y', zone FROM  pressdat WHE
 
 
 	error_log($myquery , 0);
-    $result = $mysqli->query($myquery);
+    $query = mysql_query($myquery);
     
-    if ( ! $result ) {
-        echo $mysqli->error;
+    if ( ! $query ) {
+        echo mysql_error();
         die;
     }
     
-    
     $data = array();
     
-    
-    for ($x = 0; $x < $result->num_rows; $x++) {
-        $data[] = $result->fetch_assoc();
+    for ($x = 0; $x < mysql_num_rows($query); $x++) {
+        $data[] = mysql_fetch_assoc($query);
     }
     
     echo json_encode($data);     
      
-    $mysqli->close();
+    mysql_close($server);
 ?>

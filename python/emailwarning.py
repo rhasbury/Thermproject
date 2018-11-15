@@ -2,6 +2,11 @@ import smtplib
 import configparser
 import datetime
 
+from email.mime.text import MIMEText
+
+from email.mime.multipart import MIMEMultipart
+
+
 
 class emailNotifier:
       
@@ -11,7 +16,7 @@ class emailNotifier:
         config.read('/home/pi/thermostat/python/thermostat.conf')        
         if(config.has_section('emailnotifications')):        
             settings = config['emailnotifications']            
-            self.enabled = settings['enabled']
+            self.enabled = int(settings['enabled'])
             self.sourceaddress = settings['sourceaddress']
             self.sourcepassword = settings['sourcepassword']            
             self.destinationaddress = settings['destinationaddress']
@@ -24,23 +29,27 @@ class emailNotifier:
         else:
             self.enabled = False
         
+    
     def sendNotification(self, content):        
    
         try:            
             
-            message = """From: Thermostat rrthermostat@gmail.com
-                        To: You
-                        Subject: Thermostat Temperature Warning
-                        
-                        
-                        """ + content
+            
+            msg = MIMEMultipart()
+            msg['From'] = self.sourceaddress
+            msg['To'] = self.destinationaddress
+            msg['Subject'] = "Thermostat Temperature Warning"
+
+            body = content
+            msg.attach(MIMEText(body, 'plain'))
+            
             
             
             mail = smtplib.SMTP_SSL(self.mailserver, self.mailport, timeout=10)
-            mail.ehlo()                        
-            mail.starttls()                        
+            #mail.starttls()                        
+            mail.ehlo()       
             mail.login(self.sourceaddress, self.sourcepassword)
-            mail.sendmail(self.sourceaddress, self.destinationaddress, message)
+            mail.sendmail(self.sourceaddress, self.destinationaddress, msg.as_string())
             mail.close()            
             
         except smtplib.SMTPException:

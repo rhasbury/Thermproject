@@ -6,8 +6,18 @@
 </head>
 <body>
 
+<select id="lSelect">
+<option value="&limit=1000">1000</option>  
+<option value="&limit=2000">2000</option>
+<option value="&limit=500">500</option>  
+<option value="&limit=200">200</option>  
+<option value="&limit=5000">5000</option>  
+<option value="&limit=10000">10000</option>  
+</select>
+	
+	
 <select id="rSelect">
-  <option value=" ">all</option>
+  <option value="">all</option>
   <option value="&daily">daily</option>  
 </select>
 
@@ -52,8 +62,9 @@ function drawgraph() {
 	var spinner = new Spinner(opts).spin(target);
 	var sel = document.getElementById("gSelect");
 	var range = document.getElementById("rSelect");
+	var limit = document.getElementById("lSelect");
 	
-	d3.json("general_pull.php?type=" + sel.options[sel.selectedIndex].text + range.options[range.selectedIndex].value , function(error, data) {	
+	d3.json("general_pull.php?type=" + sel.options[sel.selectedIndex].text + range.options[range.selectedIndex].value + limit.options[limit.selectedIndex].value , function(error, data) {	
 		
 		
 		if (typeof data == "undefined"){

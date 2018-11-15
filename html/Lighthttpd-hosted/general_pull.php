@@ -17,6 +17,15 @@
 	else {
     	$zone = " ";
 		}		
+
+
+	if(isset($_GET['limit']) && !empty($_GET['limit'])){ 	   
+		$limit =  $_GET['limit'];
+		
+		} 
+	else {
+    	$limit = "2000";
+		}		
 		
 
 	if(isset($_GET['daily'])){
@@ -24,35 +33,30 @@
 			case "temp":			
 
 					$myquery = "
-						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', average_temp AS 'y', zone  FROM ag_temp_daily".$zone."ORDER by tdate DESC LIMIT 1000
-						";
+						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', average_temp AS 'y', zone  FROM ag_temp_daily".$zone."ORDER by tdate DESC LIMIT ".$limit;						
 					break;
 
 
 			case "press":			
 
 					$myquery = "
-						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', average_press AS 'y', zone FROM  ag_press_daily WHERE zone LIKE 'Living Room' ORDER by tdate DESC LIMIT 4000
-						";
+						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', average_press AS 'y', zone FROM  ag_press_daily WHERE zone LIKE 'Living Room' ORDER by tdate DESC LIMIT ".$limit;						
 					break;
 
 			case "humidity":						
 					$myquery = "
-						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', average_humidity AS 'y', zone FROM  ag_hum_daily ORDER by tdate DESC LIMIT 2000
-						";
+						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', average_humidity AS 'y', zone FROM  ag_hum_daily ORDER by tdate DESC LIMIT ".$limit;
 					break;
 
 
 			case "gas":						
 					$myquery = "
-						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', gasreading AS 'y', type AS 'zone' FROM gasdat ORDER by tdate DESC LIMIT 3000
-						";
+						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', gasreading AS 'y', type AS 'zone' FROM gasdat ORDER by tdate DESC LIMIT ".$limit;						
 					break;
 
 			case "light":						
 					$myquery = "
-						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', lightlevel AS 'y', zone FROM lightdat ORDER by tdate DESC LIMIT 300
-						";
+						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', lightlevel AS 'y', zone FROM lightdat ORDER by tdate DESC LIMIT ".$limit;						
 					break;
 			default:
 				echo "no argument";
@@ -67,46 +71,39 @@
 			case "temp":			
 
 					$myquery = "
-						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', temperature AS 'y', zone  FROM tempdat".$zone."ORDER by tdate DESC LIMIT 1500
-						";
+						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', temperature AS 'y', zone  FROM tempdat".$zone."ORDER by tdate DESC LIMIT ".$limit;
 					break;
 
 			case "temp2":			
 
 					$myquery = "
-						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', temperature AS 'y', zone  FROM tempdat2".$zone."ORDER by tdate DESC LIMIT 2000
-						";
+						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', temperature AS 'y', zone  FROM tempdat2".$zone."ORDER by tdate DESC LIMIT ".$limit;
 					break;
 			
 			case "temp3":			
 					$myquery = "
-						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', temperature AS 'y', zone  FROM tempdat3".$zone."ORDER by tdate DESC LIMIT 2000
-						";
+						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', temperature AS 'y', zone  FROM tempdat3".$zone."ORDER by tdate DESC LIMIT ".$limit;
 					break;                
 			case "press":			
 
 					$myquery = "
-						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', average_press AS 'y', zone FROM  ag_press_daily WHERE zone LIKE 'Living Room' ORDER by tdate DESC LIMIT 4000
-						";
+						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', average_press AS 'y', zone FROM  ag_press_daily WHERE zone LIKE 'Living Room' ORDER by tdate DESC LIMIT ".$limit;
 					break;
 
 			case "humidity":						
 					$myquery = "
-						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', average_humidity AS 'y', zone FROM  ag_hum_daily ORDER by tdate DESC LIMIT 2000
-						";
+						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', average_humidity AS 'y', zone FROM  ag_hum_daily ORDER by tdate DESC LIMIT ".$limit;
 					break;
 
 
 			case "gas":						
 					$myquery = "
-						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', gasreading AS 'y', type AS 'zone' FROM gasdat ORDER by tdate DESC LIMIT 3000
-						";
+						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', gasreading AS 'y', type AS 'zone' FROM gasdat ORDER by tdate DESC LIMIT ".$limit;
 					break;
 
 			case "light":						
 					$myquery = "
-						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', lightlevel AS 'y', zone FROM lightdat ORDER by tdate DESC LIMIT 300
-						";
+						SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', lightlevel AS 'y', zone FROM lightdat ORDER by tdate DESC LIMIT ".$limit;
 					break;
 			default:
 				echo "no argument";
