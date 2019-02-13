@@ -197,11 +197,12 @@ def loop():
             else:
                 raise ValueError('could not determine master sesnsor')           
         
-        except:        
+        except ValueError:        
             celsius = 0
             my_logger.debug("Problem in sensor selection", exc_info=True)
             for (key, value) in Sparams.LocalSensors.items():
-                if(value['read_successful'] == True):
+                if(value['read_successful'] == True and value['location'] == 'indoor'):
+                    my_logger.debug("Falling back to {0} sensor for temp targeting at temp {1}".format(key, value['temperature']))
                     celsius = value['temperature']
                     break
      
@@ -234,14 +235,14 @@ def loop():
         CurrentState.toocold = False
         for (key, value) in Sparams.LocalSensors.items():
             #my_logger.info("comparing {0} to {1}.".format(value['temperature'], value['max_temp']))
-            if(value['temperature'] > value['max_temp']):
+            if(value['temperature'] > value['max_temp'] and value['read_successful'] == True):
                 CurrentState.toohot = True
                 my_logger.info("Sensor at {0} reading too hot at {1}.".format(key, value['temperature']))
                 break            
         
         for (key, value) in Sparams.LocalSensors.items():
             #my_logger.info("comparing {0} to {1}.".format(value['temperature'], value['min_temp']))
-            if(value['temperature'] < value['min_temp']):
+            if(value['temperature'] < value['min_temp'] and value['read_successful'] == True):
                 CurrentState.toocold = True
                 my_logger.info("Sensor at {0} reading too cold at {1}.".format(key, value['temperature']))
                 break           
@@ -249,7 +250,7 @@ def loop():
                        
         for (key, value) in Sparams.RemoteSensors.items():
             #my_logger.info("comparing {0} to {1}.".format(value['temperature'], value['min_temp']))
-            if(value['temperature'] < value['min_temp']):
+            if(value['temperature'] < value['min_temp'] and value['read_successful'] == True):
                 CurrentState.toocold = True
                 my_logger.info("Sensor at {0} reading too cold at {1}".format(key, value['temperature']))
                 break
@@ -257,7 +258,7 @@ def loop():
                 
         for (key, value) in Sparams.RemoteSensors.items():
             #my_logger.info("comparing {0} to {1}.".format(value['temperature'], value['max_temp']))
-            if(value['temperature'] > value['max_temp']):
+            if(value['temperature'] > value['max_temp'] and value['read_successful'] == True):
                 CurrentState.toohot = True
                 my_logger.info("Sensor at {0} reading too hot at {1}".format(key, value['temperature']))
                 break
