@@ -36,7 +36,7 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 hdlr = logging.FileHandler('/home/pi/thermostat/thermostat.log')
 hdlr.setFormatter(formatter)
 my_logger.addHandler(hdlr)
-my_logger.setLevel(logging.DEBUG)
+my_logger.setLevel(logging.WARNING)
 
 
 Tparams = ThermostatParameters()

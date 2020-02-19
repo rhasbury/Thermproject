@@ -39,9 +39,9 @@
         "end": "05:00", 
         "EnableFan": 0, 
         "start": "00:00", 
-        "TempSetPointHeat": 21.0, 
+        "TempSetPointHeat": 22.5, 
         "TempSensor": "Bedroom", 
-        "TempSetPointCool": 21.5
+        "TempSetPointCool": 22.0
       }, 
       "default": {
         "end": "00:00", 
@@ -55,17 +55,17 @@
         "end": "23:59", 
         "EnableFan": 0, 
         "start": "20:00", 
-        "TempSetPointHeat": 21.5, 
+        "TempSetPointHeat": 21.0, 
         "TempSensor": "Bedroom", 
-        "TempSetPointCool": 22.0
+        "TempSetPointCool": 23.0
       }, 
       "2": {
         "end": "20:00", 
         "EnableFan": 0, 
         "start": "05:00", 
-        "TempSetPointHeat": 20.5, 
+        "TempSetPointHeat": 20.0, 
         "TempSensor": "Living Room", 
-        "TempSetPointCool": 23.0
+        "TempSetPointCool": 22.5
       }
     }, 
     "AwayMode": {
@@ -83,9 +83,9 @@
         "end": "05:00", 
         "EnableFan": 0, 
         "start": "00:00", 
-        "TempSetPointHeat": 21.5, 
+        "TempSetPointHeat": 20.0, 
         "TempSensor": "Bedroom", 
-        "TempSetPointCool": 23.0
+        "TempSetPointCool": 22.0
       }, 
       "default": {
         "end": "00:00", 
@@ -99,15 +99,15 @@
         "end": "23:59", 
         "EnableFan": 0, 
         "start": "20:00", 
-        "TempSetPointHeat": 21.5, 
+        "TempSetPointHeat": 22.0, 
         "TempSensor": "Bedroom", 
-        "TempSetPointCool": 22.0
+        "TempSetPointCool": 23.0
       }, 
       "2": {
         "end": "20:00", 
         "EnableFan": 0, 
         "start": "05:00", 
-        "TempSetPointHeat": 21.5, 
+        "TempSetPointHeat": 20.5, 
         "TempSensor": "Living Room", 
         "TempSetPointCool": 23.0
       }
@@ -125,15 +125,15 @@
         "end": "05:00", 
         "EnableFan": 0, 
         "start": "00:00", 
-        "TempSetPointHeat": 21.5, 
+        "TempSetPointHeat": 20.5, 
         "TempSensor": "Bedroom", 
-        "TempSetPointCool": 21
+        "TempSetPointCool": 22.5
       }, 
       "3": {
         "end": "11:00", 
         "EnableFan": 0, 
         "start": "09:00", 
-        "TempSetPointHeat": 20.0, 
+        "TempSetPointHeat": 19.0, 
         "TempSensor": "Basement", 
         "TempSetPointCool": 22.0
       }, 
@@ -141,41 +141,41 @@
         "end": "09:00", 
         "EnableFan": 0, 
         "start": "05:00", 
-        "TempSetPointHeat": 21.0, 
+        "TempSetPointHeat": 19.5, 
         "TempSensor": "Living Room", 
-        "TempSetPointCool": 23.0
+        "TempSetPointCool": 22.5
       }, 
       "5": {
         "end": "16:45", 
         "EnableFan": 0, 
         "start": "14:00", 
-        "TempSetPointHeat": 20.0, 
+        "TempSetPointHeat": 18.5, 
         "TempSensor": "Basement", 
-        "TempSetPointCool": 22.5
+        "TempSetPointCool": 21.0
       }, 
       "4": {
         "end": "14:00", 
         "EnableFan": 0, 
         "start": "11:00", 
-        "TempSetPointHeat": 21.0, 
+        "TempSetPointHeat": 19.5, 
         "TempSensor": "Basement", 
-        "TempSetPointCool": 20.0
+        "TempSetPointCool": 18.5
       }, 
       "7": {
         "end": "23:59", 
         "EnableFan": 0, 
         "start": "20:00", 
-        "TempSetPointHeat": 21.5, 
+        "TempSetPointHeat": 21.0, 
         "TempSensor": "Bedroom", 
-        "TempSetPointCool": 22.5
+        "TempSetPointCool": 23.0
       }, 
       "6": {
         "end": "20:00", 
         "EnableFan": 0, 
         "start": "16:46", 
-        "TempSetPointHeat": 22.0, 
+        "TempSetPointHeat": 21.0, 
         "TempSensor": "Living Room", 
-        "TempSetPointCool": 23.5
+        "TempSetPointCool": 23.0
       }
     }
   }
