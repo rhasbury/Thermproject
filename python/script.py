@@ -17,6 +17,7 @@ from adafruit_htu21d import HTU21D
 import Adafruit_BMP.BMP085 as BMP085
 
 import RPi.GPIO as GPIO
+#from builtins import False
 
 sys.path.append('/home/pi/thermostat/python')
 
@@ -24,7 +25,8 @@ sys.path.append('/home/pi/thermostat/python')
 from _ctypes import addressof
 from ThermostatParameters import *
 from dblogging import *
-from emailwarning import *
+#from emailwarning import *
+from discordNotifier import *
 
 # Connection information for pulling operational info (sensor readings, equipment state, etc) 
 HOST, PORT = "localhost", 50007
@@ -41,7 +43,7 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 hdlr = logging.FileHandler('/home/pi/thermostat/thermostat.log')
 hdlr.setFormatter(formatter)
 my_logger.addHandler(hdlr)
-my_logger.setLevel(logging.WARNING)
+my_logger.setLevel(logging.DEBUG)
 
 
 Tparams = ThermostatParameters()
@@ -49,7 +51,8 @@ Sparams = SensorParameters()
 CurrentState = ThermostatState
 program = []
 DBparams = DatabaseParameters()
-email = emailNotifier()
+#email = emailNotifier()
+discord = discordNotifier()
 
 serverthread = None
 TempUpdateThread = None
@@ -113,7 +116,7 @@ def setup():
     GPIO.output(Tparams.HEATER, GPIO.HIGH)
     GPIO.output(Tparams.HEATER, GPIO.HIGH)
 
-
+    
     
     loadProgramFromFile()
     updateProgram()
@@ -278,22 +281,29 @@ class ThermostatThread(threading.Thread):
                 
                 # Save sensor temp to state object for access by external apps
                 CurrentState.sensorTemp = celsius
-        
-          
                 
-                
-                # email notification checker
-                if (email.enabled == 1):            
-                    if (celsius < email.lowerlimit or celsius > email.upperlimit):
-                        if(datetime.datetime.utcnow() - email.lastsend > datetime.timedelta(minutes=email.interval)):
-                            my_logger.debug("Temperature exceeded warning.  {0} < {1} < {2}  Sending email notification".format(email.lowerlimit, celsius, email.upperlimit))
+#                 # email notification checker
+#                 if (email.enabled == 1):            
+#                     if (celsius < email.lowerlimit or celsius > email.upperlimit):
+#                         if(datetime.datetime.utcnow() - email.lastsend > datetime.timedelta(minutes=email.interval)):
+#                             my_logger.debug("Temperature exceeded warning.  {0} < {1} < {2}  Sending email notification".format(email.lowerlimit, celsius, email.upperlimit))
+#                             try:
+#                                 email.sendNotification("Temperature warning. Measured temperature has reached {0} C on the {1} sensor".format(celsius, SensName))
+#                                 email.lastsend = datetime.datetime.utcnow()
+#                             except:
+#                                 my_logger.debug("sending warning email failed", exc_info=True)                      
+#                         
+                                # email notification checker
+                if (discord.enabled == 1):
+                    my_logger.debug("discordlogging is enabled")            
+                    if (celsius < discord.lowerlimit or celsius > discord.upperlimit):
+                        if(datetime.datetime.utcnow() - discord.lastsend > datetime.timedelta(minutes=discord.interval)):
+                            my_logger.debug("Temperature exceeded warning.  {0} < {1} < {2}  Sending email notification".format(discord.lowerlimit, celsius, discord.upperlimit))
                             try:
-                                email.sendNotification("Temperature warning. Measured temperature has reached {0} C on the {1} sensor".format(celsius, SensName))
-                                email.lastsend = datetime.datetime.utcnow()
+                                discord.sendNotification("Temperature warning. Measured temperature has reached {0} C on the {1} sensor".format(celsius, SensName))
+                                discord.lastsend = datetime.datetime.utcnow()
                             except:
-                                my_logger.debug("sending warning email failed", exc_info=True)                      
-                        
-                
+                                my_logger.debug("sending warning to discord failed", exc_info=True)               
                 
                 # Furnace and AC control logic starts here
                 # This should be the only block in which the heater, fan and AC gpios are touched.        
@@ -433,30 +443,28 @@ def updateTemps():
         if(Sparams.webiopi == 1):
             for (key, value) in Sparams.RemoteSensors.items():
                 #value['read_successful'] = False
-                try:                
-                    value['temperature'] = readFromSensor(value['ip'], value['webiopi_name'])
-                    value['read_successful'] = True                    
+                try:
+                    HOST, PORT = value['ip'], 5010                
+                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                        # Connect to server and send data
+                        sock.connect((HOST, PORT))
+                        sock.sendall(bytes("get_temp\n", "utf-8"))    
+                        # Receive data from the server and shut down
+                        received = str(sock.recv(1024), "utf-8")
+                        my_logger.debug("recieved this from remote host {}".format(received))
+                        sensordata = json.loads(received)
+                        for (return_key, return_value) in sensordata.items():
+                            if(return_value != None):
+                                value['temperature'] = return_value['temperature']
+                                if ('pressure' in return_value): value['pressure'] = return_value['pressure']
+                                if ('humidity' in return_value): value['humidity'] = return_value['humidity']
+                                value['read_successful'] = True
+                            else:
+                                value['read_successful'] = False                             
                 except:            
                     my_logger.debug("Reading remote temperature failed. Sensor: {}".format(key), exc_info=True)
                     value['read_successful'] = False
      
-                if(value['type'] == "bmp" ):
-                    try:                       
-                        value['pressure'] = readPressureFromSensor(value['ip'], value['webiopi_name'])
-                        value['read_successful'] = True        
-                    except:
-                        value['read_successful'] = False                    
-                        my_logger.debug("Reading remote pressure failed. Sensor: {}".format(key), exc_info=True)
-                 
-                 
-                if(value['type'] == "htu" ):
-                    try:                       
-                        value['humidity'] =  readHumidityFromSensor(value['ip'], value['webiopi_name'])                
-                        value['read_successful'] = True                    
-                                           
-                    except:
-                        value['read_successful'] = False                    
-                        my_logger.debug("Reading remote humidity failed. Sensor: {}".format(key), exc_info=True)
          
         #logging sensor data to mysql
         if (datetime.datetime.utcnow() - lastlogtime > datetime.timedelta(minutes=Tparams.loginterval)):        
@@ -545,76 +553,66 @@ def updateProgram():
     #print(ActiveProgramID)
    
 
-def readFromSensor(address, name):
-    HOST, PORT = address, 5010
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            # Connect to server and send data
-            sock.connect((HOST, PORT))
-            sock.sendall(bytes("get_temp\n", "utf-8"))    
-            # Receive data from the server and shut down
-            received = str(sock.recv(1024), "utf-8")
-            my_logger.debug("recieved this from remote host {}".format(received))
-            try: 
-                sensordata = json.loads(received)
-                for (key, value) in sensordata.items():
-                    if(value != None):
-                        remoteTemp = value['temperature']
-            except: 
-                my_logger.error("Something went wrong parsing data from remote sensor", exc_info=True)
-                return None      
-    except: 
-        my_logger.error("Something went wrong connecting to remote sensor", exc_info=True)
-        return None            
-    return remoteTemp
-   
-def readHumidityFromSensor(address, name):
-    HOST, PORT = address, 5010
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            # Connect to server and send data
-            sock.connect((HOST, PORT))
-            sock.sendall(bytes("get_temp\n", "utf-8"))    
-            # Receive data from the server and shut down
-            received = str(sock.recv(1024), "utf-8")
-            my_logger.debug("recieved this from remote host {}".format(received))
-            try: 
-                sensordata = json.loads(received)
-                for (key, value) in sensordata.items():
-                    if(value != None):
-                        remotehum = value['humidity']
-            except: 
-                my_logger.error("Something went wrong parsing data from remote sensor", exc_info=True)
-                return None      
-    except: 
-        my_logger.error("Something went wrong connecting to remote sensor", exc_info=True)
-        return None      
-
-    return remotehum
-
-
-def readPressureFromSensor(address, name):
-    HOST, PORT = address, 5010
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            # Connect to server and send data
-            sock.connect((HOST, PORT))
-            sock.sendall(bytes("get_temp\n", "utf-8"))    
-            # Receive data from the server and shut down
-            received = str(sock.recv(1024), "utf-8")
-            my_logger.debug("recieved this from remote host {}".format(received))
-            try: 
-                sensordata = json.loads(received)
-                for (key, value) in sensordata.items():
-                    if(value != None):
-                        remotepress= value['pressure']
-            except: 
-                my_logger.error("Something went wrong parsing data from remote sensor", exc_info=True)
-                return None      
-    except: 
-        my_logger.error("Something went wrong connecting to remote sensor", exc_info=True)
-        return None      
-    return remotepress
+# def readFromSensor(address, name):
+#     HOST, PORT = address, 5010
+#     try:
+#         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+#             # Connect to server and send data
+#             sock.connect((HOST, PORT))
+#             sock.sendall(bytes("get_temp\n", "utf-8"))    
+#             # Receive data from the server and shut down
+#             received = str(sock.recv(1024), "utf-8")
+#             my_logger.debug("recieved this from remote host {}".format(received))
+#             sensordata = json.loads(received)
+#             for (key, value) in sensordata.items():
+#                 if(value != None):
+#                     remoteTemp = value['temperature']
+#     except: 
+#         my_logger.error("Something went wrong connecting to remote sensor", exc_info=True)
+#         return None            
+#     return remoteTemp
+#    
+# def readHumidityFromSensor(address, name):
+#     HOST, PORT = address, 5010
+#     try:
+#         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+#             # Connect to server and send data
+#             sock.connect((HOST, PORT))
+#             sock.sendall(bytes("get_temp\n", "utf-8"))    
+#             # Receive data from the server and shut down
+#             received = str(sock.recv(1024), "utf-8")
+#             my_logger.debug("recieved this from remote host {}".format(received))
+#             sensordata = json.loads(received)
+#             for (key, value) in sensordata.items():
+#                 if(value != None):
+#                     remotehum = value['humidity']
+#  
+#     except: 
+#         my_logger.error("Something went wrong connecting to remote sensor", exc_info=True)
+#         return None      
+# 
+#     return remotehum
+# 
+# 
+# def readPressureFromSensor(address, name):
+#     HOST, PORT = address, 5010
+#     try:
+#         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+#             # Connect to server and send data
+#             sock.connect((HOST, PORT))
+#             sock.sendall(bytes("get_temp\n", "utf-8"))    
+#             # Receive data from the server and shut down
+#             received = str(sock.recv(1024), "utf-8")
+#             my_logger.debug("recieved this from remote host {}".format(received)) 
+#             sensordata = json.loads(received)
+#             for (key, value) in sensordata.items():
+#                 if(value != None):
+#                     remotepress= value['pressure']
+#     
+#     except: 
+#         my_logger.error("Something went wrong connecting to remote sensor", exc_info=True)
+#         return None      
+#     return remotepress
 
 
 
@@ -689,6 +687,7 @@ def tail(f, n, offset=0):
 
 if __name__ == "__main__":
     setup()
+    time.sleep(1)
     Thermostat_thread = ThermostatThread()
     Thermostat_thread.start()
     while True: time.sleep(100)
