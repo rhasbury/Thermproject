@@ -1,0 +1,9 @@
+ 
+sudo apt-get -y install samba mariadb-server lighttpd python3-pymysql build-essential git php-mysql php-common php-cgi python3-dev python3-pip i2c-tools php-fpm
+
+pip3 install configparser smbus2 adafruit-circuitpython-htu21d wheel 
+
+python setup.py bdist_wheel 
+
+Get and install  https://github.com/adafruit/Adafruit_Python_BMP command: sudo python setup.py install
+

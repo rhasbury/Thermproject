@@ -1,0 +1,26 @@
+import socket
+import sys
+import json
+
+HOST, PORT = "192.168.1.117", 5010
+
+# Create a socket (SOCK_STREAM means a TCP socket)
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+    # Connect to server and send data
+    sock.connect((HOST, PORT))
+    sock.sendall(bytes("get_temp\n", "utf-8"))
+
+    # Receive data from the server and shut down
+    received = str(sock.recv(1024), "utf-8")
+    try: 
+        sensordata = json.loads(received)                    
+        for (key, value) in sensordata.items():
+                if(value != None):
+                    print(value['temperature'])        
+        
+    except: 
+        print("failed ")
+        
+
+#print("Sent:     {}".format(data))
+print("Received: {}".format(received))
