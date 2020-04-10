@@ -196,8 +196,10 @@ class ThermostatThread(threading.Thread):
                 try:
                     #raise ValueError('forcing a valueerror to skip this section')
                     SensName = ActiveProgram['TempSensor'] # added this to make the lines below more readable
+                    
                     if(Sparams.RemoteSensors.get(SensName) != None):        
                         if(Sparams.RemoteSensors[SensName]['read_successful'] == False):
+                            my_logger.debug("this is the untrustworth sensor {}".format(Sparams.RemoteSensors[SensName]))
                             raise ValueError('Remote sensor reading is untrustworthy')            
                         celsius = Sparams.RemoteSensors[SensName]['temperature']
                         
@@ -456,38 +458,42 @@ def updateTemps():
                         for (return_key, return_value) in sensordata.items():
                             if(return_value != None):
                                 value['temperature'] = return_value['temperature']
+                                value['read_successful'] = True
                                 if ('pressure' in return_value): value['pressure'] = return_value['pressure']
                                 if ('humidity' in return_value): value['humidity'] = return_value['humidity']
-                                value['read_successful'] = True
-                            else:
-                                value['read_successful'] = False                             
+                                my_logger.debug("remote sensor {} read fine".format(key))
+                             
                 except:            
-                    my_logger.debug("Reading remote temperature failed. Sensor: {}".format(key), exc_info=True)
+                    my_logger.debug("remote sensor {} borked".format(key))
                     value['read_successful'] = False
+                    my_logger.debug("Reading remote temperature failed. Sensor: {}".format(key), exc_info=True)
+                    
      
          
         #logging sensor data to mysql
-        if (datetime.datetime.utcnow() - lastlogtime > datetime.timedelta(minutes=Tparams.loginterval)):        
-                lastlogtime = datetime.datetime.utcnow()        
-                try:
-                    for (key, value) in Sparams.LocalSensors.items(): 
-                        if(value['read_successful'] == True):
-                            logTemplineDB(DBparams, my_logger, key, value['temperature'])
-                            if(value['type'] == "bmp" ):                    
-                                logPresslineDB(DBparams, my_logger, key, value['pressure'])
-                            if(value['type'] == "htu" ):
-                                logHumlineDB(DBparams, my_logger, key, value['humidity'])               
-                        
-                    for (key, value) in Sparams.RemoteSensors.items():
-                        if(value['read_successful'] == True): 
-                            logTemplineDB(DBparams, my_logger, key, value['temperature'])
-                            if(value['type'] == "bmp" ):                    
-                                logPresslineDB(DBparams, my_logger, key, value['pressure'])
-                            if(value['type'] == "htu" ):
-                                logHumlineDB(DBparams, my_logger, key, value['humidity'])  
-                        
-                except:
-                    my_logger.error("Error logging temperatures to MYsql", exc_info=True)   
+        my_logger.debug("Should we log? datetime.datetime.utcnow() {} - lastlogtime {} > datetime.timedelta(minutes=Tparams.loginterval){}".format(datetime.datetime.utcnow(), lastlogtime, datetime.timedelta(minutes=Tparams.loginterval)))
+        if (datetime.datetime.utcnow() - lastlogtime > datetime.timedelta(minutes=Tparams.loginterval)):
+            my_logger.debug("Doing database logging now".format(key))        
+            lastlogtime = datetime.datetime.utcnow()        
+            try:
+                for (key, value) in Sparams.LocalSensors.items(): 
+                    if(value['read_successful'] == True):
+                        logTemplineDB(DBparams, my_logger, key, value['temperature'])
+                        if(value['type'] == "bmp" ):                    
+                            logPresslineDB(DBparams, my_logger, key, value['pressure'])
+                        if(value['type'] == "htu" ):
+                            logHumlineDB(DBparams, my_logger, key, value['humidity'])               
+                    
+                for (key, value) in Sparams.RemoteSensors.items():
+                    if(value['read_successful'] == True): 
+                        logTemplineDB(DBparams, my_logger, key, value['temperature'])
+                        if(value['type'] == "bmp" ):                    
+                            logPresslineDB(DBparams, my_logger, key, value['pressure'])
+                        if(value['type'] == "htu" ):
+                            logHumlineDB(DBparams, my_logger, key, value['humidity'])  
+                    
+            except:
+                my_logger.error("Error logging temperatures to MYsql", exc_info=True)   
         time.sleep(4)    
 
 

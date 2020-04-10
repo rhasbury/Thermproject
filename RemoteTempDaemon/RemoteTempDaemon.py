@@ -9,6 +9,7 @@ import board
 import busio
 from adafruit_htu21d import HTU21D
 import Adafruit_BMP.BMP085 as BMP085
+from tmp102 import TMP102
 
 HOST, PORT = "", 5010
 currentLocation = 'basement' 
@@ -35,7 +36,12 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             if(bmp085sensor != None):
                 bmpsensor = {"temperature" : bmp085sensor.read_temperature() , "pressure" : bmp085sensor.read_pressure(), "altitude" : bmp085sensor.bmp085sensor, "sealevelpressure" : bmp085sensor.bmp085sensor}
                 logging.info("Sending this for bmp085: {}".format(bmpsensor))
-            json_to_send = json.dumps({'sensor1' : htusensor, 'sensor2' : bmpsensor})
+
+            if(tmp102sensor != None):
+                tmpsensor = {"temperature" : tmp102sensor.readTemperature()}
+                logging.info("Sending this for tmp102: {}".format(htusensor))
+            
+            json_to_send = json.dumps({'sensor1' : htusensor, 'sensor2' : bmpsensor, 'sensor3' : tmpsensor})
             logging.info("Sending this json string: {}".format(json_to_send))
             self.request.sendall(bytes(json_to_send, 'UTF-8'))
         elif("get_something" in self.data.decode("utf-8")):
@@ -62,9 +68,19 @@ if __name__ == "__main__":
     except:
         logging.info("No bmp085 detected, or a fault happened.", exc_info=True)
         bmp085sensor = None
-    if(htu21dsensor == None and bmp085sensor == None):
+
+    try:
+        tmp102sensor = TMP102('C', 0x48, 1)
+        
+    except:
+        logging.info("No tmp102 detected, or a fault happened.", exc_info=True)
+        tmp102sensor = None
+    
+    
+    if(htu21dsensor == None and bmp085sensor == None and tmp102sensor == None):
         logging.info("No sensors detected. Quitting.")
         quit()
+
         
     try:
         server = socketserver.TCPServer((HOST, PORT), MyTCPHandler)
