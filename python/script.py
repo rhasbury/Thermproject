@@ -463,8 +463,7 @@ def updateTemps():
                                 if ('humidity' in return_value): value['humidity'] = return_value['humidity']
                                 my_logger.debug("remote sensor {} read fine".format(key))
                              
-                except:            
-                    my_logger.debug("remote sensor {} borked".format(key))
+                except:
                     value['read_successful'] = False
                     my_logger.debug("Reading remote temperature failed. Sensor: {}".format(key), exc_info=True)
                     
