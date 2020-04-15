@@ -66,7 +66,7 @@ class SensorParameters:
         self.webiopi = int(settings['webiopi'])
         self.LocalSensors = dict(config.items('localsensors'))
         for (key, value) in self.LocalSensors.items():                 
-            self.LocalSensors[key] = {'temperature' : 0, 'pressure' : 0 , 'humidity' : 0, 'read_successful' : False }
+            self.LocalSensors[key] = {'temperature' : 0, 'pressure' : 0 , 'humidity' : 0, 'read_successful' : False, 'last_read_time' : datetime.datetime.utcnow()}
             cfg = value.split(',')
             self.LocalSensors[key]['type'] = cfg[0].strip()
             self.LocalSensors[key]['i2c_address'] = cfg[1].strip()
@@ -80,7 +80,7 @@ class SensorParameters:
         self.RemoteSensors = dict(config.items('remotesensors'))
         for (key, value) in self.RemoteSensors.items():
             cfg = value.split(',')
-            self.RemoteSensors[key] = { 'temperature' : 0, 'pressure' : 0 , 'humidity' : 0, 'read_successful' : False }
+            self.RemoteSensors[key] = { 'temperature' : 0, 'pressure' : 0 , 'humidity' : 0, 'read_successful' : False, 'last_read_time' : datetime.datetime.utcnow()}
             self.RemoteSensors[key]['ip'] = cfg[0].strip()
             self.RemoteSensors[key]['type'] = cfg[1].strip()
             self.RemoteSensors[key]['webiopi_name'] = cfg[2].strip()

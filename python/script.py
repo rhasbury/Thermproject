@@ -27,6 +27,8 @@ from ThermostatParameters import *
 from dblogging import *
 #from emailwarning import *
 from discordNotifier import *
+discordMessage = ""
+
 
 # Connection information for pulling operational info (sensor readings, equipment state, etc) 
 HOST, PORT = "localhost", 50007
@@ -196,7 +198,11 @@ class ThermostatThread(threading.Thread):
                 try:
                     #raise ValueError('forcing a valueerror to skip this section')
                     SensName = ActiveProgram['TempSensor'] # added this to make the lines below more readable
-                    
+                    if(datetime.datetime.utcnow() - Sparams.RemoteSensors[SensName]['last_read_time'] > datetime.timedelta(minutes=10)):
+                        my_logger.debug("Sensor has not reported in for over 10 mins {}".format(Sparams.RemoteSensors[SensName]))
+                        discordMessage = discordMessage + "! Sensor error. {0} hasn't reported in over 10 minutes \n".format(SensName)
+                        raise ValueError('{0} Sensor has not had a reading in more than 10 minutes.'.format(SensName))                  
+                        
                     if(Sparams.RemoteSensors.get(SensName) != None):        
                         if(Sparams.RemoteSensors[SensName]['read_successful'] == False):
                             my_logger.debug("this is the untrustworth sensor {}".format(Sparams.RemoteSensors[SensName]))
@@ -217,10 +223,11 @@ class ThermostatThread(threading.Thread):
                     celsius = 0
                     my_logger.debug("Problem in sensor selection", exc_info=True)
                     for (key, value) in Sparams.LocalSensors.items():
-                        if(value['read_successful'] == True and value['location'] == 'indoor'):
+                        if(value['read_successful'] == True and value['location'] == 'indoor' and (datetime.datetime.utcnow() - value['last_read_time'] > datetime.timedelta(minutes=10))):
                             my_logger.debug("Falling back to {0} sensor for temp targeting at temp {1}".format(key, value['temperature']))
                             celsius = value['temperature']
                             break
+                    
              
         
         
@@ -296,16 +303,20 @@ class ThermostatThread(threading.Thread):
 #                                 my_logger.debug("sending warning email failed", exc_info=True)                      
 #                         
                                 # email notification checker
-                if (discord.enabled == 1):
+                if (celsius < discord.lowerlimit or celsius > discord.upperlimit):
+                    my_logger.debug("Temperature exceeded warning.  {0} < {1} < {2}  adding to discord notification string".format(discord.lowerlimit, celsius, discord.upperlimit))
+                    discordMessage = discordMessage + "!! Temperature warning. Measured temperature has reached {0} C on the {1} sensor \n".format(celsius, SensName)
+                    
+                if (discord.enabled == 1 and discordMessage != ""):
                     my_logger.debug("discordlogging is enabled")            
-                    if (celsius < discord.lowerlimit or celsius > discord.upperlimit):
-                        if(datetime.datetime.utcnow() - discord.lastsend > datetime.timedelta(minutes=discord.interval)):
-                            my_logger.debug("Temperature exceeded warning.  {0} < {1} < {2}  Sending email notification".format(discord.lowerlimit, celsius, discord.upperlimit))
-                            try:
-                                discord.sendNotification("Temperature warning. Measured temperature has reached {0} C on the {1} sensor".format(celsius, SensName))
-                                discord.lastsend = datetime.datetime.utcnow()
-                            except:
-                                my_logger.debug("sending warning to discord failed", exc_info=True)               
+                    
+                    if(datetime.datetime.utcnow() - discord.lastsend > datetime.timedelta(minutes=discord.interval)):
+                        try:
+                            discord.sendNotification(discordMessage)
+                            discordMessage = ""
+                            discord.lastsend = datetime.datetime.utcnow()
+                        except:
+                            my_logger.debug("sending warning to discord failed", exc_info=True)               
                 
                 # Furnace and AC control logic starts here
                 # This should be the only block in which the heater, fan and AC gpios are touched.        
@@ -372,7 +383,7 @@ class ThermostatThread(threading.Thread):
                         GPIO.output(Tparams.AC, GPIO.HIGH)
                         GPIO.output(Tparams.HEATER, GPIO.HIGH)
                         GPIO.output(Tparams.FAN, GPIO.HIGH)
-                        my_logger.debug("no conditions in gpio block were set so everything is off")
+                        my_logger.debug("no conditions in gpio block were met so everything is off. celsius = {}".format(celsius))
                 except:
                     my_logger.debug("Error setting GPIOs AC/Heater/FAN", exc_info=True)
                  
@@ -419,6 +430,7 @@ def updateTemps():
                             value['temperature'] = bmpsensor.read_temperature()
                             value['pressure'] = bmpsensor.read_pressure()     
                             value['read_successful'] = True  
+                            value['last_read_time'] = datetime.datetime.utcnow()
                             my_logger.debug("bmp85 read fine")      
                         except:
                             value['read_successful'] = False  
@@ -432,6 +444,7 @@ def updateTemps():
                             value['humidity'] = htusensor.relative_humidity
                             value['temperature'] = htusensor.temperature                     
                             value['read_successful'] = True
+                            value['last_read_time'] = datetime.datetime.utcnow()
                             my_logger.debug("HTU21D read fine")                  
                         except:
                             value['read_successful'] = False                                          
