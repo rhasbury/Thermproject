@@ -87,9 +87,18 @@ class SensorParameters:
             self.RemoteSensors[key]['max_temp'] = float(cfg[3].strip())
             self.RemoteSensors[key]['min_temp'] = float(cfg[4].strip())
             self.RemoteSensors[key]['location'] = cfg[5].strip()
-            
+
     def to_JSON(self):
-        return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+        date_handler = lambda obj: (
+            obj.isoformat()
+            if isinstance(obj, datetime.datetime)
+            or isinstance(obj, datetime.date)
+            else obj.__dict__            
+        )
+        return json.dumps(self, default=date_handler, sort_keys=True, indent=4)
+            
+#     def to_JSON(self):
+#         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
 
 class ThermostatParameters:

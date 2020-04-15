@@ -27,7 +27,7 @@ from ThermostatParameters import *
 from dblogging import *
 #from emailwarning import *
 from discordNotifier import *
-discordMessage = ""
+
 
 
 # Connection information for pulling operational info (sensor readings, equipment state, etc) 
@@ -54,7 +54,9 @@ CurrentState = ThermostatState
 program = []
 DBparams = DatabaseParameters()
 #email = emailNotifier()
-discord = discordNotifier()
+
+
+
 
 serverthread = None
 TempUpdateThread = None
@@ -63,10 +65,10 @@ TempUpdateThread = None
 
 class MyTCPHandler(socketserver.BaseRequestHandler):
     
-    #def obj_dict(obj):
-    #    return obj.__dict__
-
-   #The RequestHandler class for data requests from the web interface or any remote applications.   
+    def obj_dict(obj):
+        return obj.__dict__
+ 
+    #The RequestHandler class for data requests from the web interface or any remote applications.   
 
     def handle(self):        
         date_handler = lambda obj: (
@@ -101,7 +103,12 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
         elif("get_program_active" in self.data.decode("utf-8")):
             json_string = json.dumps(ActiveProgram)
             self.request.sendall(bytes(json_string, 'UTF-8'))
-
+        
+        
+        def handle_error(self, request, client_address):
+            my_logger.info("Baserequest handler crapped out for some reason: {}  {}".format(request, client_address))
+            raise 
+            
 
 
 def setup():
@@ -133,13 +140,7 @@ def setup():
     f.close()
 
 
-    # Create the data server and assigning the request handler            
-    server = socketserver.TCPServer((HOST, PORT), MyTCPHandler)
-    serverthread = threading.Thread(target=server.serve_forever)
-    serverthread.excepthook = ThreadExceptionCatcher
-    serverthread.daemon = True
-    serverthread.start()
-    my_logger.info("Data socket listener started")
+
     
     
     # Create the temperature sensor reading thread
@@ -150,11 +151,20 @@ def setup():
     TempUpdateThread.start()
     my_logger.info("Sensor update thread started")
     
-    
+    time.sleep(1)
     #Thermostat_thread = threading.Thread(target=ThermostatThread)
     Thermostat_thread = ThermostatThread()
     Thermostat_thread.excepthook = ThreadExceptionCatcher
     Thermostat_thread.start()
+    
+        
+    # Create the data server and assigning the request handler            
+    server = socketserver.TCPServer((HOST, PORT), MyTCPHandler)
+    serverthread = threading.Thread(target=server.serve_forever)
+    serverthread.excepthook = ThreadExceptionCatcher
+    serverthread.daemon = True
+    serverthread.start()
+    my_logger.info("Data socket listener started")
     
     # Check and possibly setup database to allow logging of data    
     CheckDatabase(DBparams, my_logger)
@@ -178,6 +188,8 @@ class ThermostatThread(threading.Thread):
         global ActiveProgram
         global ActiveProgramID
         global Sparams    
+        discord = discordNotifier()
+        discordMessage = ""
         while(True):
             # Update harddrive space information. 
             diskstat = os.statvfs(Tparams.ThermostatStateFile)    
@@ -206,18 +218,23 @@ class ThermostatThread(threading.Thread):
                 try:
                     #raise ValueError('forcing a valueerror to skip this section')
                     SensName = ActiveProgram['TempSensor'] # added this to make the lines below more readable
-                    if(datetime.datetime.utcnow() - Sparams.RemoteSensors[SensName]['last_read_time'] > datetime.timedelta(minutes=10)):
-                        my_logger.debug("Sensor has not reported in for over 10 mins {}".format(Sparams.RemoteSensors[SensName]))
-                        discordMessage = discordMessage + "! Sensor error. {0} hasn't reported in over 10 minutes \n".format(SensName)
-                        raise ValueError('{0} Sensor has not had a reading in more than 10 minutes.'.format(SensName))                  
                         
                     if(Sparams.RemoteSensors.get(SensName) != None):        
+                        if(datetime.datetime.utcnow() - Sparams.RemoteSensors[SensName]['last_read_time'] > datetime.timedelta(minutes=10)):
+                            my_logger.debug("Sensor has not reported in for over 10 mins {}".format(Sparams.RemoteSensors[SensName]))
+                            discordMessage = discordMessage + "! Sensor error. {0} hasn't reported in over 10 minutes \n".format(SensName)
+                            raise ValueError('{0} Sensor has not had a reading in more than 10 minutes.'.format(SensName))                            
                         if(Sparams.RemoteSensors[SensName]['read_successful'] == False):
                             my_logger.debug("this is the untrustworth sensor {}".format(Sparams.RemoteSensors[SensName]))
                             raise ValueError('Remote sensor reading is untrustworthy')            
                         celsius = Sparams.RemoteSensors[SensName]['temperature']
                         
                     elif(Sparams.LocalSensors.get(SensName) != None):        
+                        if(datetime.datetime.utcnow() - Sparams.LocalSensors[SensName]['last_read_time'] > datetime.timedelta(minutes=10)):
+                            my_logger.debug("Sensor has not reported in for over 10 mins {}".format(Sparams.LocalSensors[SensName]))
+                            discordMessage = discordMessage + "! Sensor error. {0} hasn't reported in over 10 minutes \n".format(SensName)
+                            raise ValueError('{0} Sensor has not had a reading in more than 10 minutes.'.format(SensName))
+                            
                         if(Sparams.LocalSensors[SensName]['read_successful'] == False):
                             raise ValueError('Local sensor reading is untrustworthy')            
                         celsius = Sparams.LocalSensors[SensName]['temperature']
@@ -412,7 +429,6 @@ class ThermostatThread(threading.Thread):
     
         
     
-:    
 class updateTemps(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
