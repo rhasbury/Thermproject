@@ -118,8 +118,7 @@ def setup():
     GPIO.output(Tparams.HEATER, GPIO.HIGH)
     GPIO.output(Tparams.HEATER, GPIO.HIGH)
 
-    
-    
+        
     loadProgramFromFile()
     updateProgram()
     CurrentState = ThermostatState()
@@ -137,16 +136,25 @@ def setup():
     # Create the data server and assigning the request handler            
     server = socketserver.TCPServer((HOST, PORT), MyTCPHandler)
     serverthread = threading.Thread(target=server.serve_forever)
+    serverthread.excepthook = ThreadExceptionCatcher
     serverthread.daemon = True
     serverthread.start()
     my_logger.info("Data socket listener started")
     
     
     # Create the temperature sensor reading thread
-    TempUpdateThread = threading.Thread(target=updateTemps)    
+    #TempUpdateThread = threading.Thread(target=updateTemps)    
+    TempUpdateThread = updateTemps()
+    TempUpdateThread.excepthook = ThreadExceptionCatcher
     TempUpdateThread.daemon = True
     TempUpdateThread.start()
     my_logger.info("Sensor update thread started")
+    
+    
+    #Thermostat_thread = threading.Thread(target=ThermostatThread)
+    Thermostat_thread = ThermostatThread()
+    Thermostat_thread.excepthook = ThreadExceptionCatcher
+    Thermostat_thread.start()
     
     # Check and possibly setup database to allow logging of data    
     CheckDatabase(DBparams, my_logger)
@@ -291,18 +299,7 @@ class ThermostatThread(threading.Thread):
                 # Save sensor temp to state object for access by external apps
                 CurrentState.sensorTemp = celsius
                 
-#                 # email notification checker
-#                 if (email.enabled == 1):            
-#                     if (celsius < email.lowerlimit or celsius > email.upperlimit):
-#                         if(datetime.datetime.utcnow() - email.lastsend > datetime.timedelta(minutes=email.interval)):
-#                             my_logger.debug("Temperature exceeded warning.  {0} < {1} < {2}  Sending email notification".format(email.lowerlimit, celsius, email.upperlimit))
-#                             try:
-#                                 email.sendNotification("Temperature warning. Measured temperature has reached {0} C on the {1} sensor".format(celsius, SensName))
-#                                 email.lastsend = datetime.datetime.utcnow()
-#                             except:
-#                                 my_logger.debug("sending warning email failed", exc_info=True)                      
-#                         
-                                # email notification checker
+# 
                 if (celsius < discord.lowerlimit or celsius > discord.upperlimit):
                     my_logger.debug("Temperature exceeded warning.  {0} < {1} < {2}  adding to discord notification string".format(discord.lowerlimit, celsius, discord.upperlimit))
                     discordMessage = discordMessage + "!! Temperature warning. Measured temperature has reached {0} C on the {1} sensor \n".format(celsius, SensName)
@@ -415,100 +412,107 @@ class ThermostatThread(threading.Thread):
     
         
     
-def updateTemps():    
-    global Sparams
-    global lastlogtime
-    # reading local sensors
-    while(True):
-        try:
-            if(Sparams.webiopi == 1):
-        
-                for (key, value) in Sparams.LocalSensors.items():
-                    if(value['type'] == "bmp"):
-                        try:
-                            bmpsensor = BMP085.BMP085()
-                            value['temperature'] = bmpsensor.read_temperature()
-                            value['pressure'] = bmpsensor.read_pressure()     
-                            value['read_successful'] = True  
-                            value['last_read_time'] = datetime.datetime.utcnow()
-                            my_logger.debug("bmp85 read fine")      
-                        except:
-                            value['read_successful'] = False  
-                            my_logger.debug("Opening local bmp085 failed. Sensor: {}".format(key), exc_info=True)
+:    
+class updateTemps(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.current_value = None
+        self.running = True #setting the thread running to true
     
-                    
-                    if(value['type'] == "htu" ):
-                        try:                       
-                            i2c = busio.I2C(board.SCL, board.SDA)
-                            htusensor = HTU21D(i2c)                            
-                            value['humidity'] = htusensor.relative_humidity
-                            value['temperature'] = htusensor.temperature                     
-                            value['read_successful'] = True
-                            value['last_read_time'] = datetime.datetime.utcnow()
-                            my_logger.debug("HTU21D read fine")                  
-                        except:
-                            value['read_successful'] = False                                          
-                            my_logger.debug("Reading local htu21d failed. Sensor: {}".format(key), exc_info=True)
-          
-    
-        except:
-            my_logger.debug("Reading local temperature failed for some reason on the outer", exc_info=True)
-    
-        # reading remote sensors
-        if(Sparams.webiopi == 1):
-            for (key, value) in Sparams.RemoteSensors.items():
-                #value['read_successful'] = False
-                try:
-                    HOST, PORT = value['ip'], 5010                
-                    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                        # Connect to server and send data
-                        sock.connect((HOST, PORT))
-                        sock.sendall(bytes("get_temp\n", "utf-8"))    
-                        # Receive data from the server and shut down
-                        received = str(sock.recv(1024), "utf-8")
-                        my_logger.debug("recieved this from remote host {}".format(received))
-                        sensordata = json.loads(received)
-                        for (return_key, return_value) in sensordata.items():
-                            if(return_value != None):
-                                value['temperature'] = return_value['temperature']
-                                value['read_successful'] = True
-                                if ('pressure' in return_value): value['pressure'] = return_value['pressure']
-                                if ('humidity' in return_value): value['humidity'] = return_value['humidity']
-                                my_logger.debug("remote sensor {} read fine".format(key))
-                             
-                except:
-                    value['read_successful'] = False
-                    my_logger.debug("Reading remote temperature failed. Sensor: {}".format(key), exc_info=True)
-                    
-     
-         
-        #logging sensor data to mysql
-        my_logger.debug("Should we log? datetime.datetime.utcnow() {} - lastlogtime {} > datetime.timedelta(minutes=Tparams.loginterval){}".format(datetime.datetime.utcnow(), lastlogtime, datetime.timedelta(minutes=Tparams.loginterval)))
-        if (datetime.datetime.utcnow() - lastlogtime > datetime.timedelta(minutes=Tparams.loginterval)):
-            my_logger.debug("Doing database logging now".format(key))        
-            lastlogtime = datetime.datetime.utcnow()        
+    def run(self):
+        global Sparams
+        global lastlogtime
+        # reading local sensors
+        while(True):
             try:
-                for (key, value) in Sparams.LocalSensors.items(): 
-                    if(value['read_successful'] == True):
-                        logTemplineDB(DBparams, my_logger, key, value['temperature'])
-                        if(value['type'] == "bmp" ):                    
-                            logPresslineDB(DBparams, my_logger, key, value['pressure'])
+                if(Sparams.webiopi == 1):
+            
+                    for (key, value) in Sparams.LocalSensors.items():
+                        if(value['type'] == "bmp"):
+                            try:
+                                bmpsensor = BMP085.BMP085()
+                                value['temperature'] = bmpsensor.read_temperature()
+                                value['pressure'] = bmpsensor.read_pressure()     
+                                value['read_successful'] = True  
+                                value['last_read_time'] = datetime.datetime.utcnow()
+                                my_logger.debug("bmp85 read fine")      
+                            except:
+                                value['read_successful'] = False  
+                                my_logger.debug("Opening local bmp085 failed. Sensor: {}".format(key), exc_info=True)
+        
+                        
                         if(value['type'] == "htu" ):
-                            logHumlineDB(DBparams, my_logger, key, value['humidity'])               
-                    
-                for (key, value) in Sparams.RemoteSensors.items():
-                    if(value['read_successful'] == True): 
-                        logTemplineDB(DBparams, my_logger, key, value['temperature'])
-                        if(value['type'] == "bmp" ):                    
-                            logPresslineDB(DBparams, my_logger, key, value['pressure'])
-                        if(value['type'] == "htu" ):
-                            logHumlineDB(DBparams, my_logger, key, value['humidity'])  
-                    
+                            try:                       
+                                i2c = busio.I2C(board.SCL, board.SDA)
+                                htusensor = HTU21D(i2c)                            
+                                value['humidity'] = htusensor.relative_humidity
+                                value['temperature'] = htusensor.temperature                     
+                                value['read_successful'] = True
+                                value['last_read_time'] = datetime.datetime.utcnow()
+                                my_logger.debug("HTU21D read fine")                  
+                            except:
+                                value['read_successful'] = False                                          
+                                my_logger.debug("Reading local htu21d failed. Sensor: {}".format(key), exc_info=True)
+              
+        
             except:
-                my_logger.error("Error logging temperatures to MYsql", exc_info=True)   
-        time.sleep(4)    
-
-
+                my_logger.debug("Reading local temperature failed for some reason on the outer", exc_info=True)
+        
+            # reading remote sensors
+            if(Sparams.webiopi == 1):
+                for (key, value) in Sparams.RemoteSensors.items():
+                    value['read_successful'] = False
+                    try:
+                        HOST, PORT = value['ip'], 5010                
+                        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                            # Connect to server and send data
+                            sock.connect((HOST, PORT))
+                            sock.sendall(bytes("get_temp\n", "utf-8"))    
+                            # Receive data from the server and shut down
+                            received = str(sock.recv(1024), "utf-8")
+                            my_logger.debug("recieved this from remote host {}".format(received))
+                            sensordata = json.loads(received)
+                            for (return_key, return_value) in sensordata.items():
+                                if(return_value != None):
+                                    value['temperature'] = return_value['temperature']
+                                    value['read_successful'] = True
+                                    if ('pressure' in return_value): value['pressure'] = return_value['pressure']
+                                    if ('humidity' in return_value): value['humidity'] = return_value['humidity']
+                                    my_logger.debug("remote sensor {} read fine".format(key))
+                                 
+                    except:
+                        value['read_successful'] = False
+                        my_logger.debug("Reading remote temperature failed. Sensor: {}".format(key), exc_info=True)
+                        
+         
+             
+            #logging sensor data to mysql
+            my_logger.debug("Should we log? datetime.datetime.utcnow() {} - lastlogtime {} > datetime.timedelta(minutes=Tparams.loginterval){}".format(datetime.datetime.utcnow(), lastlogtime, datetime.timedelta(minutes=Tparams.loginterval)))
+            if (datetime.datetime.utcnow() - lastlogtime > datetime.timedelta(minutes=Tparams.loginterval)):
+                my_logger.debug("Doing database logging now".format(key))        
+                lastlogtime = datetime.datetime.utcnow()        
+                try:
+                    for (key, value) in Sparams.LocalSensors.items(): 
+                        if(value['read_successful'] == True):
+                            logTemplineDB(DBparams, my_logger, key, value['temperature'])
+                            if(value['type'] == "bmp" ):                    
+                                logPresslineDB(DBparams, my_logger, key, value['pressure'])
+                            if(value['type'] == "htu" ):
+                                logHumlineDB(DBparams, my_logger, key, value['humidity'])               
+                        
+                    for (key, value) in Sparams.RemoteSensors.items():
+                        if(value['read_successful'] == True): 
+                            logTemplineDB(DBparams, my_logger, key, value['temperature'])
+                            if(value['type'] == "bmp" ):                    
+                                logPresslineDB(DBparams, my_logger, key, value['pressure'])
+                            if(value['type'] == "htu" ):
+                                logHumlineDB(DBparams, my_logger, key, value['humidity'])  
+                        
+                except:
+                    my_logger.error("Error logging temperatures to MYsql", exc_info=True)   
+            time.sleep(4)    
+    
+    
 
 def loadProgramFromFile():
     global program    
@@ -567,72 +571,6 @@ def updateProgram():
         ActiveProgram = json.loads('{ "start" : "00:00" , "end" : "00:00", "TempSensor" : "Living Room", "TempSetPointHeat" :21, "TempSetPointCool" : 23, "EnableFan" : 0}')
         ActiveProgramID = "failed"
     
-    #print(ActiveProgram)
-    #print(ActiveProgramID)
-   
-
-# def readFromSensor(address, name):
-#     HOST, PORT = address, 5010
-#     try:
-#         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-#             # Connect to server and send data
-#             sock.connect((HOST, PORT))
-#             sock.sendall(bytes("get_temp\n", "utf-8"))    
-#             # Receive data from the server and shut down
-#             received = str(sock.recv(1024), "utf-8")
-#             my_logger.debug("recieved this from remote host {}".format(received))
-#             sensordata = json.loads(received)
-#             for (key, value) in sensordata.items():
-#                 if(value != None):
-#                     remoteTemp = value['temperature']
-#     except: 
-#         my_logger.error("Something went wrong connecting to remote sensor", exc_info=True)
-#         return None            
-#     return remoteTemp
-#    
-# def readHumidityFromSensor(address, name):
-#     HOST, PORT = address, 5010
-#     try:
-#         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-#             # Connect to server and send data
-#             sock.connect((HOST, PORT))
-#             sock.sendall(bytes("get_temp\n", "utf-8"))    
-#             # Receive data from the server and shut down
-#             received = str(sock.recv(1024), "utf-8")
-#             my_logger.debug("recieved this from remote host {}".format(received))
-#             sensordata = json.loads(received)
-#             for (key, value) in sensordata.items():
-#                 if(value != None):
-#                     remotehum = value['humidity']
-#  
-#     except: 
-#         my_logger.error("Something went wrong connecting to remote sensor", exc_info=True)
-#         return None      
-# 
-#     return remotehum
-# 
-# 
-# def readPressureFromSensor(address, name):
-#     HOST, PORT = address, 5010
-#     try:
-#         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-#             # Connect to server and send data
-#             sock.connect((HOST, PORT))
-#             sock.sendall(bytes("get_temp\n", "utf-8"))    
-#             # Receive data from the server and shut down
-#             received = str(sock.recv(1024), "utf-8")
-#             my_logger.debug("recieved this from remote host {}".format(received)) 
-#             sensordata = json.loads(received)
-#             for (key, value) in sensordata.items():
-#                 if(value != None):
-#                     remotepress= value['pressure']
-#     
-#     except: 
-#         my_logger.error("Something went wrong connecting to remote sensor", exc_info=True)
-#         return None      
-#     return remotepress
-
-
 
 
 def temp_change(amount, length):
@@ -641,20 +579,12 @@ def temp_change(amount, length):
     global program    
     global ActiveProgram
     global ActiveProgramID
-    #if(CurrentState.tempORactive == False):
-    #    CurrentState.tempORtemp = CurrentState.tset
- 
-    #CurrentState.tempORtemp = CurrentState.tempORtemp + (int(amount)* 0.5)
-    #CurrentState.tempORtime = datetime.datetime.utcnow()
-    #CurrentState.tempORlength = int(length)
-    #CurrentState.tempORactive = True
      
     if(CurrentState.mode == 2):
         ActiveProgram["TempSetPointCool"] = ActiveProgram["TempSetPointCool"] + (int(amount)* 0.5) 
     else:
         ActiveProgram["TempSetPointHeat"] = ActiveProgram["TempSetPointHeat"] + (int(amount)* 0.5)     
      
-
     WriteProgramToFile()
     #updateProgram()
     
@@ -679,6 +609,10 @@ def setMode(mode):
     f = open(Tparams.ThermostatStateFile, 'w') 
     f.write(str(CurrentState.mode))
     f.close()
+
+
+def ThreadExceptionCatcher(exctype, value, tb):
+    my_logger.debug("Type {}, Value {}, Traceback {}".format(exctype, value, tb))
 
 
 
@@ -706,6 +640,9 @@ def tail(f, n, offset=0):
 if __name__ == "__main__":
     setup()
     time.sleep(1)
-    Thermostat_thread = ThermostatThread()
-    Thermostat_thread.start()
-    while True: time.sleep(100)
+    
+    while True: 
+        #my_logger.debug("Type {}, Value {}, Traceback {}".format(exctype, value, tb))
+        time.sleep(600)
+        
+        
