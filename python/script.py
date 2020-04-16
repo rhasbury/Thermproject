@@ -491,9 +491,10 @@ class updateTemps(threading.Thread):
                             for (return_key, return_value) in sensordata.items():
                                 if(return_value != None):
                                     value['temperature'] = return_value['temperature']
-                                    value['read_successful'] = True
+                                    value['last_read_time'] = datetime.datetime.utcnow()
+                                    value['read_successful'] = True                                   
                                     if ('pressure' in return_value): value['pressure'] = return_value['pressure']
-                                    if ('humidity' in return_value): value['humidity'] = return_value['humidity']
+                                    if ('humidity' in return_value): value['humidity'] = return_value['humidity']                                    
                                     my_logger.debug("remote sensor {} read fine".format(key))
                                  
                     except:
