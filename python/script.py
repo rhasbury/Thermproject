@@ -194,7 +194,7 @@ class ThermostatThread(threading.Thread):
             # Update harddrive space information. 
             diskstat = os.statvfs(Tparams.ThermostatStateFile)    
             CurrentState.hddspace = (diskstat.f_bavail * diskstat.f_frsize) / 1024000     
-            time.sleep(10)
+            time.sleep(60)
             try:    
         
                 # Check the status of the temperature override and disable if it's expired
@@ -330,7 +330,7 @@ class ThermostatThread(threading.Thread):
                             discordMessage = ""
                             discord.lastsend = datetime.datetime.utcnow()
                         except:
-                            my_logger.debug("sending warning to discord failed", exc_info=True)               
+                            my_logger.error("sending warning to discord failed", exc_info=True)               
                 
                 # Furnace and AC control logic starts here
                 # This should be the only block in which the heater, fan and AC gpios are touched.        
@@ -341,14 +341,16 @@ class ThermostatThread(threading.Thread):
                         CurrentState.acstate = 0 
                         if((CurrentState.tset - 0.5)  > celsius and CurrentState.toohot == False):
                            CurrentState.fanState = 0
+                           my_logger.debug("Turning the heater on because sensor says its cold")
                            GPIO.output(Tparams.HEATER, GPIO.LOW)                               
                            if(CurrentState.heaterstate == 0): 
                                runningtime = datetime.datetime.utcnow() - CurrentState.heatlastchange 
-                               CurrentState.heatlastchange = datetime.datetime.utcnow()
+                               CurrentState.heatlastchange = datetime.datetime.utcnow()                               
                                logControlLineDB(DBparams, my_logger, 'heater', 1, runningtime.seconds)                       
                            CurrentState.heaterstate = 1
                            my_logger.info("HEAT - {0} > {1} and toohot is false".format((CurrentState.tset - 0.5), celsius))
                         elif(CurrentState.toohot == True):
+                           my_logger.debug("Turning the heater off because some sensor is reading way too high")
                            GPIO.output(Tparams.HEATER, GPIO.HIGH)
                            CurrentState.fanState = 1
                            if(CurrentState.heaterstate == 0):
@@ -358,6 +360,7 @@ class ThermostatThread(threading.Thread):
                            CurrentState.heaterstate = 1
                            my_logger.info("HEAT - {0} > {1} and toohot is true".format((CurrentState.tset - 0.5), celsius))
                         elif((CurrentState.tset + 0.5) < celsius and CurrentState.toohot == False):
+                           my_logger.debug("Turning the heater off because sensor says its warm enough")
                            GPIO.output(Tparams.HEATER, GPIO.HIGH)
                            CurrentState.fanState = 0
                            if(CurrentState.heaterstate == 1):
@@ -371,6 +374,7 @@ class ThermostatThread(threading.Thread):
                         CurrentState.heaterstate = 0
                         if((CurrentState.tset - 0.5) > celsius and CurrentState.toocold == False):
                            CurrentState.fanState = 0
+                           my_logger.debug("Turning the AC off because sensor says its cold enough")
                            GPIO.output(Tparams.AC, GPIO.HIGH)
                            if(CurrentState.acstate == 1): 
                                runningtime = datetime.datetime.utcnow() - CurrentState.coollastchange 
@@ -378,6 +382,7 @@ class ThermostatThread(threading.Thread):
                                logControlLineDB(DBparams, my_logger, 'ac', 0, runningtime.seconds)
                            CurrentState.acstate = 0                   
                         elif(CurrentState.toocold == True):                 
+                           my_logger.debug("Turning the AC off because some sensor is way too cold")
                            GPIO.output(Tparams.AC, GPIO.HIGH)
                            CurrentState.fanState = 1
                            if(CurrentState.acstate == 0): 
@@ -385,21 +390,22 @@ class ThermostatThread(threading.Thread):
                                CurrentState.coollastchange = datetime.datetime.utcnow()
                                logControlLineDB(DBparams, my_logger, 'ac', 1, runningtime.seconds)
                            CurrentState.acstate = 1
-                        elif((CurrentState.tset + 0.5) < celsius and CurrentState.toocold == False):
-                           CurrentState.fanState = 0
-                           GPIO.output(Tparams.AC, GPIO.LOW)
-                           if(CurrentState.acstate == 0): 
-                               runningtime = datetime.datetime.utcnow() - CurrentState.coollastchange 
-                               CurrentState.coollastchange = datetime.datetime.utcnow()
-                               logControlLineDB(DBparams, my_logger, 'ac', 1, runningtime.seconds)
-                           CurrentState.acstate = 1
-                    else:
+                        elif((CurrentState.tset + 0.5) < celsius and CurrentState.toocold == False):                            
+                            CurrentState.fanState = 0
+                            my_logger.debug("Turning the AC off because sensor says its cold enough")
+                            GPIO.output(Tparams.AC, GPIO.LOW)
+                            if(CurrentState.acstate == 0): 
+                                runningtime = datetime.datetime.utcnow() - CurrentState.coollastchange 
+                                CurrentState.coollastchange = datetime.datetime.utcnow()
+                                logControlLineDB(DBparams, my_logger, 'ac', 1, runningtime.seconds)
+                            CurrentState.acstate = 1
+                    else:                        
                         GPIO.output(Tparams.AC, GPIO.HIGH)
                         GPIO.output(Tparams.HEATER, GPIO.HIGH)
                         GPIO.output(Tparams.FAN, GPIO.HIGH)
-                        my_logger.debug("no conditions in gpio block were met so everything is off. celsius = {}".format(celsius))
+                        my_logger.info("no conditions in gpio block were met so everything is off. celsius = {}".format(celsius))
                 except:
-                    my_logger.debug("Error setting GPIOs AC/Heater/FAN", exc_info=True)
+                    my_logger.error("Error setting GPIOs AC/Heater/FAN", exc_info=True)
                  
                        
                 try:
@@ -410,7 +416,7 @@ class ThermostatThread(threading.Thread):
                         GPIO.output(Tparams.FAN, GPIO.HIGH)
                         
                 except:
-                    my_logger.debug("Error setting GPIOs Fan", exc_info=True)
+                    my_logger.error("Error setting GPIOs Fan", exc_info=True)
                    
                 # End of Furnace and AC logic block.
         
@@ -442,44 +448,59 @@ class updateTemps(threading.Thread):
         while(True):
             try:
                 if(Sparams.webiopi == 1):
-            
+                    my_logger.debug("reading local sensors")
                     for (key, value) in Sparams.LocalSensors.items():
                         if(value['type'] == "bmp"):
                             try:
+                                my_logger.debug("Reading BMP085") 
                                 bmpsensor = BMP085.BMP085()
+                                time.sleep(0.1)
                                 value['temperature'] = bmpsensor.read_temperature()
-                                value['pressure'] = bmpsensor.read_pressure()     
+                                time.sleep(0.1)
+                                value['pressure'] = bmpsensor.read_pressure()
+                                time.sleep(0.1)   
                                 value['read_successful'] = True  
                                 value['last_read_time'] = datetime.datetime.utcnow()
                                 my_logger.debug("bmp85 read fine")      
                             except:
                                 value['read_successful'] = False  
-                                my_logger.debug("Opening local bmp085 failed. Sensor: {}".format(key), exc_info=True)
+                                my_logger.error("Opening local bmp085 failed. Sensor: {}".format(key), exc_info=True)
         
                         
                         if(value['type'] == "htu" ):
                             try:                       
+                                time.sleep(0.1)
+                                my_logger.debug("Reading HTU21D")
                                 i2c = busio.I2C(board.SCL, board.SDA)
+                                my_logger.debug("HTU21D bus acquired")   
                                 htusensor = HTU21D(i2c)                            
-                                value['humidity'] = htusensor.relative_humidity
-                                value['temperature'] = htusensor.temperature                     
+                                my_logger.debug("HTU21D Init done")
+                                time.sleep(0.1)
+                                value['humidity'] = htusensor.relative_humidity   # somewhere after this line things are stoping but not throwing an exception.
+                                my_logger.debug("HTU21D Read humidity")
+                                time.sleep(0.1)
+                                value['temperature'] = htusensor.temperature
+                                my_logger.debug("HTU21D Read temperature")
+                                time.sleep(0.1)                   
                                 value['read_successful'] = True
                                 value['last_read_time'] = datetime.datetime.utcnow()
                                 my_logger.debug("HTU21D read fine")                  
                             except:
                                 value['read_successful'] = False                                          
-                                my_logger.debug("Reading local htu21d failed. Sensor: {}".format(key), exc_info=True)
+                                my_logger.error("Reading local htu21d failed. Sensor: {}".format(key), exc_info=True)
               
         
             except:
-                my_logger.debug("Reading local temperature failed for some reason on the outer", exc_info=True)
+                my_logger.error("Reading local temperature failed for some reason on the outer", exc_info=True)
         
             # reading remote sensors
             if(Sparams.webiopi == 1):
+                my_logger.debug("reading remote sensors")
                 for (key, value) in Sparams.RemoteSensors.items():
                     value['read_successful'] = False
                     try:
-                        HOST, PORT = value['ip'], 5010                
+                        HOST, PORT = value['ip'], 5010
+                        my_logger.debug("Reading {}".format(key))                
                         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                             # Connect to server and send data
                             sock.connect((HOST, PORT))
@@ -499,14 +520,14 @@ class updateTemps(threading.Thread):
                                  
                     except:
                         value['read_successful'] = False
-                        my_logger.debug("Reading remote temperature failed. Sensor: {}".format(key), exc_info=True)
+                        my_logger.error("Reading remote temperature failed. Sensor: {}".format(key), exc_info=True)
                         
          
              
             #logging sensor data to mysql
             my_logger.debug("Should we log? datetime.datetime.utcnow() {} - lastlogtime {} > datetime.timedelta(minutes=Tparams.loginterval){}".format(datetime.datetime.utcnow(), lastlogtime, datetime.timedelta(minutes=Tparams.loginterval)))
             if (datetime.datetime.utcnow() - lastlogtime > datetime.timedelta(minutes=Tparams.loginterval)):
-                my_logger.debug("Doing database logging now".format(key))        
+                my_logger.info("Doing database logging now".format(key))        
                 lastlogtime = datetime.datetime.utcnow()        
                 try:
                     for (key, value) in Sparams.LocalSensors.items(): 
@@ -527,7 +548,7 @@ class updateTemps(threading.Thread):
                         
                 except:
                     my_logger.error("Error logging temperatures to MYsql", exc_info=True)   
-            time.sleep(4)    
+            time.sleep(10)    
     
     
 
@@ -538,18 +559,15 @@ def loadProgramFromFile():
             program = json.load(json_data)
 
     except:
+        my_logger.error("Error reading program json", exc_info=True)
         program = 0
-    
 
-    
     
 def WriteProgramToFile():
     global program
     with open(Tparams.ProgramsFile, 'w') as outfile:
         json.dump(program, outfile, indent=2)
 
-
-    
     
 def updateProgram():
     global ActiveProgram
@@ -585,6 +603,7 @@ def updateProgram():
                     break
 
     except:
+        my_logger.error("Error determining program section", exc_info=True)
         ActiveProgram = json.loads('{ "start" : "00:00" , "end" : "00:00", "TempSensor" : "Living Room", "TempSetPointHeat" :21, "TempSetPointCool" : 23, "EnableFan" : 0}')
         ActiveProgramID = "failed"
     
@@ -603,7 +622,7 @@ def temp_change(amount, length):
         ActiveProgram["TempSetPointHeat"] = ActiveProgram["TempSetPointHeat"] + (int(amount)* 0.5)     
      
     WriteProgramToFile()
-    #updateProgram()
+    updateProgram()
     
 
 def fan_change(length):
@@ -630,7 +649,6 @@ def setMode(mode):
 
 def ThreadExceptionCatcher(exctype, value, tb):
     my_logger.debug("Type {}, Value {}, Traceback {}".format(exctype, value, tb))
-
 
 
 

@@ -84,7 +84,7 @@ def CheckDatabase(DBparams, my_logger):
             result = cursor.execute ("SHOW TABLES LIKE '" + DBparams.controltable + "'")       
             if(result == 0):
                 my_logger.info("Control table '{}' not found in database, creating it.".format(DBparams.controltable))
-                cursor.execute ("CREATE TABLE " + DBparams.controltable + " (tdate DATETIME, equipment TEXT, state BOOLEAN, dtime TIME, rtime NUMERIC);")
+                cursor.execute ("CREATE TABLE " + DBparams.controltable + " (tdate DATETIME, equipment TEXT, state BOOLEAN, dtime TIME, rtime NUMERIC(10,5));")
     
         
         connection.close()
