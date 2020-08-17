@@ -4,8 +4,7 @@
     $host = "localhost";
     $database="temps";
     
-    $server = mysql_connect($host, $username, $password);
-    $connection = mysql_select_db($database, $server);
+	$mysqli = new mysqli($host, $username, $password, $database);
 
 
     $myquery = "
@@ -14,7 +13,7 @@ SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', powerreading AS 'y', type AS type FROM p
 
 
 	error_log($myquery , 0);
-    $query = mysql_query($myquery);
+    $query = $mysqli->query($myquery);
     
     if ( ! $query ) {
         echo mysql_error();

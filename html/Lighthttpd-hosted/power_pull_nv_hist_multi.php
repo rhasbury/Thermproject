@@ -4,8 +4,7 @@
     $host = "localhost";
     $database="temps";
     
-    $server = mysql_connect($host, $username, $password);
-    $connection = mysql_select_db($database, $server);
+	$mysqli = new mysqli($host, $username, $password, $database);
 
 
     $myquery = "
@@ -31,7 +30,8 @@ SELECT UNIX_TIMESTAMP(DATE(tdate)) as 'x', SUM(`powerreading`) as 'y' FROM power
 ";
 
 	error_log($myquery , 0);
-    $query = mysql_query($myquery);
+	$query = $mysqli->query($myquery);
+    
     
     if ( ! $query ) {
         echo mysql_error();

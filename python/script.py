@@ -248,7 +248,7 @@ class ThermostatThread(threading.Thread):
                     celsius = 0
                     my_logger.debug("Problem in sensor selection", exc_info=True)
                     for (key, value) in Sparams.LocalSensors.items():
-                        if(value['read_successful'] == True and value['location'] == 'indoor' and (datetime.datetime.utcnow() - value['last_read_time'] > datetime.timedelta(minutes=10))):
+                        if(value['read_successful'] == True and value['location'] == 'indoor' and (datetime.datetime.utcnow() - value['last_read_time'] < datetime.timedelta(minutes=10))):
                             my_logger.debug("Falling back to {0} sensor for temp targeting at temp {1}".format(key, value['temperature']))
                             celsius = value['temperature']
                             break
