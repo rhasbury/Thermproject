@@ -12,17 +12,17 @@ SELECT UNIX_TIMESTAMP(DATE(tdate)) as 'x', SUM(`powerreading`) as 'y' FROM power
 ";
 
 	error_log($myquery , 0);
-    $query = mysql_query($myquery);
+    $query = mysqli_query($myquery);
     
     if ( ! $query ) {
-        echo mysql_error();
+        echo mysqli_error();
         die;
     }
     
     $data = array();
     
-    for ($x = 0; $x < mysql_num_rows($query); $x++) {
-        $data[] = mysql_fetch_assoc($query);
+    for ($x = 0; $x < mysqli_num_rows($query); $x++) {
+        $data[] = mysqli_fetch_assoc($query);
     }
 
 	    $myquery = "
@@ -34,14 +34,14 @@ SELECT UNIX_TIMESTAMP(DATE(tdate)) as 'x', SUM(`powerreading`) as 'y' FROM power
     
     
     if ( ! $query ) {
-        echo mysql_error();
+        echo mysqli_error();
         die;
     }
     
     $data2 = array();
     
-    for ($x = 0; $x < mysql_num_rows($query); $x++) {
-        $data2[] = mysql_fetch_assoc($query);
+    for ($x = 0; $x < mysqli_num_rows($query); $x++) {
+        $data2[] = mysqli_fetch_assoc($query);
     }
 
 	$data3 = array(
@@ -55,5 +55,5 @@ SELECT UNIX_TIMESTAMP(DATE(tdate)) as 'x', SUM(`powerreading`) as 'y' FROM power
     echo json_encode($data3);     
 
      
-    mysql_close($server);
+    mysqli_close($server);
 ?>

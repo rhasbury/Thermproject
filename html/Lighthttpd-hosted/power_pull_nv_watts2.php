@@ -4,8 +4,7 @@
     $host = "localhost";
     $database="temps";
     
-    $server = mysql_connect($host, $username, $password);
-    $connection = mysql_select_db($database, $server);
+	$mysqli = new mysqli($host, $username, $password, $database);
 
 
     $myquery = "
@@ -14,20 +13,20 @@ SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', powerreading AS 'y', type AS type FROM p
 
 
 	error_log($myquery , 0);
-    $query = mysql_query($myquery);
+    $query = mysqli_query($myquery);
     
     if ( ! $query ) {
-        echo mysql_error();
+        echo mysqli_error();
         die;
     }
     
     $data = array();
     
-    for ($x = 0; $x < mysql_num_rows($query); $x++) {
-        $data[] = mysql_fetch_assoc($query);
+    for ($x = 0; $x < mysqli_num_rows($query); $x++) {
+        $data[] = mysqli_fetch_assoc($query);
     }
     
     echo json_encode($data);     
      
-    mysql_close($server);
+    mysqli_close($server);
 ?>
