@@ -12,10 +12,10 @@ SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', powerreading AS 'y', type AS type FROM p
 
 
 	error_log($myquery , 0);
-    $query = mysqli_query($myquery);
+    $query = $mysqli->query($myquery);
     
     if ( ! $query ) {
-        echo mysqli_error();
+        echo $mysqli->error
         die;
     }
     
@@ -27,5 +27,5 @@ SELECT  UNIX_TIMESTAMP(`tdate`) AS 'x', powerreading AS 'y', type AS type FROM p
     
     echo json_encode($data);     
      
-    mysqli_close($server);
+    $mysqli->close();
 ?>

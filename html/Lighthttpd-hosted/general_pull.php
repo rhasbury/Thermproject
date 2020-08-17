@@ -119,7 +119,7 @@
     $result = $mysqli->query($myquery);
 	
     if ( ! $result ) {
-        echo $mysqli->error;
+        echo $mysqli->error
         die;
     }
     

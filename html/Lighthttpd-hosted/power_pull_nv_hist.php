@@ -13,10 +13,10 @@ SELECT UNIX_TIMESTAMP(DATE(tdate)) as 'x', `kwhtotal` as 'y' FROM ag_power_daily
 
 
 	error_log($myquery , 0);
-    $query = mysqli_query($myquery);
+    $query = $mysqli->query($myquery);
     
     if ( ! $query ) {
-        echo mysqli_error();
+        echo $mysqli->error;
         die;
     }
     
@@ -28,5 +28,5 @@ SELECT UNIX_TIMESTAMP(DATE(tdate)) as 'x', `kwhtotal` as 'y' FROM ag_power_daily
     
     echo json_encode($data);     
      
-    mysqli_close($server);
+    $mysqli->close();
 ?>
