@@ -1,16 +1,20 @@
 Thermostat user is "monitor" password is "password"
 For remote access set this
-GRANT ALL PRIVILEGES ON *.* TO 'monitor'@'192.168.1.%' IDENTIFIED BY 'my-new-password' WITH GRANT OPTION;
+CREATE USER 'monitor'@'localhost' IDENTIFIED BY 'password';
+
+GRANT ALL PRIVILEGES ON *.* TO 'monitor'@'192.168.%.%' IDENTIFIED BY 'password' WITH GRANT OPTION;
+GRANT ALL PRIVILEGES ON *.* TO 'monitor'@'localhost' IDENTIFIED BY 'password' WITH GRANT OPTION;
 GRANT EVENT ON *.* TO 'monitor'@'%' IDENTIFIED BY 'password';
 
+CREATE DATABASE temps;
 
+CREATE TABLE webhelper (type TEXT, displayname TEXT, tablename TEXT, xfield TEXT, yfield TEXT);
 
 CREATE TABLE tempdat (tdate DATETIME, zone TEXT, temperature NUMERIC(10,5));
 
-CREATE TABLE pressdat (tdate DATETIME, zone TEXT, pressure NUMERIC(10,5);
+CREATE TABLE pressdat (tdate DATETIME, zone TEXT, pressure NUMERIC(10,5));
 
 CREATE TABLE humdat (tdate DATETIME, zone TEXT, humidity NUMERIC(10,5));
-
 
 
 //Table structure

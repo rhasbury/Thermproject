@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<style>
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.non-collapsible {
+  background-color: #457;
+  color: white;
+  cursor: pointer;
+  padding: 18px;
+  width: 100%;
+  border: none;
+  text-align: center;
+  outline: none;
+  font-size: 15px;
+}
+
+.collapsible {
+  background-color: #757;
+  color: white;
+  cursor: pointer;
+  padding: 18px;
+  width: 100%;
+  border: none;
+  text-align: center;
+  outline: none;
+  font-size: 15px;
+}
+
+
+.active, .collapsible:hover {
+  background-color: #555;
+}
+
+
+.content {
+  padding: 0 18px;
+  display: none;
+  overflow: hidden;
+  background-color: #f1f1f1;
+}
+
+.btn {
+  border: none;
+  color: white;
+  padding: 14px 28px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.success {background-color: #4CAF50;} /* Green */
+.success:hover {background-color: #46a049;}
+
+.info {background-color: #2196F3;} /* Blue */
+.info:hover {background: #0b7dda;}
+
+.warning {background-color: #ff9800;} /* Orange */
+.warning:hover {background: #e68a00;}
+
+.danger {background-color: #f44336;} /* Red */ 
+.danger:hover {background: #da190b;}
+
+.default {background-color: #e7e7e7; color: black;} /* Gray */ 
+.default:hover {background: #ddd;}
+
+</style>
+</head>
+<body>
+
+
+
+
+
+<button type="button" class="non-collapsible" id="bt_status">The BEDROOM is 20 C and I'm trying to keep it at 21 C</button>
+
+<button type="button" class="collapsible">Are you too cold or hot?</button>
+<div class="content">
+  <button class="btn info">Gimmie 20 mins of heat</button>
+  <button class="btn info">Gimmie 20 mins of Cold</button>
+  <button class="btn info">Gimmie 20 mins of Fan</button>
+</div>
+<button type="button" class="collapsible">Snooze</button>
+<div class="content">
+  <button class="btn info">10 Min</button>
+  <button class="btn info">30 Min</button>
+  <button class="btn info">1 Hour</button>
+  <button class="btn info">2 Hours</button>
+  <button class="btn info">6 Hours</button>
+</div>
+<button type="button" class="collapsible">Change Temp Setpoint</button>
+<div class="content">
+  <button class="btn info">Up</button>
+  <button class="btn info">TEMP</button>    
+  <button class="btn info">Down</button>    
+</div>
+<button type="button" class="collapsible">Set Mode</button>
+<div class="content">
+  <button class="btn info">OFF</button>
+  <button class="btn info">Heat</button>  
+  <button class="btn info">Cool</button>  
+</div>
+
+
+</div>
+<script>
+// Code for collapsable menus
+var coll = document.getElementsByClassName("collapsible");
+var i;
+
+for (i = 0; i < coll.length; i++) {
+  coll[i].addEventListener("click", function() {
+    this.classList.toggle("active");
+    var content = this.nextElementSibling;
+    if (content.style.display === "block") {
+      content.style.display = "none";
+    } else {
+      content.style.display = "block";
+    }
+  });
+}
+
+
+// my code for updating stuff. 
+		
+		
+var Sparams = 0;
+var Tparams = 0;
+var Tstate = 0;
+var program = 0;
+
+get_sparams();
+//get_tparams();
+get_tstate();
+get_program();
+
+setInterval(UpdateUI, 300);
+
+
+
+
+
+function get_program(){
+	
+	var oReq = new XMLHttpRequest(); //New request object
+	oReq.onload = function() {				
+		program = JSON.parse(this.responseText)
+		}
+
+	oReq.open("GET", "thermostat_interface.php?command=get_program_active", true);
+	oReq.send();
+
+}
+
+function get_sparams(){
+	
+	var oReq = new XMLHttpRequest(); //New request object
+	oReq.onload = function() {				
+		Sparams = JSON.parse(this.responseText)
+		}
+
+	oReq.open("GET", "thermostat_interface.php?command=get_sparams", true);
+	oReq.send();
+
+}
+
+function get_tparams(){
+	
+	var oReq = new XMLHttpRequest(); //New request object
+	oReq.onload = function() {				
+		Tparams = JSON.parse(this.responseText)
+		}
+
+	oReq.open("GET", "thermostat_interface.php?command=get_tparams", true);
+	oReq.send();
+
+}
+
+function get_tstate(){
+	
+	var oReq = new XMLHttpRequest(); //New request object
+	oReq.onload = function() {				
+		Tstate = JSON.parse(this.responseText)
+		}
+
+	oReq.open("GET", "thermostat_interface.php?command=get_state", true);
+	oReq.send();
+
+}
+
+function send_thermosat_command(command){
+	// available commands: temp_up, temp_down, change_mode_off, change_mode_heat, change_mode_cool, fan_change
+	var oReq = new XMLHttpRequest(); //New request object
+	oReq.onload = function() {				
+		result = this.responseText;
+		}
+
+	oReq.open("GET", "thermostat_interface.php?command=" + command, true);
+	oReq.send();
+
+}
+
+function UpdateUI(){
+	get_sparams();
+	get_tstate();
+	get_program();
+	var i  = 0;	
+
+	if(Tstate.mode == 1){ 
+		$("#bt_status").text('The ' + Tstate.sensor_that_actually_read + ' is ' + Tstate.sensorTemp + '&deg;' + ' and Im trying to keep it at ' + Tstate.tset + '&deg;' );
+	}
+	else if(Tstate.mode == 2) {
+		$("#bt_status").text('The ' + Tstate.sensor_that_actually_read + ' is ' + Tstate.sensorTemp + '&deg;' + ' and Im trying to keep it at ' + Tstate.tset + '&deg;' );
+	}			
+	else {
+		$("#bt_status").text('The ' + Tstate.sensor_that_actually_read + ' is ' + Tstate.sensorTemp + ' and Im doing nothing about it. (off)');
+
+	};
+
+
+
+}
+
+
+</script>
+
+</body>
+</html>

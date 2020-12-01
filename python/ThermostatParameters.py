@@ -43,6 +43,7 @@ class ThermostatState:
         self.fanlastchange = datetime.datetime.utcnow()  
         self.toohot = False
         self.toocold = False
+        self.sensor_that_actually_read = "none"
     
     def to_JSON(self):
         date_handler = lambda obj: (

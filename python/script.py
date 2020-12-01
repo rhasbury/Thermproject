@@ -228,6 +228,7 @@ class ThermostatThread(threading.Thread):
                             my_logger.debug("this is the untrustworth sensor {}".format(Sparams.RemoteSensors[SensName]))
                             raise ValueError('Remote sensor reading is untrustworthy')            
                         celsius = Sparams.RemoteSensors[SensName]['temperature']
+                        CurrentState.sensor_that_actually_read = SensName
                         
                     elif(Sparams.LocalSensors.get(SensName) != None):        
                         if(datetime.datetime.utcnow() - Sparams.LocalSensors[SensName]['last_read_time'] > datetime.timedelta(minutes=10)):
@@ -238,6 +239,7 @@ class ThermostatThread(threading.Thread):
                         if(Sparams.LocalSensors[SensName]['read_successful'] == False):
                             raise ValueError('Local sensor reading is untrustworthy')            
                         celsius = Sparams.LocalSensors[SensName]['temperature']
+                        CurrentState.sensor_that_actually_read = SensName
             
                     else:
                         my_logger.debug("could not determine master sesnsor")
@@ -251,6 +253,7 @@ class ThermostatThread(threading.Thread):
                         if(value['read_successful'] == True and value['location'] == 'indoor' and (datetime.datetime.utcnow() - value['last_read_time'] < datetime.timedelta(minutes=10))):
                             my_logger.debug("Falling back to {0} sensor for temp targeting at temp {1}".format(key, value['temperature']))
                             celsius = value['temperature']
+                            CurrentState.sensor_that_actually_read = key
                             break
                     
              
