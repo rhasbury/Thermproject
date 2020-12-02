@@ -95,6 +95,8 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             setMode(1)
         elif("change_mode_cool" in self.data.decode("utf-8")):
             setMode(2)
+        elif("snooze_1hr" in self.data.decode("utf-8")):
+            snooze(60)
         elif("fan_change" in self.data.decode("utf-8")):
             fan_change(5)
         elif("get_program_all" in self.data.decode("utf-8")):
@@ -279,7 +281,13 @@ class ThermostatThread(threading.Thread):
                         CurrentState.fanlastchange = datetime.datetime.utcnow()
                         logControlLineDB(DBparams, my_logger, 'fan', ActiveProgram['EnableFan'], runningtime.seconds)
                     CurrentState.fanState = ActiveProgram['EnableFan']   
-        
+                
+                # Logic to check for snoozes 
+                
+                if(CurrentState.snooze == True):
+                    if(datetime.datetime.utcnow() > CurrentState.snooze_time):
+                        CurrentState.snooze = False
+                
                     
                 # Loop through sensors and detect if any of them are too hot or too cold, if they are further down it will cause just the fan to run and turn off heating or cooling. 
                 CurrentState.toohot = False
@@ -318,8 +326,9 @@ class ThermostatThread(threading.Thread):
                 
                 # Save sensor temp to state object for access by external apps
                 CurrentState.sensorTemp = celsius
+            
                 
-# 
+                # Check for things to send to discord. 
                 if (celsius < discord.lowerlimit or celsius > discord.upperlimit):
                     my_logger.debug("Temperature exceeded warning.  {0} < {1} < {2}  adding to discord notification string".format(discord.lowerlimit, celsius, discord.upperlimit))
                     discordMessage = discordMessage + "!! Temperature warning. Measured temperature has reached {0} C on the {1} sensor \n".format(celsius, SensName)
@@ -339,7 +348,7 @@ class ThermostatThread(threading.Thread):
                 # This should be the only block in which the heater, fan and AC gpios are touched.        
                 my_logger.debug("CurrentState.mode {0} And celsius is {1}, CurrentState.tset {2}".format(CurrentState.mode, celsius, CurrentState.tset))
                 try:
-                    if(CurrentState.mode == 1 and celsius != 0):
+                    if(CurrentState.mode == 1 and celsius != 0 and CurrentState.snooze = False ):
                         GPIO.output(Tparams.AC, GPIO.HIGH)
                         CurrentState.acstate = 0 
                         if((CurrentState.tset - 0.5)  > celsius and CurrentState.toohot == False):
@@ -372,7 +381,7 @@ class ThermostatThread(threading.Thread):
                                logControlLineDB(DBparams, my_logger, 'heater', 0, runningtime.seconds)
                            CurrentState.heaterstate = 0
                            my_logger.info("HEAT - {0} < {1} and toohot is false".format((CurrentState.tset - 0.5), celsius))
-                    elif(CurrentState.mode == 2 and celsius != 0 ):
+                    elif(CurrentState.mode == 2 and celsius != 0 and CurrentState.snooze = False ):
                         GPIO.output(Tparams.HEATER, GPIO.HIGH)
                         CurrentState.heaterstate = 0
                         if((CurrentState.tset - 0.5) > celsius and CurrentState.toocold == False):
@@ -650,6 +659,9 @@ def setMode(mode):
     f.write(str(CurrentState.mode))
     f.close()
 
+def snooze(minutes):
+    CurrentState.snooze = True
+    CurrentState.snooze_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=minutes)
 
 def ThreadExceptionCatcher(exctype, value, tb):
     my_logger.debug("Type {}, Value {}, Traceback {}".format(exctype, value, tb))
