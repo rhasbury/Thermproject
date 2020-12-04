@@ -44,6 +44,8 @@ class ThermostatState:
         self.toohot = False
         self.toocold = False
         self.sensor_that_actually_read = "none"
+        self.snooze = False
+        self.snooze_time = "none"
     
     def to_JSON(self):
         date_handler = lambda obj: (

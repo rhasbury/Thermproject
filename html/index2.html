@@ -194,7 +194,7 @@ function get_tstate(){
 }
 
 function send_thermosat_command(command){
-	// available commands: temp_up, temp_down, change_mode_off, change_mode_heat, change_mode_cool, fan_change
+	// available commands: temp_up, temp_down, change_mode_off, change_mode_heat, change_mode_cool, fan_change, snooze_1hr
 	var oReq = new XMLHttpRequest(); //New request object
 	oReq.onload = function() {				
 		result = this.responseText;
