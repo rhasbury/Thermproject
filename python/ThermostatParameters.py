@@ -22,20 +22,18 @@ class ThermostatState:
     def __init__(self): 
         #self.CurrentProgram = program
         
-        self.tempORtime = datetime.datetime.utcnow()    
-        self.tempORactive = False
-        self.tempORlength = 1
-        self.tempORtemp = 20
-        self.fanORtime = datetime.datetime.utcnow()
-        self.fanORactive = False
-        self.fanORlength = 1
-        self.fanORstate = 0
+        self.heatORtime = None    
+        self.heatORactive = False        
+        self.coolORtime = None    
+        self.coolORactive = False        
+        self.fanORtime = None
+        self.fanORactive = False     
         self.heaterstate = 0 
         self.fanState = 0
         self.acstate = 0 
         self.mode = 1 # 1 = heat, 2 = cool, 0 = off  
         self.tset = 0
-        self.overrideexp = 0 
+        #self.overrideexp = 0 
         self.hddspace = 0         
         self.sensorTemp = 0
         self.heatlastchange = datetime.datetime.utcnow() 

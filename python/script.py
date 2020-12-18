@@ -182,6 +182,7 @@ class ThermostatThread(threading.Thread):
         threading.Thread.__init__(self)
         self.current_value = None
         self.running = True #setting the thread running to true
+        self.furnace = HVAC()
     
     def run(self):      
         
@@ -199,23 +200,30 @@ class ThermostatThread(threading.Thread):
             time.sleep(60)
             try:    
         
-                # Check the status of the temperature override and disable if it's expired
-                if (datetime.datetime.utcnow() - CurrentState.tempORtime > datetime.timedelta(minutes=CurrentState.tempORlength)):        
-                    CurrentState.tempORactive = False
-                
-                # Check the status of the fan override and disable if it's expired
-                if (datetime.datetime.utcnow() - CurrentState.fanORtime > datetime.timedelta(minutes=CurrentState.fanORlength)):        
-                    CurrentState.fanORactive = False
-                        
-                
+                #Check for all of the overrrides and unset any that have expired        
+                if(CurrentState.snooze == True):
+                    if(datetime.datetime.utcnow() > CurrentState.snooze_time):
+                        CurrentState.snooze = False
+                                                                
+                if(CurrentState.heatORactive == True):
+                    if(datetime.datetime.utcnow() > CurrentState.heatORtime):
+                        CurrentState.heatORactive = False
+                                                
+                if(CurrentState.coolORactive == True):
+                    if(datetime.datetime.utcnow() > CurrentState.coolORtime):
+                        CurrentState.coolORactive = False
+                                                
+                if(CurrentState.fanORactive == True):
+                    if(datetime.datetime.utcnow() > CurrentState.fanORtime):
+                        CurrentState.fanORactive = False
+                                
                 try:
                     # Check to see if we've changed program sections. 
                     updateProgram()
                 except:
                     my_logger.debug("updateProgram() excepted", exc_info=True)
         
-            
-                
+                            
                 # decide which temp we're using for control and test it, allowing for failures             
                 try:
                     #raise ValueError('forcing a valueerror to skip this section')
@@ -266,27 +274,6 @@ class ThermostatThread(threading.Thread):
                 else:
                     CurrentState.tset = ActiveProgram['TempSetPointHeat']
         
-                
-              
-                # Check for fan override and apply
-                if(CurrentState.fanORactive == True):            
-                    if(CurrentState.fanState != CurrentState.fanORstate):
-                        runningtime = datetime.datetime.utcnow() - CurrentState.fanlastchange 
-                        CurrentState.fanlastchange = datetime.datetime.utcnow()
-                        logControlLineDB(DBparams, my_logger, 'fan', CurrentState.fanORstate, runningtime.seconds)
-                    CurrentState.fanState = CurrentState.fanORstate
-                else:
-                    if(CurrentState.fanState != ActiveProgram['EnableFan']):
-                        runningtime = datetime.datetime.utcnow() - CurrentState.fanlastchange 
-                        CurrentState.fanlastchange = datetime.datetime.utcnow()
-                        logControlLineDB(DBparams, my_logger, 'fan', ActiveProgram['EnableFan'], runningtime.seconds)
-                    CurrentState.fanState = ActiveProgram['EnableFan']   
-                
-                # Logic to check for snoozes 
-                
-                if(CurrentState.snooze == True):
-                    if(datetime.datetime.utcnow() > CurrentState.snooze_time):
-                        CurrentState.snooze = False
                 
                     
                 # Loop through sensors and detect if any of them are too hot or too cold, if they are further down it will cause just the fan to run and turn off heating or cooling. 
@@ -345,90 +332,58 @@ class ThermostatThread(threading.Thread):
                             my_logger.error("sending warning to discord failed", exc_info=True)               
                 
                 # Furnace and AC control logic starts here
-                # This should be the only block in which the heater, fan and AC gpios are touched.        
+                   
                 my_logger.debug("CurrentState.mode {0} And celsius is {1}, CurrentState.tset {2}".format(CurrentState.mode, celsius, CurrentState.tset))
                 try:
-                    if(CurrentState.mode == 1 and celsius != 0 and CurrentState.snooze = False ):
-                        GPIO.output(Tparams.AC, GPIO.HIGH)
-                        CurrentState.acstate = 0 
+                    #Snooze/override block
+                    if(CurrentState.snooze == True):
+                        furnace.turn_everything_off()
+                        my_logger.info("Snooze is active, turning everything off. celsius = {}".format(celsius))
+                    elif(CurrentState.heatORactive == True and CurrentState.toohot == False):
+                           my_logger.debug("Turning the heater on due to an override")
+                           furnace.set_heat(1)
+                    elif(CurrentState.coolORactive == True):
+                            my_logger.debug("Turning the AC on due to an override")
+                            furnace.set_cool(1)
+                    elif(CurrentState.fanORactive == True):
+                            my_logger.debug("Turning the fan on due to an override")
+                            furnace.set_fan(1)                    
+
+                    #Heat mode block
+                    elif(CurrentState.mode == 1 and celsius != 0 and CurrentState.snooze = False ):                      
+                        my_logger.debug("HEAT - temperature setpoint = {0},  measured temp = {1} and toohot is {}".format((CurrentState.tset - 0.5), celsius, CurrentState.toohot))
                         if((CurrentState.tset - 0.5)  > celsius and CurrentState.toohot == False):
-                           CurrentState.fanState = 0
                            my_logger.debug("Turning the heater on because sensor says its cold")
-                           GPIO.output(Tparams.HEATER, GPIO.LOW)                               
-                           if(CurrentState.heaterstate == 0): 
-                               runningtime = datetime.datetime.utcnow() - CurrentState.heatlastchange 
-                               CurrentState.heatlastchange = datetime.datetime.utcnow()                               
-                               logControlLineDB(DBparams, my_logger, 'heater', 1, runningtime.seconds)                       
-                           CurrentState.heaterstate = 1
-                           my_logger.info("HEAT - {0} > {1} and toohot is false".format((CurrentState.tset - 0.5), celsius))
+                           furnace.set_heat(1)                           
+                        
                         elif(CurrentState.toohot == True):
                            my_logger.debug("Turning the heater off because some sensor is reading way too high")
-                           GPIO.output(Tparams.HEATER, GPIO.HIGH)
-                           CurrentState.fanState = 1
-                           if(CurrentState.heaterstate == 0):
-                               runningtime = datetime.datetime.utcnow() - CurrentState.heatlastchange 
-                               CurrentState.heatlastchange = datetime.datetime.utcnow()
-                               logControlLineDB(DBparams, my_logger, 'heater', 1, runningtime.seconds)
-                           CurrentState.heaterstate = 1
-                           my_logger.info("HEAT - {0} > {1} and toohot is true".format((CurrentState.tset - 0.5), celsius))
+                           furnace.set_heat(0)
+                           
                         elif((CurrentState.tset + 0.5) < celsius and CurrentState.toohot == False):
                            my_logger.debug("Turning the heater off because sensor says its warm enough")
-                           GPIO.output(Tparams.HEATER, GPIO.HIGH)
-                           CurrentState.fanState = 0
-                           if(CurrentState.heaterstate == 1):
-                               runningtime = datetime.datetime.utcnow() - CurrentState.heatlastchange 
-                               CurrentState.heatlastchange = datetime.datetime.utcnow()
-                               logControlLineDB(DBparams, my_logger, 'heater', 0, runningtime.seconds)
-                           CurrentState.heaterstate = 0
-                           my_logger.info("HEAT - {0} < {1} and toohot is false".format((CurrentState.tset - 0.5), celsius))
+                           furnace.set_heat(0)                           
+                           
+                    #cool mode block       
                     elif(CurrentState.mode == 2 and celsius != 0 and CurrentState.snooze = False ):
-                        GPIO.output(Tparams.HEATER, GPIO.HIGH)
-                        CurrentState.heaterstate = 0
-                        if((CurrentState.tset - 0.5) > celsius and CurrentState.toocold == False):
-                           CurrentState.fanState = 0
+                        my_logger.debug("COOL - temperature setpoint = {0},  measured temp = {1} and toocold is {}".format((CurrentState.tset - 0.5), celsius, CurrentState.toocold))
+                        if((CurrentState.tset - 0.5) > celsius and CurrentState.toocold == False):                           
                            my_logger.debug("Turning the AC off because sensor says its cold enough")
-                           GPIO.output(Tparams.AC, GPIO.HIGH)
-                           if(CurrentState.acstate == 1): 
-                               runningtime = datetime.datetime.utcnow() - CurrentState.coollastchange 
-                               CurrentState.coollastchange = datetime.datetime.utcnow()
-                               logControlLineDB(DBparams, my_logger, 'ac', 0, runningtime.seconds)
-                           CurrentState.acstate = 0                   
+                           furnace.set_cool(0)
                         elif(CurrentState.toocold == True):                 
                            my_logger.debug("Turning the AC off because some sensor is way too cold")
-                           GPIO.output(Tparams.AC, GPIO.HIGH)
-                           CurrentState.fanState = 1
-                           if(CurrentState.acstate == 0): 
-                               runningtime = datetime.datetime.utcnow() - CurrentState.coollastchange 
-                               CurrentState.coollastchange = datetime.datetime.utcnow()
-                               logControlLineDB(DBparams, my_logger, 'ac', 1, runningtime.seconds)
-                           CurrentState.acstate = 1
-                        elif((CurrentState.tset + 0.5) < celsius and CurrentState.toocold == False):                            
-                            CurrentState.fanState = 0
-                            my_logger.debug("Turning the AC off because sensor says its cold enough")
-                            GPIO.output(Tparams.AC, GPIO.LOW)
-                            if(CurrentState.acstate == 0): 
-                                runningtime = datetime.datetime.utcnow() - CurrentState.coollastchange 
-                                CurrentState.coollastchange = datetime.datetime.utcnow()
-                                logControlLineDB(DBparams, my_logger, 'ac', 1, runningtime.seconds)
-                            CurrentState.acstate = 1
+                           furnace.set_cool(0)
+                        elif((CurrentState.tset + 0.5) < celsius and CurrentState.toocold == False):
+                            my_logger.debug("Turning the AC on because sensor says its not cold enough")
+                            furnace.set_cool(1)
                     else:                        
-                        GPIO.output(Tparams.AC, GPIO.HIGH)
-                        GPIO.output(Tparams.HEATER, GPIO.HIGH)
-                        GPIO.output(Tparams.FAN, GPIO.HIGH)
+                        furnace.turn_everything_off()
                         my_logger.info("no conditions in gpio block were met so everything is off. celsius = {}".format(celsius))
                 except:
                     my_logger.error("Error setting GPIOs AC/Heater/FAN", exc_info=True)
                  
                        
-                try:
-                    if(CurrentState.fanState == 1):
-                        GPIO.output(Tparams.FAN, GPIO.LOW)
-                        
-                    elif(CurrentState.fanState == 0):
-                        GPIO.output(Tparams.FAN, GPIO.HIGH)
-                        
-                except:
-                    my_logger.error("Error setting GPIOs Fan", exc_info=True)
+
                    
                 # End of Furnace and AC logic block.
         
@@ -444,9 +399,84 @@ class ThermostatThread(threading.Thread):
                 serverthread.server_close()
                 print ("threads successfully closed")
     
+# HVAC control class
+#This should be the only block in which the heater, fan and AC gpios are touched.     
+class HVAC():
+    global CurrentState  
+#    def __init__(self):
+         
+    def set_heat(self, state):
+        if(CurrentState.heaterstate == state):
+           my_logger.debug("Set_heat called, but state matches so not doing anything.")
+        elif(state == 1)
+            my_logger.debug("Turning the heater on")
+            self.set_cool(0)
+            self.set_fan(0)            
+            GPIO.output(Tparams.HEATER, GPIO.LOW)
+            log_runtime_to_db(CurrentState.heatlastchange, state, 'heater')             
+            CurrentState.heatlastchange = datetime.datetime.utcnow()                   
+            CurrentState.heaterstate = 1
+            my_logger.info("Turned heater on and logged {0} seconds of off time".format(runningtime.seconds)
+        elif(state == 0)
+            my_logger.debug("Turning the heater off")
+            GPIO.output(Tparams.HEATER, GPIO.HIGH)
+            log_runtime_to_db(CurrentState.heatlastchange, state, 'heater') 
+            CurrentState.heatlastchange = datetime.datetime.utcnow()
+            CurrentState.heaterstate = 0
+            my_logger.info("Turned heater off and logged {0} seconds of on time".format(runningtime.seconds)
     
+    def set_cool(self, state):
+        if(CurrentState.acstate == state):
+           my_logger.debug("Set_cool called, but state matches so not doing anything.")
+        elif(state == 1)
+            my_logger.debug("Turning the AC on")
+            self.set_heat(0)
+            self.set_fan(0)            
+            GPIO.output(Tparams.AC, GPIO.LOW)
+            log_runtime_to_db(CurrentState.coollastchange, state, 'ac') 
+            CurrentState.coollastchange = datetime.datetime.utcnow()
+            CurrentState.acstate = 1
+            my_logger.info("Turned AC on and logged {0} seconds of off time".format(runningtime.seconds)
+        elif(state == 0)
+            my_logger.debug("Turning the AC off")
+            GPIO.output(Tparams.AC, GPIO.HIGH)
+            log_runtime_to_db(CurrentState.coollastchange, state, 'ac')  
+            CurrentState.coollastchange = datetime.datetime.utcnow()
+            CurrentState.acstate  = 0
+            my_logger.info("Turned AC off and logged {0} seconds of on time".format(runningtime.seconds)
         
+    def set_fan(self, state):
+        if(CurrentState.fanState == state):
+           my_logger.debug("Set_fan called, but state matches so not doing anything.")
+        elif(state == 1)
+            my_logger.debug("Turning the fan on")
+            self.set_cool()
+            self.set_heat(0)            
+            GPIO.output(Tparams.FAN, GPIO.LOW)
+            log_runtime_to_db(CurrentState.fanlastchange, state, 'fan')
+            CurrentState.fanlastchange = datetime.datetime.utcnow()                            
+            CurrentState.fanState = 1
+            my_logger.info("Turned fan on and logged {0} seconds of off time".format(runningtime.seconds)
+        elif(state == 0)
+            my_logger.debug("Turning the fan off")
+            GPIO.output(Tparams.FAN, GPIO.HIGH)
+            log_runtime_to_db(CurrentState.fanlastchange, state, 'fan')  
+            CurrentState.fanlastchange = datetime.datetime.utcnow()
+            CurrentState.fanState  = 0
+            my_logger.info("Turned fan off and logged {0} seconds of on time".format(runningtime.seconds)
+        
+    def turn_everything_off(self):
+        self.set_cool(0)
+        self.set_heat(0)
+        self.set_fan(0)    
+        my_logger.info("no conditions in gpio block were met so everything is off. celsius = {}".format(celsius))
     
+    def log_runtime_to_db(lastchange, state, mode): 
+        runningtime = datetime.datetime.utcnow() - lastchange
+        logControlLineDB(DBparams, my_logger, mode, state, runningtime.seconds)
+    
+
+
 class updateTemps(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
@@ -659,9 +689,30 @@ def setMode(mode):
     f.write(str(CurrentState.mode))
     f.close()
 
-def snooze(minutes):
+def Snooze(minutes):
     CurrentState.snooze = True
     CurrentState.snooze_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=minutes)
+
+def FanOverride(minutes):
+    CurrentState.fanORactive = True
+    CurrentState.fanORtime = datetime.datetime.utcnow() + datetime.timedelta(minutes=minutes)
+    
+def HeatBlast(minutes):
+    CurrentState.heatORactive = True
+    CurrentState.heatORtime = datetime.datetime.utcnow() + datetime.timedelta(minutes=minutes)
+
+def ColdBlast(minutes):
+    CurrentState.coolORactive = True
+    CurrentState.coolORtime = datetime.datetime.utcnow() + datetime.timedelta(minutes=minutes)
+
+
+def CancelAllOverrides():
+    CurrentState.snooze = False
+    CurrentState.fanORactive = False
+    CurrentState.heatORactive = False
+    CurrentState.coolORactive = False
+
+
 
 def ThreadExceptionCatcher(exctype, value, tb):
     my_logger.debug("Type {}, Value {}, Traceback {}".format(exctype, value, tb))
