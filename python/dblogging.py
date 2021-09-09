@@ -38,28 +38,42 @@ def logHumlineDB(DBparams, my_logger, location, humidity):
         my_logger.debug("logHumlineDB() exception thrown", exc_info=True)
         
         
-def logControlLineDB(DBparams, my_logger, equipment, state, runtime):    
+# def logControlLineDB(DBparams, my_logger, equipment, state, runtime):    
+#     try:
+#         connection = pymysql.connect(host=DBparams.host, user=DBparams.dbuser, passwd=DBparams.dbpassword, db=DBparams.db, charset=DBparams.charset, cursorclass=pymysql.cursors.DictCursor)
+#         with connection.cursor() as cursor:
+#             cursor.execute ("Select tdate FROM controldat WHERE equipment='{}' ORDER by tdate DESC LIMIT 1".format(equipment))
+#             row = cursor.fetchone()
+#
+#             if(row != None):                
+#                 tdelta = datetime.datetime.now() - row['tdate']
+#                 sqlquery = "INSERT INTO " + DBparams.controltable + " values(NOW(), '{}', {}, {}, {})".format(equipment, bool(state),  tdelta.total_seconds(), runtime )
+#
+#                 #my_logger.debug(sqlquery)
+#                 cursor.execute (sqlquery) 
+#
+#             else:
+#                 cursor.execute ("INSERT INTO " + DBparams.controltable + " values(NOW(), '{}', {}, 0, {})".format(equipment, bool(state), runtime))
+#         connection.commit()
+#         connection.close()
+#     except:
+#         #print("logHumlineDB() exception thrown")
+#         my_logger.debug("logControlLineDB() exception thrown", exc_info=True)
+#
+
+
+
+def log_runtime_to_db(DBparams, my_logger, last_change_time, state, equipment):    
+    tdelta = datetime.datetime.now() - last_change_time
     try:
         connection = pymysql.connect(host=DBparams.host, user=DBparams.dbuser, passwd=DBparams.dbpassword, db=DBparams.db, charset=DBparams.charset, cursorclass=pymysql.cursors.DictCursor)
         with connection.cursor() as cursor:
-            cursor.execute ("Select tdate FROM controldat WHERE equipment='{}' ORDER by tdate DESC LIMIT 1".format(equipment))
-            row = cursor.fetchone()
-            
-            if(row != None):                
-                tdelta = datetime.datetime.now() - row['tdate']
-                sqlquery = "INSERT INTO " + DBparams.controltable + " values(NOW(), '{}', {}, {}, {})".format(equipment, bool(state),  tdelta.total_seconds(), runtime )
-                 
-                #my_logger.debug(sqlquery)
-                cursor.execute (sqlquery) 
-                    
-            else:
-                 cursor.execute ("INSERT INTO " + DBparams.controltable + " values(NOW(), '{}', {}, 0, {})".format(equipment, bool(state), runtime))
-        connection.commit()
-        connection.close()
-    except:
-        #print("logHumlineDB() exception thrown")
+            cursor.execute ("INSERT INTO " + DBparams.controltable + " values(NOW(), '{}', {}, 0, {})".format(equipment, bool(state), tdelta.seconds))            
+            connection.commit()
+            #connection.close()
+    except:        
         my_logger.debug("logControlLineDB() exception thrown", exc_info=True)
-        
+
 # Checks connection, and then the existence of the require table. If the table doesn't exist then it creates it. 
 
 def CheckDatabase(DBparams, my_logger):
